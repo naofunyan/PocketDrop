@@ -144,10 +144,11 @@
 
                 <!-- ══ Popup panel ══ -->
                 <Popup IsOpen="{Binding IsChecked, ElementName=ExpandButton}"
-                       PlacementTarget="{Binding ElementName=ExpandButton}"
-                       Placement="Custom" AllowsTransparency="True"
-                       StaysOpen="False"
-                       CustomPopupPlacementCallback="Popup_PlacementCallback">
+                        PlacementTarget="{Binding ElementName=MainContainer}" 
+                        Placement="Custom" AllowsTransparency="True"
+                        StaysOpen="False"
+                        CustomPopupPlacementCallback="Popup_PlacementCallback"
+                        Closed="Popup_Closed">
                     <Border Width="490" Height="300"
                             Background="{StaticResource MicaBase}"
                             BorderBrush="{StaticResource StrokeCardDefault}"

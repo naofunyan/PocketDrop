@@ -98,6 +98,9 @@ namespace PocketDrop
         private Point? _listDragStart = null;
         private List<PocketItem> _dragCandidates = null;
 
+        // NEW: The safety flag to prevent self-drops
+        private bool _isDraggingFromApp = false;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -125,6 +128,14 @@ namespace PocketDrop
         // --- CATCHING THE FILES (Dropping In) ---
         private void Window_Drop(object sender, DragEventArgs e)
         {
+            // NEW: If the user dropped the files back onto the app itself, cancel everything!
+            if (_isDraggingFromApp)
+            {
+                e.Effects = DragDropEffects.None;
+                e.Handled = true;
+                return;
+            }
+
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
                 string[] droppedFiles = (string[])e.Data.GetData(DataFormats.FileDrop);
@@ -237,7 +248,10 @@ namespace PocketDrop
                 Point tempStart = (Point)startPoint;
                 startPoint = null;
 
+                // NEW: Turn the safety flag on before the drag, and off after
+                _isDraggingFromApp = true;
                 DragDropEffects result = DragDrop.DoDragDrop((DependencyObject)sender, dragData, DragDropEffects.Copy);
+                _isDraggingFromApp = false;
 
                 if (result != DragDropEffects.None)
                 {
@@ -396,7 +410,10 @@ namespace PocketDrop
             _listDragStart = null;
             _dragCandidates = null;
 
+            // NEW: Turn the safety flag on before the drag, and off after
+            _isDraggingFromApp = true;
             DragDropEffects result = DragDrop.DoDragDrop(ItemsListBox, dragData, DragDropEffects.Copy);
+            _isDraggingFromApp = false;
 
             if (result != DragDropEffects.None)
             {
@@ -435,40 +452,35 @@ namespace PocketDrop
         }
 
         // --- SMART POPUP PLACEMENT ---
-        private CustomPopupPlacement[] Popup_PlacementCallback(
-            Size popupSize, Size targetSize, Point offset)
+        private CustomPopupPlacement[] Popup_PlacementCallback(Size popupSize, Size targetSize, Point offset)
         {
-            const double gap = 25;
-            const double extraX = 0; // ← nudge left (negative) or right (positive)
+            // 1. Perfectly center X relative to the MainContainer
+            double xNudge = -18;
+            double xOffset = ((targetSize.Width - popupSize.Width) / 2.0) + xNudge;
 
-            // Use PointToScreen for EVERYTHING — consistent physical pixel coords
-            var buttonScreen = ExpandButton.PointToScreen(new Point(0, 0));
-            var windowScreen = this.PointToScreen(new Point(0, 0));
+            // 2. Plan A: Spawn BELOW the app
+            double yBelow = targetSize.Height + 0;
 
-            double screenH = SystemParameters.PrimaryScreenHeight;
-            double windowScreenBottom = windowScreen.Y + this.ActualHeight;
-            double windowScreenTop = windowScreen.Y;
-            double windowScreenCenterX = windowScreen.X + this.ActualWidth / 2;
+            // 3. Plan B: Spawn ABOVE the app
+            // Bumping this up to 40 fully clears the invisible 16px margin 
+            // and the heavy downward drop shadow, matching the top visual gap.
+            double yAbove = -popupSize.Height - 40;
 
-            // X: center popup horizontally over main window + optional nudge
-            double xOffset = (windowScreenCenterX - popupSize.Width / 2) - buttonScreen.X + extraX;
-
-            double spaceBelow = screenH - windowScreenBottom;
-
-            if (spaceBelow >= popupSize.Height + gap)
+            return new[]
             {
-                // Enough room below — popup top = window bottom + gap
-                double yOffset = (windowScreenBottom + gap) - buttonScreen.Y;
-                return new[] { new CustomPopupPlacement(
-                    new Point(xOffset, yOffset), PopupPrimaryAxis.Horizontal) };
-            }
-            else
-            {
-                // Not enough below — popup bottom = window top - gap
-                double yOffset = (windowScreenTop - gap - popupSize.Height) - buttonScreen.Y;
-                return new[] { new CustomPopupPlacement(
-                    new Point(xOffset, yOffset), PopupPrimaryAxis.Horizontal) };
-            }
+                new CustomPopupPlacement(new Point(xOffset, yBelow), PopupPrimaryAxis.Horizontal),
+                new CustomPopupPlacement(new Point(xOffset, yAbove), PopupPrimaryAxis.Horizontal)
+            };
+        }
+
+        // --- CLEANUP WHEN POPUP CLOSES ---
+        private void Popup_Closed(object sender, EventArgs e)
+        {
+            // 1. Unselect all files so they don't stay highlighted
+            ItemsListBox.UnselectAll();
+
+            // 2. Ensure the toggle button visually unchecks if you closed the popup by clicking on the desktop
+            ExpandButton.IsChecked = false;
         }
 
         // --- CLOSING THE WINDOW — clears items and hides ---

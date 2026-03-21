@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PocketDrop")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c1f1447c2ab80b4bece276f3c93e22decdc51116")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+aca459c859b3c011da8ef9bd5fcbbdec35a0bff4")]
 [assembly: System.Reflection.AssemblyProductAttribute("PocketDrop")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PocketDrop")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
