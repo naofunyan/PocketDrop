@@ -3,6 +3,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -40,6 +41,8 @@ namespace PocketDrop
         public ObservableCollection<PocketItem> PocketedItems { get; set; } = new ObservableCollection<PocketItem>();
 
         private Point? startPoint = null;
+        private Point? _listDragStart = null;
+        private List<PocketItem> _dragCandidates = null;
 
         public MainWindow()
         {
@@ -252,6 +255,98 @@ namespace PocketDrop
                 }
 
                 StackContainer.Children.Add(card);
+            }
+        }
+
+        // --- ITEM LIST: TRACK CLICK ON A LIST ITEM ---
+        private void ItemsList_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // Never trigger the background window drag from this area
+            startPoint = null;
+
+            // Find the ListBoxItem under the cursor
+            var hit = e.OriginalSource as DependencyObject;
+            while (hit != null && !(hit is ListBoxItem) && !(hit is ListBox))
+                hit = VisualTreeHelper.GetParent(hit);
+
+            if (hit is ListBoxItem lbi && lbi.IsSelected)
+            {
+                // Clicking any already-selected item → snapshot selection, arm drag,
+                // and suppress the click so ListBox doesn't deselect anything.
+                _dragCandidates = ItemsListBox.SelectedItems.Cast<PocketItem>().ToList();
+                _listDragStart = e.GetPosition(null);
+                e.Handled = true;
+            }
+            else if (hit is ListBoxItem)
+            {
+                // Clicking a single unselected item: let ListBox handle selection normally,
+                // but arm a drag so a single-item drag also works.
+                _dragCandidates = null;
+                _listDragStart = e.GetPosition(null);
+                // Do NOT set e.Handled — ListBox must update its selection first
+            }
+            else
+            {
+                // Click on empty space: let ListBox do rubber-band, don't arm drag
+                _dragCandidates = null;
+                _listDragStart = null;
+            }
+        }
+
+        // --- ITEM LIST: DRAG ONLY SELECTED ITEMS OUT ---
+        private void ItemsList_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton != MouseButtonState.Pressed || _listDragStart == null)
+            {
+                _listDragStart = null;
+                _dragCandidates = null;
+                return;
+            }
+
+            Point pos = e.GetPosition(null);
+            Vector diff = (Point)_listDragStart - pos;
+
+            if (Math.Abs(diff.X) <= SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(diff.Y) <= SystemParameters.MinimumVerticalDragDistance)
+                return;
+
+            // Use snapshotted candidates for multi-select, or current selection for single
+            var selectedItems = _dragCandidates
+                ?? ItemsListBox.SelectedItems.Cast<PocketItem>().ToList();
+
+            if (selectedItems.Count == 0)
+            {
+                _listDragStart = null;
+                _dragCandidates = null;
+                return;
+            }
+
+            string[] paths = selectedItems.Select(item => item.FilePath).ToArray();
+            DataObject dragData = new DataObject(DataFormats.FileDrop, paths);
+            _listDragStart = null;
+            _dragCandidates = null;
+
+            DragDropEffects result = DragDrop.DoDragDrop(ItemsListBox, dragData, DragDropEffects.Copy);
+
+            if (result != DragDropEffects.None)
+            {
+                foreach (var item in selectedItems)
+                    PocketedItems.Remove(item);
+
+                if (PocketedItems.Count == 0)
+                {
+                    StatusText.Visibility = Visibility.Visible;
+                    FileIconContainer.Visibility = Visibility.Collapsed;
+                    StackContainer.Children.Clear();
+                    ExpandButton.IsChecked = false;
+                }
+                else
+                {
+                    UpdateStackPreview();
+                }
+
+                CountText.Text = $"{PocketedItems.Count} Items";
+                PopupCountText.Text = $"{PocketedItems.Count} Items";
             }
         }
 

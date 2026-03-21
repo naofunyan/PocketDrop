@@ -7,41 +7,39 @@
         FontFamily="Segoe UI Variable Text, Segoe UI" TextOptions.TextFormattingMode="Display">
 
     <Window.Resources>
-        <!-- ══ Fluent 2 Color Tokens — Acrylic/frosted glass ══ -->
+        <!-- ══ Fluent 2 — White frosted glass, 90% opacity ══ -->
         <!-- Force Segoe UI Variable on ALL TextBlocks (including inside Popup's separate HwndSource) -->
         <Style TargetType="TextBlock">
             <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI"/>
             <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
         </Style>
-        <SolidColorBrush x:Key="MicaBase"             Color="#FFF3F3F3"/>
-        <!-- 98% → full opaque, same grey on both panels -->
-        <SolidColorBrush x:Key="LayerDefault"          Color="#FAFFFFFF"/>
-        <!-- 98% white -->
-        <SolidColorBrush x:Key="LayerAlt"              Color="#FAF9F9F9"/>
-        <!-- 98% off-white -->
+        <SolidColorBrush x:Key="MicaBase"             Color="#F7F3F3F3"/>
+        <!-- white-grey, 97% -->
+        <SolidColorBrush x:Key="LayerDefault"          Color="#F7FFFFFF"/>
+        <!-- white, 97% -->
+        <SolidColorBrush x:Key="LayerAlt"              Color="#F7F9F9F9"/>
+        <!-- off-white, 97% -->
         <SolidColorBrush x:Key="StrokeCardDefault"     Color="#33000000"/>
         <!-- 20% black -->
         <SolidColorBrush x:Key="StrokeControlDefault"  Color="#29000000"/>
         <!-- 16% black -->
         <SolidColorBrush x:Key="TextPrimary"           Color="#FF1A1A1A"/>
-        <!-- full black -->
         <SolidColorBrush x:Key="TextSecondary"         Color="#CC3B3B3B"/>
-        <!-- 80% dark grey -->
         <SolidColorBrush x:Key="AccentDefault"         Color="#0078D4"/>
 
-        <!-- ══ Grid Item Template ══ -->
+        <!-- ══ Grid Item Template — 90×90 ══ -->
         <DataTemplate x:Key="GridTemplate">
-            <StackPanel Margin="8" Width="110" UseLayoutRounding="True">
+            <StackPanel Margin="5" Width="96" UseLayoutRounding="True">
                 <Border CornerRadius="6" Background="Transparent"
-                        Width="100" Height="100" ClipToBounds="True">
+                        Width="90" Height="90" ClipToBounds="True">
                     <Image Source="{Binding Icon}" Stretch="Uniform"
                            UseLayoutRounding="True" SnapsToDevicePixels="True"
                            RenderOptions.BitmapScalingMode="HighQuality"/>
                 </Border>
-                <TextBlock Text="{Binding FileName}" FontSize="12"
+                <TextBlock Text="{Binding FileName}" FontSize="11"
                            Foreground="{StaticResource TextPrimary}"
                            TextAlignment="Center" TextTrimming="CharacterEllipsis"
-                           Margin="0,6,0,0"/>
+                           Margin="0,5,0,0"/>
             </StackPanel>
         </DataTemplate>
 
@@ -80,7 +78,7 @@
             PreviewMouseLeftButtonUp="Window_PreviewMouseLeftButtonUp"
             MouseMove="Window_MouseMove">
         <Border.Effect>
-            <DropShadowEffect BlurRadius="16" Color="#000000" Opacity="0.12"
+            <DropShadowEffect BlurRadius="24" Color="#000000" Opacity="0.12"
                               Direction="270" ShadowDepth="4"/>
         </Border.Effect>
 
@@ -146,8 +144,8 @@
                 <Popup IsOpen="{Binding IsChecked, ElementName=ExpandButton}"
                        PlacementTarget="{Binding ElementName=ExpandButton}"
                        Placement="Bottom" AllowsTransparency="True"
-                       StaysOpen="False" HorizontalOffset="-230" VerticalOffset="20">
-                    <Border Width="540" Height="300"
+                       StaysOpen="False" HorizontalOffset="-203" VerticalOffset="25">
+                    <Border Width="490" Height="300"
                             Background="{StaticResource MicaBase}"
                             BorderBrush="{StaticResource StrokeCardDefault}"
                             BorderThickness="1" CornerRadius="12" Margin="16"
@@ -257,37 +255,76 @@
                                 </Grid>
                             </Border>
 
-                            <!-- Item list -->
-                            <ScrollViewer Grid.Row="1" Margin="8,6,8,8"
-                                          VerticalScrollBarVisibility="Auto"
-                                          HorizontalScrollBarVisibility="Disabled">
-                                <ItemsControl ItemsSource="{Binding PocketedItems}">
-                                    <ItemsControl.Style>
-                                        <Style TargetType="ItemsControl">
-                                            <Setter Property="ItemTemplate" Value="{StaticResource GridTemplate}"/>
-                                            <Setter Property="ItemsPanel">
-                                                <Setter.Value>
-                                                    <ItemsPanelTemplate>
-                                                        <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left"/>
-                                                    </ItemsPanelTemplate>
-                                                </Setter.Value>
-                                            </Setter>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding CurrentViewMode}" Value="List">
-                                                    <Setter Property="ItemTemplate" Value="{StaticResource ListTemplate}"/>
-                                                    <Setter Property="ItemsPanel">
-                                                        <Setter.Value>
-                                                            <ItemsPanelTemplate>
-                                                                <VirtualizingStackPanel Orientation="Vertical"/>
-                                                            </ItemsPanelTemplate>
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </ItemsControl.Style>
-                                </ItemsControl>
-                            </ScrollViewer>
+                            <!-- Item list — ListBox for selection support -->
+                            <ListBox x:Name="ItemsListBox" Grid.Row="1"
+                                     Margin="8,6,8,8" Padding="0"
+                                     ItemsSource="{Binding PocketedItems}"
+                                     SelectionMode="Extended"
+                                     Background="Transparent" BorderThickness="0"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                     PreviewMouseLeftButtonDown="ItemsList_PreviewMouseLeftButtonDown"
+                                     MouseMove="ItemsList_MouseMove">
+
+                                <!-- Fluent 2 selection style for each item -->
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="Padding" Value="0"/>
+                                        <Setter Property="Margin" Value="0"/>
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="ListBoxItem">
+                                                    <Border x:Name="Bg" CornerRadius="6"
+                                                            Background="Transparent"
+                                                            BorderBrush="Transparent"
+                                                            BorderThickness="1" Padding="2">
+                                                        <ContentPresenter/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsSelected" Value="True">
+                                                            <Setter TargetName="Bg" Property="Background" Value="#400078D4"/>
+                                                            <Setter TargetName="Bg" Property="BorderBrush" Value="#880078D4"/>
+                                                        </Trigger>
+                                                        <MultiTrigger>
+                                                            <MultiTrigger.Conditions>
+                                                                <Condition Property="IsMouseOver" Value="True"/>
+                                                                <Condition Property="IsSelected" Value="False"/>
+                                                            </MultiTrigger.Conditions>
+                                                            <Setter TargetName="Bg" Property="Background" Value="#1A0078D4"/>
+                                                        </MultiTrigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+
+                                <ListBox.Style>
+                                    <Style TargetType="ListBox">
+                                        <Setter Property="ItemTemplate" Value="{StaticResource GridTemplate}"/>
+                                        <Setter Property="ItemsPanel">
+                                            <Setter.Value>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left"/>
+                                                </ItemsPanelTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CurrentViewMode}" Value="List">
+                                                <Setter Property="ItemTemplate" Value="{StaticResource ListTemplate}"/>
+                                                <Setter Property="ItemsPanel">
+                                                    <Setter.Value>
+                                                        <ItemsPanelTemplate>
+                                                            <VirtualizingStackPanel Orientation="Vertical"/>
+                                                        </ItemsPanelTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ListBox.Style>
+                            </ListBox>
                         </Grid>
                     </Border>
                 </Popup>
