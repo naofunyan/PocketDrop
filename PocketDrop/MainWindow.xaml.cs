@@ -317,6 +317,12 @@ namespace PocketDrop
 
                 if (result != DragDropEffects.None)
                 {
+                    // NEW: Clean up temp files before clearing the pocket
+                    foreach (var item in PocketedItems)
+                    {
+                        CleanupTempFile(item.FilePath);
+                    }
+
                     // Successful drop cleanup
                     PocketedItems.Clear();
                     StatusText.Visibility = Visibility.Visible;
@@ -483,7 +489,11 @@ namespace PocketDrop
             if (result != DragDropEffects.None)
             {
                 foreach (var item in selectedItems)
+                {
+                    // NEW: Clean up the temp file for this specific item
+                    CleanupTempFile(item.FilePath);
                     PocketedItems.Remove(item);
+                }
 
                 if (PocketedItems.Count == 0)
                 {
@@ -551,6 +561,12 @@ namespace PocketDrop
         // --- CLOSING THE WINDOW — clears items and hides ---
         private void CloseButton_Click(object sender, MouseButtonEventArgs e)
         {
+            // NEW: Clean up temp files before closing
+            foreach (var item in PocketedItems)
+            {
+                CleanupTempFile(item.FilePath);
+            }
+
             // Clear all pocketed items
             PocketedItems.Clear();
             StackContainer.Children.Clear();
@@ -758,6 +774,12 @@ namespace PocketDrop
         // --- MENU ACTION: Clear All ---
         private void Menu_ClearItems_Click(object sender, RoutedEventArgs e)
         {
+            // NEW: Clean up temp files before clearing
+            foreach (var item in PocketedItems)
+            {
+                CleanupTempFile(item.FilePath);
+            }
+
             PocketedItems.Clear();
             StackContainer.Children.Clear();
             StatusText.Visibility = Visibility.Visible;
@@ -1009,6 +1031,27 @@ namespace PocketDrop
                     // Safe fallback just in case the COM object fails
                     System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{zipPath}\"");
                 }
+            }
+        }
+
+        // --- HELPER: Safely delete temporary files ---
+        private void CleanupTempFile(string filePath)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
+                {
+                    // SAFETY CHECK: Only delete the file if it lives in the Temp folder!
+                    string tempFolder = Path.GetTempPath();
+                    if (filePath.StartsWith(tempFolder, StringComparison.OrdinalIgnoreCase))
+                    {
+                        File.Delete(filePath);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Could not clean up temp file: {ex.Message}");
             }
         }
     }
