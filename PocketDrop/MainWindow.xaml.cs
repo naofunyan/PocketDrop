@@ -20,6 +20,7 @@ using System.Runtime.InteropServices;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
 using WinRT;
+using System.IO.Compression;
 
 namespace PocketDrop
 {
@@ -887,6 +888,127 @@ namespace PocketDrop
                 // Unhook the event so it doesn't fire twice next time, and release the loading spinner
                 _shareManager.DataRequested -= ShareManager_DataRequested;
                 deferral.Complete();
+            }
+        }
+
+        // --- NATIVE EXPLORER HIGHLIGHT API ---
+        [DllImport("shell32.dll", ExactSpelling = true)]
+        private static extern void ILFree(IntPtr pidlList);
+
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
+        private static extern IntPtr ILCreateFromPathW(string pszPath);
+
+        // ✨ NEW: Extracts the relative file pointer from an absolute path
+        [DllImport("shell32.dll", ExactSpelling = true)]
+        private static extern IntPtr ILFindLastID(IntPtr pidl);
+
+        [DllImport("shell32.dll", ExactSpelling = true)]
+        private static extern int SHOpenFolderAndSelectItems(IntPtr pidlFolder, uint cidl, [MarshalAs(UnmanagedType.LPArray)] IntPtr[] apidl, uint dwFlags);
+
+        // --- NATIVE WINDOW FOCUS API ---
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        // --- MENU ACTION: Compress to ZIP ---
+        private async void Menu_CompressZip_Click(object sender, RoutedEventArgs e)
+        {
+            // 1. Determine what to compress (Selected items, or ALL items if none are selected)
+            var itemsToCompress = (ItemsListBox != null && ItemsListBox.SelectedItems.Count > 0)
+                ? ItemsListBox.SelectedItems.Cast<PocketItem>().ToList()
+                : PocketedItems.ToList();
+
+            if (itemsToCompress.Count == 0) return;
+
+            // 2. Ask the user where they want to save the new ZIP archive
+            Microsoft.Win32.SaveFileDialog saveDialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = "Save ZIP Archive",
+                FileName = "PocketDrop_Archive",
+                DefaultExt = ".zip",
+                Filter = "ZIP Archives (*.zip)|*.zip"
+            };
+
+            if (saveDialog.ShowDialog() == true)
+            {
+                string zipPath = saveDialog.FileName;
+
+                // 3. Compress in the background so the UI doesn't stutter!
+                await System.Threading.Tasks.Task.Run(() =>
+                {
+                    try
+                    {
+                        // Delete the file if it already exists so we can cleanly overwrite it
+                        if (File.Exists(zipPath)) File.Delete(zipPath);
+
+                        using (FileStream zipToOpen = new FileStream(zipPath, FileMode.Create))
+                        using (ZipArchive archive = new ZipArchive(zipToOpen, ZipArchiveMode.Create))
+                        {
+                            foreach (var item in itemsToCompress)
+                            {
+                                if (File.Exists(item.FilePath))
+                                {
+                                    // Add each physical file to the ZIP payload
+                                    archive.CreateEntryFromFile(item.FilePath, item.FileName);
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Could not create ZIP: {ex.Message}");
+                    }
+                });
+
+                // 4. THE ULTIMATE FIX: Search existing Windows 11 Explorer Tabs!
+                try
+                {
+                    Type shellType = Type.GetTypeFromProgID("Shell.Application");
+                    dynamic shell = Activator.CreateInstance(shellType);
+                    bool windowFound = false;
+
+                    // Convert our standard path (C:\...) to a URI format (file:///C:/...) which Explorer tabs use internally
+                    string targetUri = new Uri(Path.GetDirectoryName(zipPath)).AbsoluteUri;
+
+                    // Check every single currently open Explorer window and tab
+                    foreach (dynamic window in shell.Windows())
+                    {
+                        if (window != null && window.LocationURL != null)
+                        {
+                            string loc = window.LocationURL;
+                            if (loc.Equals(targetUri, StringComparison.OrdinalIgnoreCase))
+                            {
+                                windowFound = true;
+
+                                // Grab the file inside the folder view
+                                dynamic folderView = window.Document;
+                                dynamic fileToSelect = folderView.Folder.ParseName(Path.GetFileName(zipPath));
+
+                                if (fileToSelect != null)
+                                {
+                                    // Selection Flags: 1 (Select) + 4 (Ensure Visible) + 8 (Focus) = 13
+                                    folderView.SelectItem(fileToSelect, 13);
+                                }
+
+                                // Force the existing Explorer window to pop to the front of your screen!
+                                IntPtr hwnd = (IntPtr)window.HWND;
+                                SetForegroundWindow(hwnd);
+                                break;
+                            }
+                        }
+                    }
+
+                    // If no existing tab had that folder open, safely spawn a new one
+                    if (!windowFound)
+                    {
+                        System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{zipPath}\"");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Highlight error: {ex.Message}");
+                    // Safe fallback just in case the COM object fails
+                    System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{zipPath}\"");
+                }
             }
         }
     }

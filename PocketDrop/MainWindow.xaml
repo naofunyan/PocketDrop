@@ -192,6 +192,7 @@
 
                             <MenuItem Header="Open with..." Click="Menu_OpenWith_Click" />
                             <MenuItem Header="Share..." Click="Menu_Share_Click" />
+                            <MenuItem Header="Compress to ZIP..." Click="Menu_CompressZip_Click" />
                             <MenuItem Header="Clear all items" Click="Menu_ClearItems_Click" />
                             <MenuItem Header="Open Temp Folder" Click="Menu_OpenTemp_Click" />
                             <Separator />
