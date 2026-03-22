@@ -15,9 +15,24 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using System.Windows.Interop;
+using System.Runtime.InteropServices;
+using Windows.ApplicationModel.DataTransfer;
+using Windows.Storage;
+using WinRT;
 
 namespace PocketDrop
 {
+    // --- NATIVE INTEROP FOR WINDOWS 11 SHARE UI ---
+    [ComImport]
+    [Guid("3A3DCD6C-3EAB-43DC-BCDE-45671CE800C8")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface IDataTransferManagerInterop
+    {
+        IntPtr GetForWindow([In] IntPtr appWindow, [In] ref Guid riid);
+        void ShowShareUIForWindow(IntPtr appWindow);
+    }
+
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
         // ══════════════════════════════════════════════════════
@@ -808,6 +823,70 @@ namespace PocketDrop
                         Console.WriteLine($"Could not open file picker: {ex.Message}");
                     }
                 });
+            }
+        }
+
+        // Class-level variables to handle the share lifecycle
+        private string _fileToSharePath;
+        private DataTransferManager _shareManager;
+
+        // --- MENU ACTION: Share ---
+        private void Menu_Share_Click(object sender, RoutedEventArgs e)
+        {
+            if (ItemsListBox != null && ItemsListBox.SelectedItems.Count > 0)
+                _fileToSharePath = ((PocketItem)ItemsListBox.SelectedItems[0]).FilePath;
+            else if (PocketedItems.Count > 0)
+                _fileToSharePath = PocketedItems[0].FilePath;
+
+            if (!string.IsNullOrEmpty(_fileToSharePath) && File.Exists(_fileToSharePath))
+            {
+                try
+                {
+                    // 1. Get the exact Window Handle (HWND) of your WPF app
+                    IntPtr hwnd = new WindowInteropHelper(this).Handle;
+
+                    // 2. Access the native Windows 11 Share factory
+                    var factory = WinRT.ActivationFactory.Get("Windows.ApplicationModel.DataTransfer.DataTransferManager");
+
+                    // THE FIX: Extract the raw COM pointer and create a standard .NET COM Wrapper
+                    // This perfectly bypasses the ObjectReference error!
+                    var interop = (IDataTransferManagerInterop)Marshal.GetObjectForIUnknown(factory.ThisPtr);
+
+                    // 3. Get the Share Manager assigned to THIS specific window
+                    Guid guid = Guid.Parse("a5caee9b-8708-49d1-8d36-67d25a8da00c");
+                    IntPtr ptr = interop.GetForWindow(hwnd, ref guid);
+                    _shareManager = WinRT.MarshalInterface<DataTransferManager>.FromAbi(ptr);
+
+                    // 4. Attach our file to the payload and show the UI!
+                    _shareManager.DataRequested += ShareManager_DataRequested;
+                    interop.ShowShareUIForWindow(hwnd);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Share error: {ex.Message}");
+                }
+            }
+        }
+
+        // --- BUILDING THE SHARE PAYLOAD ---
+        private async void ShareManager_DataRequested(DataTransferManager sender, DataRequestedEventArgs args)
+        {
+            // A deferral tells Windows to keep the Share UI spinning for a millisecond while we load the file from the hard drive
+            DataRequestDeferral deferral = args.Request.GetDeferral();
+
+            try
+            {
+                args.Request.Data.Properties.Title = "Sharing from PocketDrop";
+
+                // Convert the standard physical file path into a modern Windows Storage File
+                StorageFile file = await StorageFile.GetFileFromPathAsync(_fileToSharePath);
+                args.Request.Data.SetStorageItems(new[] { file });
+            }
+            finally
+            {
+                // Unhook the event so it doesn't fire twice next time, and release the loading spinner
+                _shareManager.DataRequested -= ShareManager_DataRequested;
+                deferral.Complete();
             }
         }
     }
