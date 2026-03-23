@@ -20,6 +20,7 @@ namespace PocketDrop
             Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
             var trayMenu = new System.Windows.Forms.ContextMenuStrip();
+            trayMenu.ShowImageMargin = false;
 
             // --- NEW: Spawns a brand new Pocket Window ---
             var addPocketItem = new System.Windows.Forms.ToolStripMenuItem("Add Pocket");
@@ -49,10 +50,30 @@ namespace PocketDrop
                 newPocket.PasteFromClipboard();
             };
 
-            var historyItem = new System.Windows.Forms.ToolStripMenuItem("Session History");
-            historyItem.Click += TrayIcon_Click;
+            var savedPocketsItem = new System.Windows.Forms.ToolStripMenuItem("Saved Pockets");
+            savedPocketsItem.Click += TrayIcon_Click;
 
             var settingsItem = new System.Windows.Forms.ToolStripMenuItem("Settings");
+
+            var reportBugItem = new System.Windows.Forms.ToolStripMenuItem("Report bug");
+            reportBugItem.Click += (s, ev) =>
+            {
+                try
+                {
+                    // This will open the user's default web browser to your issue tracker!
+                    // (You can replace this URL with your actual GitHub/GitLab repo later)
+                    var psi = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = "https://github.com/naofunyan/PocketDrop/issues",
+                        UseShellExecute = true
+                    };
+                    System.Diagnostics.Process.Start(psi);
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show($"Could not open bug reporter: {ex.Message}");
+                }
+            };
 
             var quitItem = new System.Windows.Forms.ToolStripMenuItem("Quit Dropshelf");
             quitItem.Click += (s, ev) =>
@@ -63,9 +84,10 @@ namespace PocketDrop
             trayMenu.Items.Add(addPocketItem);
             trayMenu.Items.Add(addClipboardItem);
             trayMenu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
-            trayMenu.Items.Add(historyItem);
+            trayMenu.Items.Add(savedPocketsItem);
             trayMenu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
             trayMenu.Items.Add(settingsItem);
+            trayMenu.Items.Add(reportBugItem);
             trayMenu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
             trayMenu.Items.Add(quitItem);
 
