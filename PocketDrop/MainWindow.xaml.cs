@@ -733,6 +733,11 @@ namespace PocketDrop
         public void ShowPocketDrop(int rawCursorX, int rawCursorY)
         {
             if (this.IsHitTestVisible) return;
+
+            // ✨ THE NEW FIX: Apply the user's preferred layout mode before the UI calculates its size!
+            // 0 = Grid view, 1 = List view
+            this.CurrentViewMode = App.ItemsLayoutMode == 1 ? "List" : "Grid";
+
             this.UpdateLayout();
 
             // 1. Get the raw physical screen the mouse is currently on

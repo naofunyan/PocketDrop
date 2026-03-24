@@ -36,6 +36,8 @@ namespace PocketDrop
             ExcludedAppsText.Text = App.ExcludedApps;
 
             PlacementCombo.SelectedIndex = App.PocketPlacement;
+
+            LayoutCombo.SelectedIndex = App.ItemsLayoutMode;
         }
 
         // ✨ THE FIX 2: Update the global setting when the user toggles the switch!
@@ -101,6 +103,15 @@ namespace PocketDrop
             if (PlacementCombo != null && this.IsLoaded)
             {
                 App.PocketPlacement = PlacementCombo.SelectedIndex;
+                App.SaveSettings();
+            }
+        }
+
+        private void LayoutCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (LayoutCombo != null && this.IsLoaded)
+            {
+                App.ItemsLayoutMode = LayoutCombo.SelectedIndex;
                 App.SaveSettings();
             }
         }

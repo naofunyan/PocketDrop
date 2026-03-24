@@ -90,6 +90,8 @@ namespace PocketDrop
                     ExcludedApps = key.GetValue("ExcludedApps", "").ToString();
 
                     PocketPlacement = Convert.ToInt32(key.GetValue("PocketPlacement", 0));
+
+                    ItemsLayoutMode = Convert.ToInt32(key.GetValue("ItemsLayoutMode", 0));
                 }
             }
             catch { }
@@ -113,6 +115,8 @@ namespace PocketDrop
                     key.SetValue("ExcludedApps", ExcludedApps);
 
                     key.SetValue("PocketPlacement", PocketPlacement);
+
+                    key.SetValue("ItemsLayoutMode", ItemsLayoutMode);
                 }
             }
             catch { }
@@ -399,6 +403,8 @@ namespace PocketDrop
 
         // ✨ POCKET PREFERENCES
         public static int PocketPlacement = 0; // 0 = Near mouse, 1 = Top edge, etc.
+
+        public static int ItemsLayoutMode = 0;
 
         // --- NATIVE FOREGROUND WINDOW DETECTION ---
         [System.Runtime.InteropServices.DllImport("user32.dll")]

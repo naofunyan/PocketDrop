@@ -513,6 +513,28 @@
                         </Grid>
                     </Border>
 
+                    <Border Style="{DynamicResource SettingCard}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="40"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Path Data="M3 3H10V10H3V3ZM14 3H21V10H14V3ZM3 14H10V21H3V14ZM14 14H21V21H14V14Z" Stroke="#444" StrokeThickness="1.5" Fill="Transparent" Stretch="Uniform" Width="18" Height="18" HorizontalAlignment="Left" Margin="4,0,0,0"/>
+
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Items layout mode" FontSize="14" Foreground="#111111"/>
+                                <TextBlock Text="Change the default layout mode in the shelf flyout" FontSize="12" Foreground="#666666" Margin="0,2,0,0"/>
+                            </StackPanel>
+
+                            <ComboBox x:Name="LayoutCombo" Grid.Column="2" Width="140" VerticalAlignment="Center" Style="{StaticResource ModernComboBox}" SelectionChanged="LayoutCombo_SelectionChanged">
+                                <ComboBoxItem Content="Grid view"/>
+                                <ComboBoxItem Content="List view"/>
+                            </ComboBox>
+                        </Grid>
+                    </Border>
+
                 </StackPanel>
             </StackPanel>
         </StackPanel>
