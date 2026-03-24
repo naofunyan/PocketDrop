@@ -88,6 +88,8 @@ namespace PocketDrop
                     DisableInGameMode = Convert.ToBoolean(key.GetValue("DisableInGameMode", true));
 
                     ExcludedApps = key.GetValue("ExcludedApps", "").ToString();
+
+                    PocketPlacement = Convert.ToInt32(key.GetValue("PocketPlacement", 0));
                 }
             }
             catch { }
@@ -109,6 +111,8 @@ namespace PocketDrop
                     key.SetValue("DisableInGameMode", DisableInGameMode);
 
                     key.SetValue("ExcludedApps", ExcludedApps);
+
+                    key.SetValue("PocketPlacement", PocketPlacement);
                 }
             }
             catch { }
@@ -392,6 +396,9 @@ namespace PocketDrop
 
         // ✨ EXCLUDED APPS SETTINGS
         public static string ExcludedApps = "";
+
+        // ✨ POCKET PREFERENCES
+        public static int PocketPlacement = 0; // 0 = Near mouse, 1 = Top edge, etc.
 
         // --- NATIVE FOREGROUND WINDOW DETECTION ---
         [System.Runtime.InteropServices.DllImport("user32.dll")]

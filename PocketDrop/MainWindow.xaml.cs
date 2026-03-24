@@ -730,28 +730,100 @@ namespace PocketDrop
         // ══════════════════════════════════════════════════════
         // SHOW / HIDE WITH ANIMATION
         // ══════════════════════════════════════════════════════
-        public void ShowPocketDrop(int cursorX, int cursorY)
+        public void ShowPocketDrop(int rawCursorX, int rawCursorY)
         {
             if (this.IsHitTestVisible) return;
-
-            // Position near cursor, nudge away from screen edges
-            double wx = cursorX - this.ActualWidth / 2 + 40;
-            double wy = cursorY - this.ActualHeight - 80;
-
-            double screenW = SystemParameters.PrimaryScreenWidth;
-            double screenH = SystemParameters.PrimaryScreenHeight;
-            wx = Math.Max(8, Math.Min(wx, screenW - this.ActualWidth - 8));
-            wy = Math.Max(8, Math.Min(wy, screenH - this.ActualHeight - 8));
-
-            this.Left = wx;
-            this.Top = wy;
-            this.IsHitTestVisible = true;
-
-            // THE ULTIMATE FIX: Force WPF to instantly finish its math for the window movement!
-            // This guarantees the GPU is completely idle and ready before the animation starts.
             this.UpdateLayout();
 
-            // Fade + scale in
+            // 1. Get the raw physical screen the mouse is currently on
+            var screen = System.Windows.Forms.Screen.FromPoint(new System.Drawing.Point(rawCursorX, rawCursorY));
+            var rawWorkArea = screen.WorkingArea;
+
+            // ✨ THE NEW FIX: Calculate the exact Windows DPI Display Scaling!
+            double dpiX = 1.0;
+            double dpiY = 1.0;
+            PresentationSource source = PresentationSource.FromVisual(this);
+            if (source != null && source.CompositionTarget != null)
+            {
+                dpiX = source.CompositionTarget.TransformToDevice.M11;
+                dpiY = source.CompositionTarget.TransformToDevice.M22;
+            }
+            else
+            {
+                // Failsafe if the window is still waking up
+                using (System.Drawing.Graphics g = System.Drawing.Graphics.FromHwnd(IntPtr.Zero))
+                {
+                    dpiX = g.DpiX / 96.0;
+                    dpiY = g.DpiY / 96.0;
+                }
+            }
+
+            // 2. Convert raw physical pixels into WPF's custom DPI scale
+            double workAreaLeft = rawWorkArea.Left / dpiX;
+            double workAreaTop = rawWorkArea.Top / dpiY;
+            double workAreaWidth = rawWorkArea.Width / dpiX;
+            double workAreaHeight = rawWorkArea.Height / dpiY;
+            double workAreaRight = workAreaLeft + workAreaWidth;
+            double workAreaBottom = workAreaTop + workAreaHeight;
+
+            double cursorX = rawCursorX / dpiX;
+            double cursorY = rawCursorY / dpiY;
+
+            // 3. Safely grab the window size
+            double w = this.ActualWidth > 0 ? this.ActualWidth : (double.IsNaN(this.Width) ? 380 : this.Width);
+            double h = this.ActualHeight > 0 ? this.ActualHeight : (double.IsNaN(this.Height) ? 500 : this.Height);
+
+            // 4. Default position (Near Mouse)
+            double targetLeft = cursorX - (w / 2) + 40;
+            double targetTop = cursorY - h - 80;
+
+            // Keep "Near Mouse" safely on screen
+            targetLeft = Math.Max(workAreaLeft + 8, Math.Min(targetLeft, workAreaRight - w - 8));
+            targetTop = Math.Max(workAreaTop + 8, Math.Min(targetTop, workAreaBottom - h - 8));
+
+            // 5. Override based on the user's setting (NOW USING SCALED MATH)
+            switch (App.PocketPlacement)
+            {
+                case 1: // Top edge
+                    targetLeft = workAreaLeft + (workAreaWidth / 2) - (w / 2);
+                    targetTop = workAreaTop + 8;
+                    break;
+                case 2: // Bottom edge
+                    targetLeft = workAreaLeft + (workAreaWidth / 2) - (w / 2);
+                    targetTop = workAreaBottom - h - 8;
+                    break;
+                case 3: // Left edge
+                    targetLeft = workAreaLeft + 8;
+                    targetTop = workAreaTop + (workAreaHeight / 2) - (h / 2);
+                    break;
+                case 4: // Right edge
+                    targetLeft = workAreaRight - w - 8;
+                    targetTop = workAreaTop + (workAreaHeight / 2) - (h / 2);
+                    break;
+                case 5: // Top left corner
+                    targetLeft = workAreaLeft + 8;
+                    targetTop = workAreaTop + 8;
+                    break;
+                case 6: // Top right corner
+                    targetLeft = workAreaRight - w - 8;
+                    targetTop = workAreaTop + 8;
+                    break;
+                case 7: // Bottom left corner
+                    targetLeft = workAreaLeft + 8;
+                    targetTop = workAreaBottom - h - 8;
+                    break;
+                case 8: // Bottom right corner
+                    targetLeft = workAreaRight - w - 8;
+                    targetTop = workAreaBottom - h - 8;
+                    break;
+            }
+
+            // 6. Apply the final, perfectly scaled position!
+            this.Left = targetLeft;
+            this.Top = targetTop;
+            this.IsHitTestVisible = true;
+
+            // --- ANIMATIONS ---
             var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(180))
             { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
 
@@ -760,11 +832,9 @@ namespace PocketDrop
             var scaleY = new DoubleAnimation(0.88, 1, TimeSpan.FromMilliseconds(200))
             { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
 
-            // THE FIX PART 1: Stop destroying the transform! 
-            // We check if it already exists, and only build it if it's missing.
             if (!(MainContainer.RenderTransform is ScaleTransform st))
             {
-                st = new ScaleTransform(1, 1, this.ActualWidth / 2, this.ActualHeight / 2);
+                st = new ScaleTransform(1, 1, w / 2, h / 2);
                 MainContainer.RenderTransform = st;
                 MainContainer.RenderTransformOrigin = new Point(0.5, 0.5);
             }
@@ -772,14 +842,10 @@ namespace PocketDrop
             st.BeginAnimation(ScaleTransform.ScaleXProperty, scaleX);
             st.BeginAnimation(ScaleTransform.ScaleYProperty, scaleY);
 
-            // Clear any lingering hold from the fade-out animation before starting the new one
             this.BeginAnimation(OpacityProperty, null);
             this.BeginAnimation(OpacityProperty, fadeIn);
 
-            // THE FIX PART 2: Delay the OS window activation by a few milliseconds!
-            // This lets the UI thread perfectly render the first frames of the animation
-            // before Windows interrupts it to assign window focus.
-            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() =>
             {
                 this.Activate();
             }));

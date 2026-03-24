@@ -482,7 +482,40 @@
                     </StackPanel>
                 </Border>
 
+                <TextBlock Text="Shelf preferences" FontSize="14" FontWeight="SemiBold" Foreground="#444444" Margin="0,20,0,10"/>
+
+                <StackPanel Background="Transparent">
+
+                    <Border Style="{DynamicResource SettingCard}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="40"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Shelf placement" FontSize="14" Foreground="#111111"/>
+                                <TextBlock Text="Change where a new shelf is placed upon opening" FontSize="12" Foreground="#666666" Margin="0,2,0,0"/>
+                            </StackPanel>
+
+                            <ComboBox x:Name="PlacementCombo" Grid.Column="2" Width="180" VerticalAlignment="Center" Style="{StaticResource ModernComboBox}" SelectionChanged="PlacementCombo_SelectionChanged">
+                                <ComboBoxItem Content="Near mouse pointer"/>
+                                <ComboBoxItem Content="Top edge"/>
+                                <ComboBoxItem Content="Bottom edge"/>
+                                <ComboBoxItem Content="Left edge"/>
+                                <ComboBoxItem Content="Right edge"/>
+                                <ComboBoxItem Content="Top left corner"/>
+                                <ComboBoxItem Content="Top right corner"/>
+                                <ComboBoxItem Content="Bottom left corner"/>
+                                <ComboBoxItem Content="Bottom right corner"/>
+                            </ComboBox>
+                        </Grid>
+                    </Border>
+
+                </StackPanel>
             </StackPanel>
         </StackPanel>
+        
     </ScrollViewer>
 </Window>

@@ -34,6 +34,8 @@ namespace PocketDrop
             GameModeCheck.IsChecked = App.DisableInGameMode;
 
             ExcludedAppsText.Text = App.ExcludedApps;
+
+            PlacementCombo.SelectedIndex = App.PocketPlacement;
         }
 
         // ✨ THE FIX 2: Update the global setting when the user toggles the switch!
@@ -92,6 +94,15 @@ namespace PocketDrop
         {
             App.ExcludedApps = ExcludedAppsText.Text;
             App.SaveSettings();
+        }
+
+        private void PlacementCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (PlacementCombo != null && this.IsLoaded)
+            {
+                App.PocketPlacement = PlacementCombo.SelectedIndex;
+                App.SaveSettings();
+            }
         }
     }
 }
