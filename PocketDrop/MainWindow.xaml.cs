@@ -327,25 +327,27 @@ namespace PocketDrop
 
                 DataObject dragData = new DataObject(DataFormats.FileDrop, pathsToDrag);
 
-                // We set the startPoint to null BEFORE calling DoDragDrop
-                // This breaks the loop so the cursor doesn't get "stuck"
+                // ✨ THE MAGIC FIX: Force Windows Explorer to explicitly Copy or Cut!
+                // 1 = Copy (Leaves original file), 2 = Move (Deletes original file)
+                byte[] dropEffect = new byte[] { (byte)(App.CopyItemToDestination ? 1 : 2), 0, 0, 0 };
+                dragData.SetData("Preferred DropEffect", new System.IO.MemoryStream(dropEffect));
+
                 Point tempStart = (Point)startPoint;
                 startPoint = null;
 
-                // NEW: Turn the safety flag on before the drag, and off after
                 _isDraggingFromApp = true;
-                DragDropEffects result = DragDrop.DoDragDrop((DependencyObject)sender, dragData, DragDropEffects.Copy);
+                DragDropEffects allowedEffects = App.CopyItemToDestination ? DragDropEffects.Copy : DragDropEffects.Move;
+                DragDropEffects result = DragDrop.DoDragDrop((DependencyObject)sender, dragData, allowedEffects);
                 _isDraggingFromApp = false;
 
+                // ✨ ALWAYS clear the pocket if the drop was successful, regardless of Copy or Move!
                 if (result != DragDropEffects.None)
                 {
-                    // NEW: Clean up temp files before clearing the pocket
                     foreach (var item in PocketedItems)
                     {
                         CleanupTempFile(item.FilePath);
                     }
 
-                    // Successful drop cleanup
                     PocketedItems.Clear();
                     StatusText.Visibility = Visibility.Visible;
                     FileIconContainer.Visibility = Visibility.Collapsed;
@@ -353,7 +355,7 @@ namespace PocketDrop
                     CountText.Text = "0 Items";
                     PopupCountText.Text = "0 Items";
                     ExpandButton.IsChecked = false;
-                    // NEW: Also uncheck the box after a successful drag!
+
                     if (SelectAllCheckBox != null)
                         SelectAllCheckBox.IsChecked = false;
                 }
@@ -511,19 +513,24 @@ namespace PocketDrop
 
             string[] paths = selectedItems.Select(item => item.FilePath).ToArray();
             DataObject dragData = new DataObject(DataFormats.FileDrop, paths);
+
+            // ✨ THE MAGIC FIX: Force Windows Explorer to explicitly Copy or Cut!
+            byte[] dropEffect = new byte[] { (byte)(App.CopyItemToDestination ? 1 : 2), 0, 0, 0 };
+            dragData.SetData("Preferred DropEffect", new System.IO.MemoryStream(dropEffect));
+
             _listDragStart = null;
             _dragCandidates = null;
 
-            // NEW: Turn the safety flag on before the drag, and off after
             _isDraggingFromApp = true;
-            DragDropEffects result = DragDrop.DoDragDrop(ItemsListBox, dragData, DragDropEffects.Copy);
+            DragDropEffects allowedEffects = App.CopyItemToDestination ? DragDropEffects.Copy : DragDropEffects.Move;
+            DragDropEffects result = DragDrop.DoDragDrop(ItemsListBox, dragData, allowedEffects);
             _isDraggingFromApp = false;
 
+            // ✨ ALWAYS clear the selected items from the pocket if the drop was successful!
             if (result != DragDropEffects.None)
             {
                 foreach (var item in selectedItems)
                 {
-                    // NEW: Clean up the temp file for this specific item
                     CleanupTempFile(item.FilePath);
                     PocketedItems.Remove(item);
                 }

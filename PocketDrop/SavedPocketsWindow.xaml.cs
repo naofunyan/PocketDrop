@@ -105,5 +105,15 @@ namespace PocketDrop
                 this.DragMove();
             }
         }
+
+        // --- BOTTOM BUTTON: 'Gear' (Opens Settings) ---
+        private void Settings_Click(object sender, RoutedEventArgs e)
+        {
+            var settingsWindow = new SettingsWindow();
+            settingsWindow.Show();
+            settingsWindow.Activate();
+
+            this.Close(); // Closes the Saved Pockets popup so it's not in the way
+        }
     }
 }

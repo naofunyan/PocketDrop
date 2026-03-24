@@ -17,6 +17,9 @@ namespace PocketDrop
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
 
+        // ✨ THE NEW SETTING STATE: Copy by default (true). If false, it's a Move.
+        public static bool CopyItemToDestination { get; set; } = true;
+
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
@@ -76,6 +79,12 @@ namespace PocketDrop
             };
 
             var settingsItem = new System.Windows.Forms.ToolStripMenuItem("Settings");
+            settingsItem.Click += (s, ev) =>
+            {
+                var settingsWindow = new SettingsWindow();
+                settingsWindow.Show();
+                settingsWindow.Activate();
+            };
 
             var reportBugItem = new System.Windows.Forms.ToolStripMenuItem("Report bug");
             reportBugItem.Click += (s, ev) =>
