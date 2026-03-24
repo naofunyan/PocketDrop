@@ -27,6 +27,11 @@ namespace PocketDrop
             // ✨ THE FIX: Force the UI to display your actual saved keys!
             PocketKeyText.Text = App.PocketKeyChar;
             ClipboardKeyText.Text = App.ClipboardKeyChar;
+
+            // Load Shake Settings
+            ShakeToggle.IsChecked = App.EnableMouseShake;
+            ShakeDistText.Text = App.ShakeMinimumDistance.ToString();
+            GameModeCheck.IsChecked = App.DisableInGameMode;
         }
 
         // ✨ THE FIX 2: Update the global setting when the user toggles the switch!
@@ -56,6 +61,28 @@ namespace PocketDrop
                 App.ClipboardKeyChar = dialog.SelectedLetter;
                 App.ClipboardKeyVK = dialog.SelectedVK;
                 App.ReloadHotkeys();
+            }
+        }
+
+        private void ShakeToggle_Click(object sender, RoutedEventArgs e)
+        {
+            App.EnableMouseShake = ShakeToggle.IsChecked ?? true;
+            App.SaveSettings();
+        }
+
+        private void GameModeCheck_Click(object sender, RoutedEventArgs e)
+        {
+            App.DisableInGameMode = GameModeCheck.IsChecked ?? true;
+            App.SaveSettings();
+        }
+
+        private void ShakeDistText_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            // Only save if they typed a valid number
+            if (int.TryParse(ShakeDistText.Text, out int dist))
+            {
+                App.ShakeMinimumDistance = dist;
+                App.SaveSettings();
             }
         }
     }

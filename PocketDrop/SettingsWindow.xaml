@@ -50,6 +50,49 @@
             </Setter>
         </Style>
 
+        <Style x:Key="ModernCheckBox" TargetType="CheckBox">
+            <Setter Property="Foreground" Value="#111111"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal" Background="Transparent">
+                            <Border x:Name="CheckBoxBorder" Width="20" Height="20" CornerRadius="4" 
+                                    BorderBrush="#888888" BorderThickness="1.5" Background="#FFFFFF"
+                                    VerticalAlignment="Center" Margin="0,0,12,0">
+                                <Path x:Name="CheckMark" Data="M 1 5 L 4 8 L 10 1" 
+                                      Stroke="White" StrokeThickness="2" StrokeStartLineCap="Round" 
+                                      StrokeEndLineCap="Round" StrokeLineJoin="Round" 
+                                      Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                      Stretch="Uniform" Width="11" Height="8"/>
+                            </Border>
+                            <TextBlock Text="{TemplateBinding Content}" VerticalAlignment="Center" Foreground="{TemplateBinding Foreground}" FontSize="{TemplateBinding FontSize}"/>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="CheckBoxBorder" Property="Background" Value="#005FB8"/>
+                                <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#005FB8"/>
+                                <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#555555"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsChecked" Value="True"/>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="CheckBoxBorder" Property="Background" Value="#0053A0"/>
+                                <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#0053A0"/>
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="SettingCard" TargetType="Border">
             <Setter Property="Background" Value="White"/>
             <Setter Property="CornerRadius" Value="8"/>
@@ -328,6 +371,67 @@
                             </StackPanel>
                         </Border>
                     </Grid>
+                </Border>
+
+                <Border Style="{DynamicResource SettingCard}">
+                    <StackPanel>
+                        <Grid Background="Transparent">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="40"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="30"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Path Data="M 6.002 4.004 L 15.688 15.757 L 11.234 16.331 L 13.513 21.602 L 10.518 22.895 L 8.163 17.652 L 4.498 20.84 Z" Stroke="#444" StrokeThickness="1.5" Fill="Transparent" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Stretch="Uniform" Width="14" Height="20" HorizontalAlignment="Left" Margin="4,0,0,0"/>
+
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Shake mouse to open new Pocket" FontSize="14" Foreground="#111111"/>
+                                <TextBlock Text="Shake your mouse while dragging items to open a new Pocket" FontSize="12" Foreground="#666666" Margin="0,2,0,0"/>
+                            </StackPanel>
+
+                            <CheckBox x:Name="ShakeToggle" Grid.Column="2" Content="On" IsChecked="True" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Center" Click="ShakeToggle_Click" Margin="0,0,10,0"/>
+
+                            <ToggleButton x:Name="ExpandShakeButton" Grid.Column="3" Width="24" Height="24" Background="Transparent" BorderThickness="0" Cursor="Hand" Focusable="False">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border Background="Transparent">
+                                            <Path x:Name="Chevron" Data="M 5 9 L 12 15 L 19 9" Stroke="#444" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="Chevron" Property="Data" Value="M 5 15 L 12 9 L 19 15"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                        </Grid>
+
+                        <Border Margin="-15,15,-15,-15" Padding="20,16,20,16" Background="#FAFAFA" BorderBrush="#E5E5E5" BorderThickness="0,1,0,0" CornerRadius="0,0,8,8"
+                                Visibility="{Binding IsChecked, ElementName=ExpandShakeButton, Converter={StaticResource BoolToVis}}">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="100"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Shake minimum distance" FontSize="14" Foreground="#111111"/>
+                                        <TextBlock Text="The minimum distance for mouse shaking activation, for adjusting sensitivity" FontSize="12" Foreground="#666666" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                    <Border Grid.Column="1" BorderBrush="#E5E5E5" BorderThickness="1" CornerRadius="4" Background="#FFFFFF" Height="32">
+                                        <TextBox x:Name="ShakeDistText" Background="Transparent" BorderThickness="0" VerticalAlignment="Center" Padding="8,0" FontSize="14" Foreground="#111111" TextChanged="ShakeDistText_TextChanged"/>
+                                    </Border>
+                                </Grid>
+
+                                <Border Height="1" Background="#E5E5E5" Margin="0,0,0,16"/>
+
+                                <CheckBox x:Name="GameModeCheck" Content="Do not open Pocket when Game Mode is on" IsChecked="True" 
+                                          Click="GameModeCheck_Click" Style="{StaticResource ModernCheckBox}"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
                 </Border>
 
             </StackPanel>

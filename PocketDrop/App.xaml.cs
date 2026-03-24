@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Windows;
+using System.Windows.Input;
 
 namespace PocketDrop
 {
@@ -46,6 +47,27 @@ namespace PocketDrop
         public static string PocketKeyChar = "Z";
         public static string ClipboardKeyChar = "X";
 
+        // ✨ NEW SHAKE SETTINGS
+        public static bool EnableMouseShake = true;
+        public static int ShakeMinimumDistance = 100; // Default to 100 pixels
+        public static bool DisableInGameMode = true;
+
+        // --- NATIVE GAME MODE DETECTION ---
+        [System.Runtime.InteropServices.DllImport("shell32.dll")]
+        public static extern int SHQueryUserNotificationState(out int pquns);
+
+        public static bool IsGameModeActive()
+        {
+            try
+            {
+                SHQueryUserNotificationState(out int state);
+                // 3 = QUNS_RUNNING_D3D_FULL_SCREEN (DirectX Fullscreen Games)
+                // 4 = QUNS_PRESENTATION_MODE (Fullscreen Video / PowerPoint)
+                return state == 3 || state == 4;
+            }
+            catch { return false; }
+        }
+
 
         // ✨ THE FIX: Save the keys permanently to the Windows Registry!
         public static void LoadSettings()
@@ -60,6 +82,10 @@ namespace PocketDrop
 
                     ClipboardKeyChar = key.GetValue("ClipboardKeyChar", "X").ToString();
                     ClipboardKeyVK = Convert.ToUInt32(key.GetValue("ClipboardKeyVK", 0x58));
+
+                    EnableMouseShake = Convert.ToBoolean(key.GetValue("EnableMouseShake", true));
+                    ShakeMinimumDistance = Convert.ToInt32(key.GetValue("ShakeMinimumDistance", 100));
+                    DisableInGameMode = Convert.ToBoolean(key.GetValue("DisableInGameMode", true));
                 }
             }
             catch { }
@@ -75,6 +101,10 @@ namespace PocketDrop
                     key.SetValue("PocketKeyVK", (int)PocketKeyVK);
                     key.SetValue("ClipboardKeyChar", ClipboardKeyChar);
                     key.SetValue("ClipboardKeyVK", (int)ClipboardKeyVK);
+
+                    key.SetValue("EnableMouseShake", EnableMouseShake);
+                    key.SetValue("ShakeMinimumDistance", ShakeMinimumDistance);
+                    key.SetValue("DisableInGameMode", DisableInGameMode);
                 }
             }
             catch { }

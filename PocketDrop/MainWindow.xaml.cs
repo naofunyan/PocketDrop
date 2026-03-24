@@ -667,6 +667,10 @@ namespace PocketDrop
                 }
                 else if (msg == WM_MOUSEMOVE && _leftButtonHeld)
                 {
+                    // ✨ THE NEW CHECKS: Abort if shaking is disabled, or if gaming!
+                    if (!App.EnableMouseShake) goto done;
+                    if (App.DisableInGameMode && App.IsGameModeActive()) goto done;
+
                     int x = hookStruct.pt.X;
                     int dx = x - _lastX;
                     _lastX = x;
@@ -678,7 +682,9 @@ namespace PocketDrop
                     if (_currentDir != 0 && newDir != _currentDir)
                     {
                         int swingSize = Math.Abs(x - _swingOriginX);
-                        if (swingSize >= MIN_SWING_PX)
+
+                        // ✨ DYNAMIC SENSITIVITY: Replaced the hardcoded MIN_SWING_PX
+                        if (swingSize >= App.ShakeMinimumDistance)
                         {
                             long now = Environment.TickCount64;
                             _swingTimestamps.Enqueue(now);
@@ -692,10 +698,9 @@ namespace PocketDrop
                                 _swingTimestamps.Clear();
                                 _currentDir = 0;
 
-                                // THE ULTIMATE FIX: Dynamically find a hidden window, or spawn a new one!
+                                // Spawn the window!
                                 Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)(() =>
                                 {
-                                    // Search all open windows for one that is currently asleep
                                     var hiddenPocket = Application.Current.Windows.OfType<MainWindow>().FirstOrDefault(w => !w.IsHitTestVisible);
 
                                     if (hiddenPocket != null)
@@ -704,7 +709,6 @@ namespace PocketDrop
                                     }
                                     else
                                     {
-                                        // If every single pocket on screen is actively being used, spawn a new one!
                                         var newPocket = new MainWindow();
                                         newPocket.Show();
                                         newPocket.ShowPocketDrop(hookStruct.pt.X, hookStruct.pt.Y);
