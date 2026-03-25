@@ -554,6 +554,80 @@
 
                 </StackPanel>
             </StackPanel>
+
+            <TextBlock Text="About" FontSize="14" FontWeight="SemiBold" Foreground="#444444" Margin="0,30,0,10"/>
+
+            <StackPanel Background="Transparent">
+
+                <Border Style="{DynamicResource SettingCard}">
+                    <StackPanel>
+                        <Grid Background="Transparent">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="40"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="30"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Width="20" Height="20" Background="#26A0DA" CornerRadius="4" HorizontalAlignment="Left" Margin="4,0,0,0">
+                                <Path Data="M10 5L10 13M6 9L10 13L14 9" Stroke="White" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="PocketDrop" FontSize="14" Foreground="#111111"/>
+                                <TextBlock Text="© 2026 Nao. All rights reserved." FontSize="12" Foreground="#666666" Margin="0,2,0,0"/>
+                            </StackPanel>
+
+                            <TextBlock Grid.Column="2" Text="Version 1.0.0.0" FontSize="12" Foreground="#666666" VerticalAlignment="Center" Margin="0,0,10,0"/>
+
+                            <ToggleButton x:Name="ExpandAboutButton" Grid.Column="3" Width="24" Height="24" Background="Transparent" BorderThickness="0" Cursor="Hand" Focusable="False">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border Background="Transparent">
+                                            <Path x:Name="Chevron" Data="M 5 9 L 12 15 L 19 9" Stroke="#444" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="Chevron" Property="Data" Value="M 5 15 L 12 9 L 19 15"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                        </Grid>
+
+                        <Border Margin="-15,15,-15,-15" Padding="50,16,20,16" Background="#FAFAFA" BorderBrush="#E5E5E5" BorderThickness="0,1,0,0" CornerRadius="0,0,8,8"
+                                Visibility="{Binding IsChecked, ElementName=ExpandAboutButton, Converter={StaticResource BoolToVis}}">
+                            <StackPanel>
+                                <TextBlock Text="Privacy policy" FontSize="13" Foreground="#005FB8" Cursor="Hand" Margin="0,0,0,14" MouseLeftButtonDown="PrivacyPolicy_Click"/>
+                                <TextBlock Text="Third party licenses" FontSize="13" Foreground="#005FB8" Cursor="Hand" Margin="0,0,0,14" MouseLeftButtonDown="ThirdParty_Click"/>
+                                <TextBlock Text="Report bug" FontSize="13" Foreground="#005FB8" Cursor="Hand" Margin="0,0,0,14" MouseLeftButtonDown="ReportBug_Click"/>
+                                <TextBlock Text="Help translate PocketDrop" FontSize="13" Foreground="#005FB8" Cursor="Hand" Margin="0,0,0,14" MouseLeftButtonDown="Translate_Click"/>
+                                <TextBlock Text="Rate and review on the Microsoft Store" FontSize="13" Foreground="#005FB8" Cursor="Hand" MouseLeftButtonDown="Rate_Click"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{DynamicResource SettingCard}" Margin="0,8,0,0" Cursor="Hand" MouseLeftButtonDown="GetHelp_Click" Background="#FFFFFF">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="40"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="30"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Path Data="M8 8a3 3 0 100-6 3 3 0 000 6zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z M17 4h5 M17 8h3" Stroke="#444" StrokeThickness="1.5" Fill="Transparent" Stretch="Uniform" Width="20" Height="16" HorizontalAlignment="Left" Margin="4,0,0,0"/>
+
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="Get help" FontSize="14" Foreground="#111111"/>
+                            <TextBlock Text="Report a bug, request features, or contact the developer" FontSize="12" Foreground="#666666" Margin="0,2,0,0"/>
+                        </StackPanel>
+
+                        <Path Grid.Column="2" Data="M 10 4 L 18 4 L 18 12 M 18 4 L 8 14 M 4 10 L 4 18 L 12 18" Stroke="#444" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Stretch="Uniform" Width="14" Height="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+            </StackPanel>
         </StackPanel>
         
     </ScrollViewer>

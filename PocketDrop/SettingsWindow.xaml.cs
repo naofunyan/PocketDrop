@@ -123,5 +123,56 @@ namespace PocketDrop
             App.CloseWhenEmptied = CloseEmptiedToggle.IsChecked ?? true;
             App.SaveSettings();
         }
+
+        // ══════════════════════════════════════════════════════
+        // ABOUT SECTION LINKS
+        // ══════════════════════════════════════════════════════
+
+        private void PrivacyPolicy_Click(object sender, MouseButtonEventArgs e)
+        {
+            OpenUrl("https://yourwebsite.com/privacy");
+        }
+
+        private void ThirdParty_Click(object sender, MouseButtonEventArgs e)
+        {
+            OpenUrl("https://yourwebsite.com/licenses");
+        }
+
+        private void ReportBug_Click(object sender, MouseButtonEventArgs e)
+        {
+            // Opens your specific GitHub Issues page!
+            OpenUrl("https://github.com/naofunyan/PocketDrop/issues");
+        }
+
+        private void Translate_Click(object sender, MouseButtonEventArgs e)
+        {
+            OpenUrl("https://yourwebsite.com/translate");
+        }
+
+        private void Rate_Click(object sender, MouseButtonEventArgs e)
+        {
+            // Opens the Windows Store directly to your app (replace with your actual Store ID later)
+            OpenUrl("ms-windows-store://review/?ProductId=YOUR_APP_ID");
+        }
+
+        private void GetHelp_Click(object sender, MouseButtonEventArgs e)
+        {
+            // The large "Get Help" card can also point straight to your GitHub Issues!
+            OpenUrl("https://github.com/naofunyan/PocketDrop/issues");
+        }
+
+        // Helper method to safely launch URLs in the user's default browser
+        private void OpenUrl(string url)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
+            catch { }
+        }
     }
 }
