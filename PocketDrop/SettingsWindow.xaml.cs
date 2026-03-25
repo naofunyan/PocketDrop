@@ -130,7 +130,14 @@ namespace PocketDrop
 
         private void PrivacyPolicy_Click(object sender, MouseButtonEventArgs e)
         {
-            OpenUrl("https://yourwebsite.com/privacy");
+            // Show the popup overlay!
+            PrivacyOverlay.Visibility = Visibility.Visible;
+        }
+
+        private void ClosePrivacy_Click(object sender, RoutedEventArgs e)
+        {
+            // Hide the popup overlay!
+            PrivacyOverlay.Visibility = Visibility.Collapsed;
         }
 
         private void ThirdParty_Click(object sender, MouseButtonEventArgs e)

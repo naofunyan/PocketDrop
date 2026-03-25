@@ -209,7 +209,8 @@
 
     </Window.Resources>
 
-    <ScrollViewer Padding="30">
+    <Grid>
+        <ScrollViewer Padding="30">
         <StackPanel>
             <TextBlock Text="Settings" FontSize="28" FontWeight="SemiBold" Margin="0,0,0,30" Foreground="#111111"/>
 
@@ -628,7 +629,52 @@
                     </Grid>
                 </Border>
             </StackPanel>
+            
         </StackPanel>
-        
-    </ScrollViewer>
+        </ScrollViewer>
+        <Grid x:Name="PrivacyOverlay" Visibility="Collapsed" Background="#66000000">
+            <Border Background="#FFFFFF" Width="520" HorizontalAlignment="Center" VerticalAlignment="Center" CornerRadius="8" Padding="24">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="20" Color="Black" Opacity="0.15" ShadowDepth="4"/>
+                </Border.Effect>
+                <StackPanel>
+
+                    <TextBlock Text="Privacy policy" FontSize="20" FontWeight="SemiBold" Foreground="#111111" Margin="0,0,0,16"/>
+
+                    <TextBlock Text="PocketDrop does not collect, store or share your personal information or data. The app only locally accesses user data such as files and folders from the local device, content from the clipboard, and device information in order to make the app function properly. This data is not transmitted, collected, or shared with any third parties." 
+                           TextWrapping="Wrap" FontSize="13" Foreground="#333333" Margin="0,0,0,12" LineHeight="20"/>
+
+                    <TextBlock Text="PocketDrop collects anonymous information about crashes and hangs. The information we collect is non-identifiable and does not include any personal data. We do not share collected information with any third parties." 
+                           TextWrapping="Wrap" FontSize="13" Foreground="#333333" Margin="0,0,0,12" LineHeight="20"/>
+
+                    <TextBlock Text="We may modify or update this privacy policy from time to time. When we change this policy, we will inform you of such changes by updating the &quot;Effective date&quot; notice. Users should review this privacy policy periodically." 
+                           TextWrapping="Wrap" FontSize="13" Foreground="#333333" Margin="0,0,0,12" LineHeight="20"/>
+
+                    <TextBlock Text="Effective date: March 25, 2026" FontSize="12" Foreground="#666666" Margin="0,0,0,24"/>
+
+                    <Border BorderBrush="#E5E5E5" BorderThickness="0,1,0,0" Padding="0,16,0,0">
+                        <Button Content="Close" Width="120" Height="32" HorizontalAlignment="Right" Click="ClosePrivacy_Click" Cursor="Hand" Foreground="#111111" FontSize="13">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="#FFFFFF" BorderBrush="#CCCCCC" BorderThickness="1" CornerRadius="4" x:Name="BtnBorder">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="BtnBorder" Property="Background" Value="#F5F5F5"/>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="BtnBorder" Property="Background" Value="#E5E5E5"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </Border>
+
+                </StackPanel>
+            </Border>
+        </Grid>
+
+    </Grid>
 </Window>
