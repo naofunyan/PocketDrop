@@ -9,6 +9,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using Microsoft.Win32;
 
 namespace PocketDrop
 {
@@ -17,6 +18,8 @@ namespace PocketDrop
     /// </summary>
     public partial class SettingsWindow : Window
     {
+        // ✨ ADD THIS LINE RIGHT HERE, OUTSIDE OF ANY METHODS!
+        private bool _isLanguageLoaded = false;
         public SettingsWindow()
         {
             InitializeComponent();
@@ -58,6 +61,106 @@ namespace PocketDrop
             {
                 AppVersionText.Text = "Version 1.0.0";
             }
+
+            // <--- Add the Theme load here! --->
+            // ThemeCombo.SelectedIndex = App.AppTheme; // Uncomment when you add AppTheme to App.xaml.cs
+
+            // Mark as loaded so the event doesn't trigger during window creation
+            _isLanguageLoaded = true;
+        }
+
+        // ══════════════════════════════════════════════════════
+        // THEME ENGINE
+        // ══════════════════════════════════════════════════════
+
+        private void ThemeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ThemeCombo != null && this.IsLoaded)
+            {
+                // App.AppTheme = ThemeCombo.SelectedIndex;
+                // App.SaveSettings();
+
+                ApplyTheme(ThemeCombo.SelectedIndex);
+            }
+        }
+
+        private void ApplyTheme(int themeIndex)
+        {
+            bool useDarkMode = false;
+
+            if (themeIndex == 0) // Windows Default (System)
+            {
+                useDarkMode = IsWindowsInDarkMode();
+            }
+            else if (themeIndex == 2) // Forced Dark
+            {
+                useDarkMode = true;
+            }
+            else // Forced Light (1)
+            {
+                useDarkMode = false;
+            }
+
+            // 1. Determine which file we need
+            string themeFileName = useDarkMode ? "DarkTheme.xaml" : "LightTheme.xaml";
+            Uri themeUri = new Uri($"pack://application:,,,/PocketDrop;component/Themes/{themeFileName}");
+
+            // 2. Load the new color palette
+            ResourceDictionary newTheme = new ResourceDictionary() { Source = themeUri };
+
+            // 3. Clear out the old palette and apply the new one globally!
+            Application.Current.Resources.MergedDictionaries.Clear();
+            Application.Current.Resources.MergedDictionaries.Add(newTheme);
+        }
+
+        // Helper to ask Windows 11 what theme the user's OS is currently using
+        private bool IsWindowsInDarkMode()
+        {
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"))
+                {
+                    if (key?.GetValue("AppsUseLightTheme") != null)
+                    {
+                        // Windows uses 0 for Dark Mode, and 1 for Light Mode
+                        return (int)key.GetValue("AppsUseLightTheme") == 0;
+                    }
+                }
+            }
+            catch { }
+
+            return false; // Safe fallback
+        }
+
+        private void LanguageCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!_isLanguageLoaded) return;
+
+            var selectedBox = (ComboBoxItem)LanguageCombo.SelectedItem;
+            string selectedLanguage = selectedBox.Content.ToString();
+
+            ResourceDictionary dict = new ResourceDictionary();
+
+            if (selectedLanguage == "Vietnamese")
+            {
+                dict.Source = new Uri("pack://application:,,,/PocketDrop;component/Languages/Strings.vi.xaml");
+
+                // ✨ Save to your global variable
+                App.AppLanguage = "Vietnamese";
+            }
+            else
+            {
+                dict.Source = new Uri("pack://application:,,,/PocketDrop;component/Languages/Strings.en.xaml");
+
+                // ✨ Save to your global variable
+                App.AppLanguage = "English";
+            }
+
+            // ✨ Trigger however you save your settings to disk! (e.g. JSON, Registry, or Properties.Settings)
+            // SaveMySettingsToFile(); 
+
+            // Instantly translate the app!
+            Application.Current.Resources.MergedDictionaries.Add(dict);
         }
 
         // ✨ THE FIX 2: Update the global setting when the user toggles the switch!
@@ -94,6 +197,17 @@ namespace PocketDrop
         {
             App.EnableMouseShake = ShakeToggle.IsChecked ?? true;
             App.SaveSettings();
+        }
+
+        // --- COMMIT TEXT BOX ON ENTER ---
+        private void ShakeDistText_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                // This removes the blinking cursor and drops focus, 
+                // essentially telling the app "I am done typing, save this!"
+                Keyboard.ClearFocus();
+            }
         }
 
         private void GameModeCheck_Click(object sender, RoutedEventArgs e)

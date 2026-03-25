@@ -70,6 +70,8 @@ namespace PocketDrop
         private static IntPtr _hookHandle = IntPtr.Zero;
         private static LowLevelMouseProc _hookProc; // Keep reference — prevents GC
 
+        public bool IsGhost { get; set; } = false;
+
         // ══════════════════════════════════════════════════════
         // SHAKE DETECTION PARAMETERS
         // ══════════════════════════════════════════════════════
@@ -221,10 +223,9 @@ namespace PocketDrop
                     FileIconContainer.Visibility = Visibility.Visible;
                     UpdateStackPreview();
 
-                    CountText.Text = $"{PocketedItems.Count} Items";
-                    if (ItemsListBox != null && ItemsListBox.SelectedItems.Count == 0)
+                    if (ItemsListBox == null || ItemsListBox.SelectedItems.Count == 0)
                     {
-                        PopupCountText.Text = $"{PocketedItems.Count} Items";
+                        UpdateItemCountDisplay(PocketedItems.Count);
                     }
                 }
             }
@@ -268,10 +269,9 @@ namespace PocketDrop
                         FileIconContainer.Visibility = Visibility.Visible;
                         UpdateStackPreview();
 
-                        CountText.Text = $"{PocketedItems.Count} Items";
-                        if (ItemsListBox != null && ItemsListBox.SelectedItems.Count == 0)
+                        if (ItemsListBox == null || ItemsListBox.SelectedItems.Count == 0)
                         {
-                            PopupCountText.Text = $"{PocketedItems.Count} Items";
+                            UpdateItemCountDisplay(PocketedItems.Count);
                         }
                     }
                     catch (Exception ex)
@@ -360,12 +360,9 @@ namespace PocketDrop
                     else
                     {
                         // Standard UI reset if they want it to stay open on screen
-                        StatusText.Visibility = Visibility.Visible;
-                        FileIconContainer.Visibility = Visibility.Collapsed;
                         StackContainer.Children.Clear();
-                        CountText.Text = "0 Items";
-                        PopupCountText.Text = "0 Items";
                         ExpandButton.IsChecked = false;
+                        UpdateItemCountDisplay(0);
 
                         if (SelectAllCheckBox != null)
                             SelectAllCheckBox.IsChecked = false;
@@ -569,8 +566,7 @@ namespace PocketDrop
                     UpdateStackPreview();
                 }
 
-                CountText.Text = $"{PocketedItems.Count} Items";
-                PopupCountText.Text = $"{PocketedItems.Count} Items";
+                UpdateItemCountDisplay(PocketedItems.Count);
             }
         }
 
@@ -642,9 +638,8 @@ namespace PocketDrop
             // 2. Clear this pocket's internal data list and reset the UI
             PocketedItems.Clear();
             StackContainer.Children.Clear();
-            StatusText.Visibility = Visibility.Visible;
-            FileIconContainer.Visibility = Visibility.Collapsed;
-            CountText.Text = "0 Items";
+            UpdateItemCountDisplay(0);
+
             if (PopupCountText != null) PopupCountText.Text = "0 Items";
 
             if (SelectAllCheckBox != null)
@@ -932,26 +927,22 @@ namespace PocketDrop
             if (selectedCount > 0)
             {
                 long totalBytes = 0;
-
-                // Add up the file size of everything selected
                 foreach (PocketItem item in ItemsListBox.SelectedItems)
                 {
                     if (File.Exists(item.FilePath))
-                    {
                         totalBytes += new FileInfo(item.FilePath).Length;
-                    }
                 }
 
-                // Determine if we should say "file" or "files"
-                string fileWord = selectedCount == 1 ? "file" : "files";
+                // ✨ Use the dictionary to translate "file selected" vs "files selected"
+                string fileWord = selectedCount == 1
+                    ? (string)Application.Current.Resources["Text_FileSelected"]
+                    : (string)Application.Current.Resources["Text_FilesSelected"];
 
-                // Update the text block with the new info!
-                PopupCountText.Text = $"{selectedCount} {fileWord} selected  ({FormatBytes(totalBytes)})";
+                PopupCountText.Text = $"{selectedCount} {fileWord} ({FormatBytes(totalBytes)})";
             }
             else
             {
-                // If nothing is selected (or we unselected everything), revert to the total count
-                PopupCountText.Text = $"{PocketedItems.Count} Items";
+                UpdateItemCountDisplay(PocketedItems.Count);
             }
         }
 
@@ -997,10 +988,7 @@ namespace PocketDrop
 
             PocketedItems.Clear();
             StackContainer.Children.Clear();
-            StatusText.Visibility = Visibility.Visible;
-            FileIconContainer.Visibility = Visibility.Collapsed;
-            CountText.Text = "0 Items";
-            PopupCountText.Text = "0 Items";
+            UpdateItemCountDisplay(0);
 
             if (SelectAllCheckBox != null)
                 SelectAllCheckBox.IsChecked = false;
@@ -1337,8 +1325,7 @@ namespace PocketDrop
                     FileIconContainer.Visibility = Visibility.Visible;
                     UpdateStackPreview();
 
-                    CountText.Text = $"{PocketedItems.Count} Items";
-                    if (PopupCountText != null) PopupCountText.Text = $"{PocketedItems.Count} Items";
+                    UpdateItemCountDisplay(PocketedItems.Count);
 
                     // ✨ PING THE WINDOW: Tell the Saved Pockets window to update in real-time!
                     var openHistoryWindow = Application.Current.Windows.OfType<SavedPocketsWindow>().FirstOrDefault();
@@ -1365,12 +1352,11 @@ namespace PocketDrop
         // --- SAFE KILL SWITCH: Clears and closes the window from the outside ---
         public void ForceClose()
         {
+            IsGhost = true;
             // 1. Wipe the UI and internal memory
             PocketedItems.Clear();
             StackContainer.Children.Clear();
-            StatusText.Visibility = Visibility.Visible;
-            FileIconContainer.Visibility = Visibility.Collapsed;
-            CountText.Text = "0 Items";
+            UpdateItemCountDisplay(0);
             if (PopupCountText != null) PopupCountText.Text = "0 Items";
 
             if (SelectAllCheckBox != null)
@@ -1386,6 +1372,26 @@ namespace PocketDrop
             else
             {
                 this.Close();
+            }
+        }
+
+        // --- HELPER: Updates text and translates dynamically ---
+        private void UpdateItemCountDisplay(int count)
+        {
+            string translatedItemWord = count == 1
+                ? (string)Application.Current.Resources["Text_Item"]
+                : (string)Application.Current.Resources["Text_Items"];
+
+            string displayText = $"{count} {translatedItemWord}";
+
+            if (CountText != null) CountText.Text = displayText;
+            if (PopupCountText != null) PopupCountText.Text = displayText;
+
+            if (count == 0 && StatusText != null)
+            {
+                StatusText.Text = (string)Application.Current.Resources["Text_DropItemsHere"];
+                StatusText.Visibility = Visibility.Visible;
+                FileIconContainer.Visibility = Visibility.Collapsed;
             }
         }
     }

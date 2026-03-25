@@ -79,12 +79,17 @@ namespace PocketDrop
             App.SessionHistory.Clear();
             RefreshHistory();
 
-            // 3. Find every single open pocket on the screen and force it to close!
-            // (.ToList() is crucial here so the loop doesn't crash as windows disappear)
+            // 3. Only close pockets that are actually visible on screen.
+            // A hidden background MainWindow (opacity=0, IsHitTestVisible=false) always
+            // exists in memory for the shake-to-reveal feature — ForceClose() on it
+            // causes it to flash briefly as a "ghost pocket".
             var openPockets = Application.Current.Windows.OfType<MainWindow>().ToList();
             foreach (var pocket in openPockets)
             {
-                pocket.ForceClose();
+                if (pocket.IsLoaded && pocket.Visibility == Visibility.Visible && pocket.Opacity >= 0.99)
+                {
+                    pocket.ForceClose();
+                }
             }
         }
 
@@ -104,6 +109,12 @@ namespace PocketDrop
             {
                 this.DragMove();
             }
+        }
+
+        // --- POPUP CANCEL: Just hides the confirmation box ---
+        private void CloseDeletePopup_Click(object sender, RoutedEventArgs e)
+        {
+            DeleteConfirmPopup.IsOpen = false;
         }
 
         // --- BOTTOM BUTTON: 'Gear' (Opens Settings) ---

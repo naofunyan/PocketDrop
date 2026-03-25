@@ -1,0 +1,19 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <sys:String x:Key="Text_MenuOpenWith">Mở bằng...</sys:String>
+    <sys:String x:Key="Text_MenuShare">Chia sẻ...</sys:String>
+    <sys:String x:Key="Text_MenuCompressZip">Nén thành ZIP...</sys:String>
+    <sys:String x:Key="Text_MenuClearItems">Xóa tất cả mục</sys:String>
+    <sys:String x:Key="Text_MenuOpenTempFolder">Mở thư mục Temp</sys:String>
+    <sys:String x:Key="Text_MenuSettings">Cài đặt</sys:String>
+    <sys:String x:Key="Text_DropItemsHere">Thả tập tin vào đây</sys:String>
+    <sys:String x:Key="Text_SelectAll">Chọn tất cả</sys:String>
+    <sys:String x:Key="Text_0Items">0 Mục</sys:String>
+    <sys:String x:Key="Text_Item">Mục</sys:String>
+    <sys:String x:Key="Text_Items">Mục</sys:String>
+    <sys:String x:Key="Text_FileSelected">tập tin được chọn</sys:String>
+    <sys:String x:Key="Text_FilesSelected">tập tin được chọn</sys:String>
+
+</ResourceDictionary>

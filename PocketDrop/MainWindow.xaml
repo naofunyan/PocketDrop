@@ -14,19 +14,21 @@
             <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI"/>
             <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
         </Style>
-        <SolidColorBrush x:Key="MicaBase"             Color="#F7F3F3F3"/>
-        <!-- white-grey, 97% -->
-        <SolidColorBrush x:Key="LayerDefault"          Color="#F7FFFFFF"/>
-        <!-- white, 97% -->
-        <SolidColorBrush x:Key="LayerAlt"              Color="#F7F9F9F9"/>
-        <!-- off-white, 97% -->
-        <SolidColorBrush x:Key="StrokeCardDefault"     Color="#33000000"/>
-        <!-- 20% black -->
-        <SolidColorBrush x:Key="StrokeControlDefault"  Color="#29000000"/>
-        <!-- 16% black -->
-        <SolidColorBrush x:Key="TextPrimary"           Color="#FF1A1A1A"/>
-        <SolidColorBrush x:Key="TextSecondary"         Color="#CC3B3B3B"/>
-        <SolidColorBrush x:Key="AccentDefault"         Color="#0078D4"/>
+
+        <Style x:Key="FullWidthSeparator" TargetType="MenuItem">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Rectangle Height="1" 
+                           Grid.ColumnSpan="3"
+                           Fill="{DynamicResource StrokeControlDefault}" 
+                           SnapsToDevicePixels="True" 
+                           Margin="-4,6"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
         <!-- ══ Grid Item Template — 90×90 ══ -->
         <DataTemplate x:Key="GridTemplate">
@@ -38,7 +40,7 @@
                            RenderOptions.BitmapScalingMode="HighQuality"/>
                 </Border>
                 <TextBlock Text="{Binding FileName}" FontSize="11"
-                           Foreground="{StaticResource TextPrimary}"
+                           Foreground="{DynamicResource TextPrimary}"
                            TextAlignment="Center" TextTrimming="CharacterEllipsis"
                            Margin="0,5,0,0"/>
             </StackPanel>
@@ -62,7 +64,7 @@
                     </Border>
                     <TextBlock Grid.Column="1" Text="{Binding FileName}"
                                VerticalAlignment="Center" FontSize="14"
-                               Foreground="{StaticResource TextPrimary}"
+                               Foreground="{DynamicResource TextPrimary}"
                                Margin="14,0,0,0" TextTrimming="CharacterEllipsis"/>
                 </Grid>
             </Border>
@@ -71,8 +73,8 @@
 
     <!-- ══ Main card — Mica base surface ══ -->
     <Border x:Name="MainContainer" Margin="12"
-            Background="{StaticResource MicaBase}"
-            BorderBrush="{StaticResource StrokeCardDefault}" BorderThickness="1"
+            Background="{DynamicResource MicaBase}"
+            BorderBrush="{DynamicResource StrokeCardDefault}" BorderThickness="1"
             CornerRadius="12"
             RenderTransformOrigin="0.5,0.5"
             AllowDrop="True" Drop="Window_Drop"
@@ -96,14 +98,15 @@
                   MouseLeftButtonDown="TopBar_MouseLeftButtonDown">
 
                 <Rectangle x:Name="DragHandle" Width="32" Height="4" RadiusX="2" RadiusY="2"
-                           Fill="#66000000" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+           Fill="{DynamicResource TextSecondary}" Opacity="0.5" 
+           HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
                 <Grid HorizontalAlignment="Left" VerticalAlignment="Center" Margin="6,0,0,0" Width="24" Height="24">
 
-                    <Border CornerRadius="12" Background="#1A000000" />
+                    <Border CornerRadius="12" Background="{DynamicResource IconHaloBackground}" />
 
                     <TextBlock x:Name="CloseButton" Text="✕" FontSize="11" FontWeight="Bold"
-                               Foreground="{StaticResource TextSecondary}"
+                               Foreground="{DynamicResource TextSecondary}"
                                HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                                TextAlignment="Center" Padding="0,4,0,0"
                                Cursor="Hand" Background="Transparent"
@@ -115,11 +118,11 @@
                     <Button.Template>
                         <ControlTemplate TargetType="Button">
                             <Grid Background="Transparent">
-                                <Border CornerRadius="12" Background="#1A000000" />
+                                <Border CornerRadius="12" Background="{DynamicResource IconHaloBackground}" />
 
                                 <Viewbox Width="14" Height="14" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,1,0,0">
                                     <Canvas Width="24" Height="24">
-                                        <Path Fill="{StaticResource TextSecondary}"
+                                        <Path Fill="{DynamicResource TextSecondary}"
                                               Data="M5,10 a2,2 0 1,1 0,4 a2,2 0 1,1 0,-4 z M12,10 a2,2 0 1,1 0,4 a2,2 0 1,1 0,-4 z M19,10 a2,2 0 1,1 0,4 a2,2 0 1,1 0,-4 z"/>
                                     </Canvas>
                                 </Viewbox>
@@ -128,29 +131,18 @@
                     </Button.Template>
 
                     <Button.ContextMenu>
-                        <ContextMenu FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13" Foreground="{StaticResource TextPrimary}">
+                        <ContextMenu FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13" Foreground="{DynamicResource TextPrimary}">
 
                             <ContextMenu.Resources>
                                 <Style TargetType="ContextMenu">
                                     <Setter Property="OverridesDefaultStyle" Value="True"/>
-                                    <Setter Property="SnapsToDevicePixels" Value="True"/>
                                     <Setter Property="Template">
                                         <Setter.Value>
                                             <ControlTemplate TargetType="ContextMenu">
-                                                <Border Background="{StaticResource LayerDefault}" 
-                                                        BorderBrush="{StaticResource StrokeCardDefault}" 
-                                                        BorderThickness="1" 
-                                                        CornerRadius="8" 
-                                                        Padding="0,4"
-                                                        Margin="12">
-                                                    <Border.Effect>
-                                                        <DropShadowEffect BlurRadius="16" ShadowDepth="4" Direction="270" Color="Black" Opacity="0.15"/>
-                                                    </Border.Effect>
-
-                                                    <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
-                                                        <ItemsPresenter/>
-                                                    </ScrollViewer>
-
+                                                <Border Background="{DynamicResource LayerDefault}" 
+                        BorderBrush="{DynamicResource StrokeCardDefault}" 
+                        BorderThickness="1" CornerRadius="8" Padding="0,4">
+                                                    <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
                                                 </Border>
                                             </ControlTemplate>
                                         </Setter.Value>
@@ -178,25 +170,16 @@
                                     </Setter>
                                 </Style>
 
-                                <Style TargetType="Separator">
-                                    <Setter Property="OverridesDefaultStyle" Value="True"/>
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="Separator">
-                                                <Rectangle Height="1" Fill="{StaticResource StrokeControlDefault}" Margin="0,4"/>
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                </Style>
+                                
                             </ContextMenu.Resources>
 
-                            <MenuItem Header="Open with..." Click="Menu_OpenWith_Click" />
-                            <MenuItem Header="Share..." Click="Menu_Share_Click" />
-                            <MenuItem Header="Compress to ZIP..." Click="Menu_CompressZip_Click" />
-                            <MenuItem Header="Clear all items" Click="Menu_ClearItems_Click" />
-                            <MenuItem Header="Open Temp Folder" Click="Menu_OpenTemp_Click" />
-                            <Separator />
-                            <MenuItem Header="Settings" />
+                            <MenuItem Header="{DynamicResource Text_MenuOpenWith}" Click="Menu_OpenWith_Click" />
+                            <MenuItem Header="{DynamicResource Text_MenuShare}" Click="Menu_Share_Click" />
+                            <MenuItem Header="{DynamicResource Text_MenuCompressZip}" Click="Menu_CompressZip_Click" />
+                            <MenuItem Header="{DynamicResource Text_MenuClearItems}" Click="Menu_ClearItems_Click" />
+                            <MenuItem Header="{DynamicResource Text_MenuOpenTempFolder}" Click="Menu_OpenTemp_Click" />
+                            <MenuItem Style="{StaticResource FullWidthSeparator}" IsEnabled="False"/>
+                            <MenuItem Header="{DynamicResource Text_MenuSettings}" />
 
                         </ContextMenu>
                     </Button.ContextMenu>
@@ -205,10 +188,10 @@
 
             <!-- ══ Drop zone ══ -->
             <Grid Grid.Row="1" Margin="12,0">
-                <TextBlock x:Name="StatusText" Text="Drop items here"
-                           FontSize="14" Foreground="{StaticResource TextSecondary}"
-                           HorizontalAlignment="Center" VerticalAlignment="Center"
-                           TextWrapping="Wrap" TextAlignment="Center"/>
+            <TextBlock x:Name="StatusText" Text="{DynamicResource Text_DropItemsHere}"
+                   FontSize="14" Foreground="{DynamicResource TextSecondary}"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                   TextWrapping="Wrap" TextAlignment="Center"/>
                 <!-- Dynamic stacked card preview — built in code-behind -->
                 <Grid x:Name="FileIconContainer" Visibility="Collapsed"
                       HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -223,19 +206,19 @@
                 <ToggleButton x:Name="ExpandButton" Cursor="Hand">
                     <ToggleButton.Template>
                         <ControlTemplate TargetType="ToggleButton">
-                            <Border Background="{StaticResource LayerDefault}"
-                                    BorderBrush="{StaticResource StrokeControlDefault}"
+                            <Border Background="{DynamicResource LayerDefault}"
+                                    BorderBrush="{DynamicResource StrokeControlDefault}"
                                     BorderThickness="1" CornerRadius="6" Padding="14,5">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                         </ControlTemplate>
                     </ToggleButton.Template>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock x:Name="CountText" Text="0 Items"
-                                   Foreground="{StaticResource TextSecondary}"
-                                   FontSize="13" Margin="0,0,8,0"/>
-                        <Path Data="M0,0 L4,4 L8,0"
-                              Stroke="{StaticResource TextSecondary}"
+                    <TextBlock x:Name="CountText" Text="{DynamicResource Text_0Items}"
+                               Foreground="{DynamicResource TextSecondary}"
+                               FontSize="13" Margin="0,0,8,0"/>
+                    <Path Data="M0,0 L4,4 L8,0"
+                              Stroke="{DynamicResource TextSecondary}"
                               StrokeThickness="1.5" StrokeStartLineCap="Round"
                               StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               VerticalAlignment="Center"/>
@@ -250,8 +233,8 @@
                         CustomPopupPlacementCallback="Popup_PlacementCallback"
                         Closed="Popup_Closed">
                     <Border Width="515" Height="300"
-                            Background="{StaticResource MicaBase}"
-                            BorderBrush="{StaticResource StrokeCardDefault}"
+                            Background="{DynamicResource MicaBase}"
+                            BorderBrush="{DynamicResource StrokeCardDefault}"
                             BorderThickness="1" CornerRadius="12" Margin="16"
                             PreviewMouseLeftButtonDown="Window_PreviewMouseLeftButtonDown"
                             PreviewMouseLeftButtonUp="Window_PreviewMouseLeftButtonUp"
@@ -269,35 +252,35 @@
 
                             <!-- Popup header bar -->
                             <Border Grid.Row="0"
-                                    BorderBrush="{StaticResource StrokeCardDefault}"
+                                    BorderBrush="{DynamicResource StrokeCardDefault}"
                                     BorderThickness="0,0,0,1">
                                 <Grid Margin="16,0">
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
 
                                         <Viewbox Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,0,0">
                                             <Canvas Width="24" Height="24">
-                                                <Path Stroke="{StaticResource TextSecondary}"
+                                                <Path Stroke="{DynamicResource TextSecondary}"
                                                       StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                                                       Data="M3,6 h18 M3,10 h18 M3,14 h18 M3,18 h18"/>
                                             </Canvas>
                                         </Viewbox>
 
-                                        <CheckBox x:Name="SelectAllCheckBox" Content="Select all" Margin="8,0,0,0" Padding="6,1,0,0"
-                                                  Foreground="{StaticResource TextPrimary}" FontSize="14" 
-                                                  VerticalAlignment="Center" VerticalContentAlignment="Center" 
-                                                  Cursor="Hand"
-                                                  Checked="SelectAll_Checked" Unchecked="SelectAll_Unchecked"/>
-                                    </StackPanel>
+                                    <CheckBox x:Name="SelectAllCheckBox" Content="{DynamicResource Text_SelectAll}" Margin="8,0,0,0" Padding="6,1,0,0"
+                                              Foreground="{DynamicResource TextPrimary}" FontSize="14" 
+                                              VerticalAlignment="Center" VerticalContentAlignment="Center" 
+                                              Cursor="Hand"
+                                              Checked="SelectAll_Checked" Unchecked="SelectAll_Unchecked"/>
+                                </StackPanel>
 
-                                    <TextBlock x:Name="PopupCountText" Text="0 Items"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center"
-                                               Foreground="{StaticResource TextPrimary}"
-                                               FontSize="14" />
+                                <TextBlock x:Name="PopupCountText" Text="{DynamicResource Text_0Items}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextPrimary}"
+                                           FontSize="14" />
 
-                                    <!-- Fluent segmented view toggle -->
+                                <!-- Fluent segmented view toggle -->
                                     <Border HorizontalAlignment="Right" VerticalAlignment="Center"
-                                            Background="{StaticResource MicaBase}"
-                                            BorderBrush="{StaticResource StrokeControlDefault}"
+                                            Background="{DynamicResource MicaBase}"
+                                            BorderBrush="{DynamicResource StrokeControlDefault}"
                                             BorderThickness="1" CornerRadius="6" Padding="2">
                                         <StackPanel Orientation="Horizontal">
 
@@ -308,7 +291,7 @@
                                                         <Setter Property="Background" Value="Transparent"/>
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding CurrentViewMode}" Value="List">
-                                                                <Setter Property="Background" Value="{StaticResource LayerDefault}"/>
+                                                                <Setter Property="Background" Value="{DynamicResource LayerDefault}"/>
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
@@ -319,10 +302,10 @@
                                                               Data="M8,6 L21,6 M8,12 L21,12 M8,18 L21,18 M2.5,6 L3.5,6 M2.5,12 L3.5,12 M2.5,18 L3.5,18">
                                                             <Path.Style>
                                                                 <Style TargetType="Path">
-                                                                    <Setter Property="Stroke" Value="{StaticResource TextSecondary}"/>
+                                                                    <Setter Property="Stroke" Value="{DynamicResource TextSecondary}"/>
                                                                     <Style.Triggers>
                                                                         <DataTrigger Binding="{Binding CurrentViewMode}" Value="List">
-                                                                            <Setter Property="Stroke" Value="{StaticResource AccentDefault}"/>
+                                                                            <Setter Property="Stroke" Value="{DynamicResource AccentDefault}"/>
                                                                         </DataTrigger>
                                                                     </Style.Triggers>
                                                                 </Style>
@@ -339,7 +322,7 @@
                                                         <Setter Property="Background" Value="Transparent"/>
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding CurrentViewMode}" Value="Grid">
-                                                                <Setter Property="Background" Value="{StaticResource LayerDefault}"/>
+                                                                <Setter Property="Background" Value="{DynamicResource LayerDefault}"/>
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
@@ -351,10 +334,10 @@
                                                               Data="M3,3 h7 v7 h-7 Z M14,3 h7 v7 h-7 Z M14,14 h7 v7 h-7 Z M3,14 h7 v7 h-7 Z">
                                                             <Path.Style>
                                                                 <Style TargetType="Path">
-                                                                    <Setter Property="Stroke" Value="{StaticResource TextSecondary}"/>
+                                                                    <Setter Property="Stroke" Value="{DynamicResource TextSecondary}"/>
                                                                     <Style.Triggers>
                                                                         <DataTrigger Binding="{Binding CurrentViewMode}" Value="Grid">
-                                                                            <Setter Property="Stroke" Value="{StaticResource AccentDefault}"/>
+                                                                            <Setter Property="Stroke" Value="{DynamicResource AccentDefault}"/>
                                                                         </DataTrigger>
                                                                     </Style.Triggers>
                                                                 </Style>

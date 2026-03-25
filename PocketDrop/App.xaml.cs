@@ -56,6 +56,8 @@ namespace PocketDrop
         [System.Runtime.InteropServices.DllImport("shell32.dll")]
         public static extern int SHQueryUserNotificationState(out int pquns);
 
+        
+
         public static bool IsGameModeActive()
         {
             try
@@ -156,9 +158,23 @@ namespace PocketDrop
         // ✨ THE NEW SETTING STATE: Copy by default (true). If false, it's a Move.
         public static bool CopyItemToDestination { get; set; } = true;
 
+        public static string AppLanguage = "English";
+
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
+
+            // 1. Check which language the user saved
+            string dictPath = AppLanguage == "Vietnamese"
+                ? "pack://application:,,,/PocketDrop;component/Languages/Strings.vi.xaml"
+                : "pack://application:,,,/PocketDrop;component/Languages/Strings.en.xaml";
+
+            // 2. Create the dictionary
+            ResourceDictionary languageDict = new ResourceDictionary();
+            languageDict.Source = new Uri(dictPath);
+
+            // 3. Inject it into the app before the MainWindow even draws!
+            Current.Resources.MergedDictionaries.Add(languageDict);
 
             // THE FIX: Tell WPF to stay alive in the background even if zero windows are open!
             Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
