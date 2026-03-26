@@ -1001,6 +1001,24 @@ namespace PocketDrop
             System.Diagnostics.Process.Start("explorer.exe", Path.GetTempPath());
         }
 
+        // --- MENU ACTION: Settings ---
+        private void Menu_Settings_Click(object sender, RoutedEventArgs e)
+        {
+            // Check if the settings window is already open so we don't spawn duplicates!
+            var existingSettings = System.Windows.Application.Current.Windows.OfType<SettingsWindow>().FirstOrDefault();
+
+            if (existingSettings != null)
+            {
+                existingSettings.Activate(); // Bring it to the front
+            }
+            else
+            {
+                var settingsWindow = new SettingsWindow();
+                settingsWindow.Show();
+                settingsWindow.Activate();
+            }
+        }
+
         // --- NATIVE WINDOWS APP PICKER API ---
         [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
         private static extern int SHOpenWithDialog(IntPtr hwndParent, ref OPENASINFO poainfo);

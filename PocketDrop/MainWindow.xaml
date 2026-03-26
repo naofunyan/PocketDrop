@@ -179,7 +179,7 @@
                             <MenuItem Header="{DynamicResource Text_MenuClearItems}" Click="Menu_ClearItems_Click" />
                             <MenuItem Header="{DynamicResource Text_MenuOpenTempFolder}" Click="Menu_OpenTemp_Click" />
                             <MenuItem Style="{StaticResource FullWidthSeparator}" IsEnabled="False"/>
-                            <MenuItem Header="{DynamicResource Text_MenuSettings}" />
+                            <MenuItem Header="{DynamicResource Text_MenuSettings}" Click="Menu_Settings_Click" />
 
                         </ContextMenu>
                     </Button.ContextMenu>

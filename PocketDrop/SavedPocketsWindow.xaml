@@ -1,7 +1,7 @@
 ﻿<Window x:Class="PocketDrop.SavedPocketsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Saved Pockets" Height="550" Width="400"
+        Title="{DynamicResource Text_SavedPocketsTitle}" Height="550" Width="400"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         WindowStartupLocation="Manual" Topmost="True"
         Loaded="Window_Loaded"
@@ -51,7 +51,7 @@
             </Grid.RowDefinitions>
 
             <TextBlock x:Name="EmptyStateText" 
-               Text="Your pockets will appear here&#x0a;when you close them."
+               Text="{DynamicResource Text_EmptyPockets}" TextWrapping="Wrap"
                TextAlignment="Center" VerticalAlignment="Center" 
                Foreground="{DynamicResource TextSecondary}" 
                FontSize="14" Margin="20"/>
@@ -91,7 +91,7 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <Image Source="{Binding Icon}" Width="48" Height="48"/>
-                            <TextBlock Grid.Column="1" Text="{Binding FileName}" Foreground="{DynamicResource TextPrimary}"/>
+                            <TextBlock Grid.Column="1" Text="{Binding FileName}" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
                         </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
@@ -106,7 +106,7 @@
 
                     <Button Style="{StaticResource FluentToolbarButton}" 
                             Width="34" Height="34" Margin="0,0,5,0" Click="AddPocket_Click" Cursor="Hand" 
-                            ToolTip="Add new pocket" ToolTipService.Placement="Center" ToolTipService.VerticalOffset="-35">
+                            ToolTip="{DynamicResource Text_AddPocketTooltip}" ToolTipService.Placement="Center" ToolTipService.VerticalOffset="-35">
                         <Viewbox Width="20" Height="20">
                             <Path Data="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z M12 8V16 M8 12H16" 
                                   Stroke="{DynamicResource TextSecondary}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent"/>
@@ -116,7 +116,7 @@
                     <Button x:Name="TrashButton" 
                             Style="{StaticResource FluentToolbarButton}" 
                             Width="34" Height="34" Margin="0,0,5,0" Click="Trash_Click" Cursor="Hand" 
-                            ToolTip="Delete all pockets" ToolTipService.Placement="Center" ToolTipService.VerticalOffset="-35">
+                            ToolTip="{DynamicResource Text_DeleteAllTooltip}" ToolTipService.Placement="Center" ToolTipService.VerticalOffset="-35">
                         <Viewbox Width="20" Height="20">
                             <Path Data="M3 6H21 M19 6V20C19 21.1046 18.1046 22 17 22H7C5.89543 22 5 21.1046 5 20V6 M8 6V4C8 2.89543 8.89543 2 10 2H14C15.1046 2 16 2.89543 16 4V6 M10 11V17 M14 11V17" 
                                   Stroke="{DynamicResource TextSecondary}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent"/>
@@ -125,7 +125,7 @@
 
                     <Button Style="{StaticResource FluentToolbarButton}" 
                             Width="34" Height="34" Click="Settings_Click" Cursor="Hand" 
-                            ToolTip="Settings" ToolTipService.Placement="Center" ToolTipService.VerticalOffset="-35">
+                            ToolTip="{DynamicResource Text_SettingsTooltip}" ToolTipService.Placement="Center" ToolTipService.VerticalOffset="-35">
                         <Viewbox Width="20" Height="20">
                             <Path Data="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" 
                                   Stroke="{DynamicResource TextSecondary}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent"/>
@@ -146,12 +146,12 @@
                     </Border.Effect>
 
                     <StackPanel Width="220">
-                        <TextBlock Text="Clear all pockets?"
+                        <TextBlock Text="{DynamicResource Text_ClearAllPocketsTitle}"
                        Foreground="{DynamicResource TextPrimary}" 
                        FontWeight="SemiBold"
                        FontSize="16" Margin="0,0,0,8"
                        TextAlignment="Center"/>
-                        <TextBlock Text="This will close all windows and clear the list."
+                        <TextBlock Text="{DynamicResource Text_ClearAllPocketsDesc}"
                        Foreground="{DynamicResource TextSecondary}" 
                        FontSize="13" Margin="0,0,0,20" 
                        TextAlignment="Center"
@@ -163,14 +163,14 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
 
-                            <Button Grid.Column="0" Content="Cancel" Margin="0,0,6,0"
+                            <Button Grid.Column="0" Content="{DynamicResource Text_Cancel}" Margin="0,0,6,0"
                         Style="{StaticResource FluentToolbarButton}"
                         Foreground="{DynamicResource TextPrimary}"
                         FontSize="13"
                         Height="36" 
                         Click="CloseDeletePopup_Click"/>
 
-                            <Button Grid.Column="1" Content="Delete"
+                            <Button Grid.Column="1" Content="{DynamicResource Text_Delete}"
                         Style="{StaticResource FluentToolbarButton}"
                         Background="#C42B1C" 
                         Foreground="White"

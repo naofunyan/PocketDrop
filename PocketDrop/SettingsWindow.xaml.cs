@@ -63,8 +63,18 @@ namespace PocketDrop
             }
 
             // <--- Add the Theme load here! --->
-            // ThemeCombo.SelectedIndex = App.AppTheme; // Uncomment when you add AppTheme to App.xaml.cs
+            ThemeCombo.SelectedIndex = App.AppTheme;
+            ApplyTheme(App.AppTheme);
 
+            // ✨ ADD THIS TO SYNC THE UI WITH THE SAVED LANGUAGE
+            if (App.AppLanguage == "Vietnamese")
+            {
+                LanguageCombo.SelectedIndex = 1;
+            }
+            else
+            {
+                LanguageCombo.SelectedIndex = 0;
+            }
             // Mark as loaded so the event doesn't trigger during window creation
             _isLanguageLoaded = true;
         }
@@ -77,40 +87,38 @@ namespace PocketDrop
         {
             if (ThemeCombo != null && this.IsLoaded)
             {
-                // App.AppTheme = ThemeCombo.SelectedIndex;
-                // App.SaveSettings();
-
+                App.AppTheme = ThemeCombo.SelectedIndex;
+                App.SaveSettings();
                 ApplyTheme(ThemeCombo.SelectedIndex);
             }
         }
 
         private void ApplyTheme(int themeIndex)
         {
-            bool useDarkMode = false;
-
-            if (themeIndex == 0) // Windows Default (System)
-            {
-                useDarkMode = IsWindowsInDarkMode();
-            }
-            else if (themeIndex == 2) // Forced Dark
-            {
-                useDarkMode = true;
-            }
-            else // Forced Light (1)
-            {
-                useDarkMode = false;
-            }
-
-            // 1. Determine which file we need
+            bool useDarkMode = themeIndex == 0 ? IsWindowsInDarkMode() : themeIndex == 2;
             string themeFileName = useDarkMode ? "DarkTheme.xaml" : "LightTheme.xaml";
             Uri themeUri = new Uri($"pack://application:,,,/PocketDrop;component/Themes/{themeFileName}");
 
-            // 2. Load the new color palette
-            ResourceDictionary newTheme = new ResourceDictionary() { Source = themeUri };
+            var dictionaries = System.Windows.Application.Current.Resources.MergedDictionaries;
 
-            // 3. Clear out the old palette and apply the new one globally!
-            Application.Current.Resources.MergedDictionaries.Clear();
-            Application.Current.Resources.MergedDictionaries.Add(newTheme);
+            // 1. Create and add the new theme at the very end (so it safely overrides everything)
+            var newThemeDict = new ResourceDictionary { Source = themeUri };
+            dictionaries.Add(newThemeDict);
+
+            // 2. Find ALL old theme files and remove them to prevent conflicts and memory leaks!
+            var oldThemes = new List<ResourceDictionary>();
+            foreach (var dict in dictionaries)
+            {
+                if (dict != newThemeDict && dict.Source != null && dict.Source.ToString().Contains("Theme.xaml"))
+                {
+                    oldThemes.Add(dict);
+                }
+            }
+
+            foreach (var oldTheme in oldThemes)
+            {
+                dictionaries.Remove(oldTheme);
+            }
         }
 
         // Helper to ask Windows 11 what theme the user's OS is currently using
@@ -132,35 +140,51 @@ namespace PocketDrop
             return false; // Safe fallback
         }
 
-        private void LanguageCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        // ══════════════════════════════════════════════════════
+        // LANGUAGE ENGINE
+        // ══════════════════════════════════════════════════════
+
+        private async void LanguageCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (!_isLanguageLoaded) return;
 
             var selectedBox = (ComboBoxItem)LanguageCombo.SelectedItem;
             string selectedLanguage = selectedBox.Content.ToString();
 
-            ResourceDictionary dict = new ResourceDictionary();
+            string dictPath = selectedLanguage == "Vietnamese"
+                ? "pack://application:,,,/PocketDrop;component/Languages/Strings.vi.xaml"
+                : "pack://application:,,,/PocketDrop;component/Languages/Strings.en.xaml";
 
-            if (selectedLanguage == "Vietnamese")
+            // Save choice
+            App.AppLanguage = selectedLanguage == "Vietnamese" ? "Vietnamese" : "English";
+            App.SaveSettings();
+
+            var dictionaries = System.Windows.Application.Current.Resources.MergedDictionaries;
+
+            // 1. Create and add the new language at the very end
+            var newLangDict = new ResourceDictionary { Source = new Uri(dictPath) };
+            dictionaries.Add(newLangDict);
+
+            // 2. Clean up any old language files sitting in memory
+            var oldLangs = new List<ResourceDictionary>();
+            foreach (var dict in dictionaries)
             {
-                dict.Source = new Uri("pack://application:,,,/PocketDrop;component/Languages/Strings.vi.xaml");
-
-                // ✨ Save to your global variable
-                App.AppLanguage = "Vietnamese";
+                if (dict != newLangDict && dict.Source != null && dict.Source.ToString().Contains("Strings."))
+                {
+                    oldLangs.Add(dict);
+                }
             }
-            else
+
+            foreach (var oldLang in oldLangs)
             {
-                dict.Source = new Uri("pack://application:,,,/PocketDrop;component/Languages/Strings.en.xaml");
-
-                // ✨ Save to your global variable
-                App.AppLanguage = "English";
+                dictionaries.Remove(oldLang);
             }
 
-            // ✨ Trigger however you save your settings to disk! (e.g. JSON, Registry, or Properties.Settings)
-            // SaveMySettingsToFile(); 
+            // ✨ THE FIX: Wait 50 milliseconds to let WPF finish loading the dictionary into memory!
+            await System.Threading.Tasks.Task.Delay(50);
 
-            // Instantly translate the app!
-            Application.Current.Resources.MergedDictionaries.Add(dict);
+            // Now tell the tray menu to fetch the words
+            App.UpdateTrayMenuLanguage();
         }
 
         // ✨ THE FIX 2: Update the global setting when the user toggles the switch!
@@ -171,7 +195,10 @@ namespace PocketDrop
 
         private void EditPocketKey_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            var dialog = new ShortcutDialog("New pocket shortcut", PocketKeyText.Text) { Owner = this };
+            // ✨ THE FIX: Dynamically read the translated text from memory!
+            string dialogTitle = (string)this.FindResource("Text_NewPocketShortcut");
+
+            var dialog = new ShortcutDialog(dialogTitle, PocketKeyText.Text) { Owner = this };
             if (dialog.ShowDialog() == true)
             {
                 PocketKeyText.Text = dialog.SelectedLetter;
@@ -183,7 +210,10 @@ namespace PocketDrop
 
         private void EditClipboardKey_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            var dialog = new ShortcutDialog("New pocket from clipboard", ClipboardKeyText.Text) { Owner = this };
+            // ✨ THE FIX: Dynamically read the translated text from memory!
+            string dialogTitle = (string)this.FindResource("Text_ClipboardShortcut");
+
+            var dialog = new ShortcutDialog(dialogTitle, ClipboardKeyText.Text) { Owner = this };
             if (dialog.ShowDialog() == true)
             {
                 ClipboardKeyText.Text = dialog.SelectedLetter;
