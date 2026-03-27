@@ -526,18 +526,20 @@ namespace PocketDrop
                 using (var process = System.Diagnostics.Process.GetProcessById((int)pid))
                 {
                     string pName = process.ProcessName.ToLower(); // e.g., "notepad" or "msedge"
-                    string pExe = pName + ".exe";                 // e.g., "notepad.exe"
 
-                    // 4. Split the user's text box by new lines
+                    // 4. Split the user's list by new lines
                     var rules = ExcludedApps.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
                     foreach (var ruleText in rules)
                     {
-                        string rule = ruleText.Trim().ToLower();
+                        // ✨ THE FIX: System.IO.Path instantly strips out folder paths and ".exe"!
+                        // "C:\...\msedge.exe" becomes "msedge"
+                        // "LeagueClient" stays "leagueclient"
+                        string rule = System.IO.Path.GetFileNameWithoutExtension(ruleText.Trim()).ToLower();
+
                         if (string.IsNullOrEmpty(rule)) continue;
 
-                        // Matches the logic: "notepad" matches "notepad++", but "notepad.exe" is exact
-                        if (pName.Contains(rule) || pExe.Contains(rule))
+                        if (pName.Contains(rule))
                         {
                             return true; // Abort the shake!
                         }

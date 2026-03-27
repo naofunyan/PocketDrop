@@ -38,7 +38,7 @@ namespace PocketDrop
             ShakeDistText.Text = App.ShakeMinimumDistance.ToString();
             GameModeCheck.IsChecked = App.DisableInGameMode;
 
-            ExcludedAppsText.Text = App.ExcludedApps;
+            RefreshExcludedAppsDisplay();
 
             PlacementCombo.SelectedIndex = App.PocketPlacement;
 
@@ -320,10 +320,58 @@ namespace PocketDrop
             }
         }
 
-        private void ExcludedAppsText_TextChanged(object sender, TextChangedEventArgs e)
+        private void OpenAppPicker_Click(object sender, RoutedEventArgs e)
         {
-            App.ExcludedApps = ExcludedAppsText.Text;
-            App.SaveSettings();
+            // Open the dialog and pass in the currently saved apps
+            var dialog = new AppPickerDialog(App.ExcludedApps) { Owner = this };
+
+            // If they clicked "Save"...
+            if (dialog.ShowDialog() == true)
+            {
+                // Save the new string to your global settings
+                App.ExcludedApps = dialog.FinalExcludedAppsString;
+                App.SaveSettings();
+
+                // Refresh the UI only if changes were actually saved!
+                RefreshExcludedAppsDisplay();
+            }
+        }
+
+        private async void RefreshExcludedAppsDisplay()
+        {
+            if (string.IsNullOrWhiteSpace(App.ExcludedApps))
+            {
+                ExcludedAppsEmptyText.Visibility = Visibility.Visible;
+                ExcludedAppsIconDisplay.ItemsSource = null;
+                return;
+            }
+
+            ExcludedAppsEmptyText.Visibility = Visibility.Collapsed;
+
+            // Grab the raw paths from settings
+            var paths = App.ExcludedApps
+                .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(p => p.Trim())
+                .ToList();
+
+            // Run the icon extraction on a background thread!
+            var displayItems = await System.Threading.Tasks.Task.Run(() =>
+            {
+                var list = new List<AppItem>();
+                foreach (var path in paths)
+                {
+                    list.Add(new AppItem
+                    {
+                        AppName = System.IO.Path.GetFileNameWithoutExtension(path),
+                        // This calls our existing scanner which safely Freezes the image!
+                        AppIcon = AppScanner.GetIconFromExe(path)
+                    });
+                }
+                return list;
+            });
+
+            // Feed the resulting list of AppItems to our XAML grid
+            ExcludedAppsIconDisplay.ItemsSource = displayItems;
         }
 
         private void PlacementCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
