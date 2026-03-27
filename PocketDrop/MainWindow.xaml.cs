@@ -80,6 +80,7 @@ namespace PocketDrop
         private const int SHAKE_WINDOW_MS = 1000; // all reversals must happen within this ms window
 
         private static bool _leftButtonHeld = false;
+        private static bool _hasSpawnedPocketThisDrag = false; // ✨ NEW: The Lockout Flag!
         private static int _lastX = 0;
         private static int _currentDir = 0;       // +1 = right, -1 = left, 0 = none
         private static int _swingOriginX = 0;       // X where current swing started
@@ -628,34 +629,16 @@ namespace PocketDrop
                 }
             }
 
-            // ✨ THE FIX: Ping the Saved Pockets window to update in real-time!
+            // 2. Ping the Saved Pockets window to update in real-time!
             var openHistoryWindow = Application.Current.Windows.OfType<SavedPocketsWindow>().FirstOrDefault();
             if (openHistoryWindow != null)
             {
                 openHistoryWindow.RefreshHistory();
             }
 
-            // 2. Clear this pocket's internal data list and reset the UI
-            PocketedItems.Clear();
-            StackContainer.Children.Clear();
-            UpdateItemCountDisplay(0);
-
-            if (PopupCountText != null) PopupCountText.Text = "0 Items";
-
-            if (SelectAllCheckBox != null)
-            {
-                SelectAllCheckBox.IsChecked = false;
-            }
-
-            // 3. Never kill the very last window! 
-            if (Application.Current.Windows.Count <= 1)
-            {
-                HidePocketDrop();
-            }
-            else
-            {
-                this.Close();
-            }
+            // 3. ✨ THE FIX: Play the animation, then let it close itself!
+            bool isLastWindow = Application.Current.Windows.OfType<MainWindow>().Count() <= 1;
+            HidePocketDrop(!isLastWindow);
         }
 
         // ══════════════════════════════════════════════════════
@@ -671,6 +654,8 @@ namespace PocketDrop
                 if (msg == WM_LBUTTONDOWN)
                 {
                     _leftButtonHeld = true;
+                    _hasSpawnedPocketThisDrag = false; // ✨ THE FIX: Reset the lock every time they click a new file!
+
                     _lastX = hookStruct.pt.X;
                     _swingOriginX = hookStruct.pt.X;
                     _currentDir = 0;
@@ -684,10 +669,13 @@ namespace PocketDrop
                 }
                 else if (msg == WM_MOUSEMOVE && _leftButtonHeld)
                 {
-                    // ✨ THE NEW CHECKS: Abort if shaking is disabled, or if gaming!
+                    // ✨ THE CHECKS: Abort if shaking is disabled, gaming, excluded app...
                     if (!App.EnableMouseShake) goto done;
                     if (App.DisableInGameMode && App.IsGameModeActive()) goto done;
                     if (App.IsForegroundAppExcluded()) goto done;
+
+                    // ✨ THE FIX: If we already spawned a pocket during this specific drag, stop calculating shakes!
+                    if (_hasSpawnedPocketThisDrag) goto done;
 
                     int x = hookStruct.pt.X;
                     int dx = x - _lastX;
@@ -701,7 +689,6 @@ namespace PocketDrop
                     {
                         int swingSize = Math.Abs(x - _swingOriginX);
 
-                        // ✨ DYNAMIC SENSITIVITY: Replaced the hardcoded MIN_SWING_PX
                         if (swingSize >= App.ShakeMinimumDistance)
                         {
                             long now = Environment.TickCount64;
@@ -715,6 +702,8 @@ namespace PocketDrop
                             {
                                 _swingTimestamps.Clear();
                                 _currentDir = 0;
+
+                                _hasSpawnedPocketThisDrag = true; // ✨ THE FIX: Lock it down! No more pockets until they let go of the mouse.
 
                                 // Spawn the window!
                                 Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)(() =>
@@ -846,25 +835,34 @@ namespace PocketDrop
             this.IsHitTestVisible = true;
 
             // --- ANIMATIONS ---
-            var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(180))
-            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
+            // 1. The Fade In
+            var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(150));
 
-            var scaleX = new DoubleAnimation(0.88, 1, TimeSpan.FromMilliseconds(200))
-            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
-            var scaleY = new DoubleAnimation(0.88, 1, TimeSpan.FromMilliseconds(200))
-            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
+            // 2. The Bouncy Easing Function (Amplitude controls how much it overshoots and bounces back)
+            var bounceEase = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.4 };
 
-            if (!(MainContainer.RenderTransform is ScaleTransform st))
-            {
-                st = new ScaleTransform(1, 1, w / 2, h / 2);
-                MainContainer.RenderTransform = st;
-                MainContainer.RenderTransformOrigin = new Point(0.5, 0.5);
-            }
+            // 3. The Scale and Slide animations
+            var scaleAnim = new DoubleAnimation(0.85, 1, TimeSpan.FromMilliseconds(300)) { EasingFunction = bounceEase };
+            var slideAnim = new DoubleAnimation(30, 0, TimeSpan.FromMilliseconds(300)) { EasingFunction = bounceEase };
 
-            st.BeginAnimation(ScaleTransform.ScaleXProperty, scaleX);
-            st.BeginAnimation(ScaleTransform.ScaleYProperty, scaleY);
+            // 4. Combine the Transforms
+            var transformGroup = new TransformGroup();
+            var scaleTransform = new ScaleTransform(0.85, 0.85);
+            var translateTransform = new TranslateTransform(0, 30);
 
-            this.BeginAnimation(OpacityProperty, null);
+            transformGroup.Children.Add(scaleTransform);
+            transformGroup.Children.Add(translateTransform);
+
+            // 5. Apply it to the MainContainer (Ensure it scales from the direct center)
+            MainContainer.RenderTransformOrigin = new Point(0.5, 0.5);
+            MainContainer.RenderTransform = transformGroup;
+
+            // 6. Fire them all at once!
+            scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
+            scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
+            translateTransform.BeginAnimation(TranslateTransform.YProperty, slideAnim);
+
+            this.BeginAnimation(OpacityProperty, null); // Clear old animation
             this.BeginAnimation(OpacityProperty, fadeIn);
 
             System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() =>
@@ -876,33 +874,61 @@ namespace PocketDrop
         // ══════════════════════════════════════════════════════
         // HIDE WITH ANIMATION & BACKGROUND CLEANUP
         // ══════════════════════════════════════════════════════
-        private void HidePocketDrop()
+        private void HidePocketDrop(bool closeWindow = false)
         {
-            // THE FIX PART 1: Lock the window immediately so the animation state is perfectly accurate
+            // Lock the window immediately so the user can't interact while it closes
             this.IsHitTestVisible = false;
 
+            // 1. The Fade Out
             var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(150))
             { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn } };
 
+            // 2. The Shrink and Drop animations
+            var scaleAnim = new DoubleAnimation(1, 0.85, TimeSpan.FromMilliseconds(150))
+            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn } };
+
+            var slideAnim = new DoubleAnimation(0, 30, TimeSpan.FromMilliseconds(150))
+            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn } };
+
+            // 3. Set up the transforms safely
+            var transformGroup = new TransformGroup();
+            var scaleTransform = new ScaleTransform(1, 1);
+            var translateTransform = new TranslateTransform(0, 0);
+
+            transformGroup.Children.Add(scaleTransform);
+            transformGroup.Children.Add(translateTransform);
+
+            MainContainer.RenderTransformOrigin = new Point(0.5, 0.5);
+            MainContainer.RenderTransform = transformGroup;
+
+            // 4. ✨ THE FIX: Clean up the UI *only after* the animation completely finishes!
             fadeOut.Completed += (s, e) =>
             {
-                this.IsHitTestVisible = false;
+                PocketedItems.Clear();
+                StackContainer.Children.Clear();
+                UpdateItemCountDisplay(0);
 
-                // THE FIX: Flush the RAM when the app goes to sleep empty!
-                if (PocketedItems.Count == 0)
+                if (PopupCountText != null) PopupCountText.Text = "0 Items";
+                if (SelectAllCheckBox != null) SelectAllCheckBox.IsChecked = false;
+
+                System.Threading.Tasks.Task.Run(() =>
                 {
-                    // THE FIX PART 2: Push the RAM flush to a background worker!
-                    // This prevents the UI thread from freezing, which stops Windows from 
-                    // panicking and assassinating our global mouse hook!
-                    System.Threading.Tasks.Task.Run(() =>
-                    {
-                        GC.Collect();
-                        GC.WaitForPendingFinalizers();
-                        GC.Collect();
-                    });
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                    GC.Collect();
+                });
+
+                // ✨ THE FIX: Destroy the window now that it's invisible!
+                if (closeWindow)
+                {
+                    this.Close();
                 }
             };
 
+            // 5. Fire them all at once!
+            scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
+            scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
+            translateTransform.BeginAnimation(TranslateTransform.YProperty, slideAnim);
             this.BeginAnimation(OpacityProperty, fadeOut);
         }
 
@@ -1371,26 +1397,10 @@ namespace PocketDrop
         public void ForceClose()
         {
             IsGhost = true;
-            // 1. Wipe the UI and internal memory
-            PocketedItems.Clear();
-            StackContainer.Children.Clear();
-            UpdateItemCountDisplay(0);
-            if (PopupCountText != null) PopupCountText.Text = "0 Items";
 
-            if (SelectAllCheckBox != null)
-            {
-                SelectAllCheckBox.IsChecked = false;
-            }
-
-            // 2. The safety check! If this is the last window, just hide it to keep the app alive.
-            if (Application.Current.Windows.OfType<MainWindow>().Count() <= 1)
-            {
-                HidePocketDrop();
-            }
-            else
-            {
-                this.Close();
-            }
+            // ✨ THE FIX: Let HidePocketDrop handle all the cleanup and closing!
+            bool isLastWindow = Application.Current.Windows.OfType<MainWindow>().Count() <= 1;
+            HidePocketDrop(!isLastWindow);
         }
 
         // --- HELPER: Updates text and translates dynamically ---
