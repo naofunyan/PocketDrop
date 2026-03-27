@@ -6,7 +6,9 @@
         WindowStartupLocation="Manual" Topmost="True"
         Loaded="Window_Loaded"
         ShowInTaskbar="False"
-        Deactivated="Window_Deactivated">
+        Deactivated="Window_Deactivated"
+        Opacity="0"
+        RenderTransformOrigin="0.5,0.5">
 
     <Window.Resources>
         <Style x:Key="FluentToolbarButton" TargetType="Button">
@@ -34,6 +36,13 @@
             </Setter>
         </Style>
     </Window.Resources>
+
+    <Window.RenderTransform>
+        <TransformGroup>
+            <ScaleTransform x:Name="WindowScale" ScaleX="1" ScaleY="1"/>
+            <TranslateTransform x:Name="WindowTranslate" Y="0"/>
+        </TransformGroup>
+    </Window.RenderTransform>
 
     <Border Background="{DynamicResource MicaBase}" 
         BorderBrush="{DynamicResource StrokeCardDefault}" 

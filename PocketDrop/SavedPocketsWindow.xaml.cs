@@ -1,5 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 
 namespace PocketDrop
 {
@@ -25,13 +27,39 @@ namespace PocketDrop
             // Perfectly flush against the right edge and the bottom taskbar
             this.Left = workAreaWidth - this.Width + shadowMargin;
             this.Top = workAreaHeight - this.Height + shadowMargin;
+
+            // ✨ THE ENTRANCE ANIMATION
+            var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200));
+            var slideIn = new DoubleAnimation(40, 0, TimeSpan.FromMilliseconds(250))
+            {
+                EasingFunction = new BackEase { Amplitude = 0.3, EasingMode = EasingMode.EaseOut }
+            };
+
+            this.BeginAnimation(OpacityProperty, fadeIn);
+            WindowTranslate.BeginAnimation(TranslateTransform.YProperty, slideIn);
+        }
+
+        // --- THE CUSTOM CLOSE ENGINE ---
+        private void AnimateClose()
+        {
+            // Prevent multiple closing triggers
+            this.IsHitTestVisible = false;
+
+            var fadeOut = new DoubleAnimation(this.Opacity, 0, TimeSpan.FromMilliseconds(250));
+            var slideOut = new DoubleAnimation(0, 20, TimeSpan.FromMilliseconds(250))
+            {
+                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn }
+            };
+
+            fadeOut.Completed += (s, e) => this.Close();
+
+            this.BeginAnimation(OpacityProperty, fadeOut);
+            WindowTranslate.BeginAnimation(TranslateTransform.YProperty, slideOut);
         }
 
         // --- LIGHT DISMISS: Close automatically if the user clicks away! ---
-        private void Window_Deactivated(object sender, EventArgs e)
-        {
-            this.Close();
-        }
+        private void Window_Deactivated(object sender, EventArgs e) => AnimateClose();
+        private void Close_Click(object sender, RoutedEventArgs e) => AnimateClose();
 
         // --- Checks the RAM and updates the UI ---
         public void RefreshHistory()
@@ -91,12 +119,6 @@ namespace PocketDrop
                     pocket.ForceClose();
                 }
             }
-        }
-
-        // --- BOTTOM BUTTON: 'X' (Closes this window) ---
-        private void Close_Click(object sender, RoutedEventArgs e)
-        {
-            this.Close();
         }
 
         // --- MAKES THE WINDOW DRAGGABLE ---
