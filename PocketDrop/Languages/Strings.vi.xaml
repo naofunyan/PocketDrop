@@ -28,15 +28,15 @@
     <sys:String x:Key="Text_Cancel">Hủy</sys:String>
     <sys:String x:Key="Text_Delete">Xóa</sys:String>
 
-    <sys:String x:Key="Text_SidebarNew">Mới</sys:String>
-    <sys:String x:Key="Text_SidebarClear">Xóa</sys:String>
+    <sys:String x:Key="Text_SidebarNew">Tạo mới</sys:String>
+    <sys:String x:Key="Text_SidebarClear">Xóa hết</sys:String>
     <sys:String x:Key="Text_SidebarHome">Trang chủ</sys:String>
     <sys:String x:Key="Text_SidebarPinned">Đã ghim</sys:String>
     <sys:String x:Key="Text_SidebarSettings">Cài đặt</sys:String>
 
-    <sys:String x:Key="Text_TabHomeTooltip">Tất cả Pocket</sys:String>
-    <sys:String x:Key="Text_TabPinnedTooltip">Các Pocket đã ghim</sys:String>
-    <sys:String x:Key="Text_DeleteSelected">Xóa các mục đã chọn</sys:String>
+    <sys:String x:Key="Text_TabHomeTooltip">Tất cả nội dung</sys:String>
+    <sys:String x:Key="Text_TabPinnedTooltip">Các nội dung đã ghim</sys:String>
+    <sys:String x:Key="Text_DeleteSelected">Xóa các nội dung đã chọn</sys:String>
 
     <sys:String x:Key="Text_SortDefault">Mặc định</sys:String>
     <sys:String x:Key="Text_SortAtoZ">A - Z</sys:String>
@@ -45,9 +45,9 @@
     <sys:String x:Key="Text_SortAtoZTooltip">Sắp xếp: Theo bảng chữ cái</sys:String>
     <sys:String x:Key="Text_SortZtoATooltip">Sắp xếp: Ngược bảng chữ cái</sys:String>
 
-    <sys:String x:Key="Text_ToastRestoredDefault">Đã khôi phục mặc định</sys:String>
-    <sys:String x:Key="Text_ToastSortedAtoZ">Đã sắp xếp A đến Z</sys:String>
-    <sys:String x:Key="Text_ToastSortedZtoA">Đã sắp xếp Z đến A</sys:String>
+    <sys:String x:Key="Text_ToastRestoredDefault">Sắp xếp theo mặc định</sys:String>
+    <sys:String x:Key="Text_ToastSortedAtoZ">Sắp xếp A đến Z</sys:String>
+    <sys:String x:Key="Text_ToastSortedZtoA">Sắp xếp Z đến A</sys:String>
 
     <!-- Settings Window -->
     <sys:String x:Key="Text_SettingsTitle">Cài đặt</sys:String>

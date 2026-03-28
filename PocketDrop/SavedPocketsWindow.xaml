@@ -37,6 +37,33 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <Style x:Key="DestructiveButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#C42B1C"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="BackgroundBorder" 
+                                Background="{TemplateBinding Background}" 
+                                CornerRadius="6" 
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="BackgroundBorder" Property="Background" Value="#D83B2C"/>
+                            </Trigger>
+
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="BackgroundBorder" Property="Background" Value="#A82013"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Window.RenderTransform>
@@ -371,16 +398,9 @@
                                     FontSize="13" Height="36" 
                                     Click="CloseDeletePopup_Click"/>
                             <Button Grid.Column="1" Content="{DynamicResource Text_Delete}"
-                                    Style="{StaticResource FluentToolbarButton}"
-                                    Background="#C42B1C" Foreground="White"
+                                    Style="{StaticResource DestructiveButtonStyle}"
                                     FontSize="13" FontWeight="SemiBold" Height="36" 
-                                    Click="ConfirmDelete_Click">
-                                <Button.Resources>
-                                    <Style TargetType="Border">
-                                        <Setter Property="CornerRadius" Value="6"/>
-                                    </Style>
-                                </Button.Resources>
-                            </Button>
+                                    Click="ConfirmDelete_Click"/>
                         </Grid>
                     </StackPanel>
                 </Border>
