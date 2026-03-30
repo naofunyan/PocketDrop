@@ -7,7 +7,6 @@
     <sys:String x:Key="Text_MenuShare">Share...</sys:String>
     <sys:String x:Key="Text_MenuCompressZip">Compress to ZIP...</sys:String>
     <sys:String x:Key="Text_MenuClearItems">Clear all</sys:String>
-    <sys:String x:Key="Text_MenuOpenTempFolder">Open Temp Folder</sys:String>
     <sys:String x:Key="Text_MenuSettings">Settings</sys:String>
     <sys:String x:Key="Text_DropItemsHere">Drop files here</sys:String>
     <sys:String x:Key="Text_SelectAll">Select all</sys:String>
@@ -83,6 +82,9 @@
     <sys:String x:Key="Text_CurrentlyExcluded">Current app exceptions:</sys:String>
     <sys:String x:Key="Text_NoAppsExcluded">You haven't added any apps yet.</sys:String>
     <sys:String x:Key="Text_ManageApps">Manage apps</sys:String>
+
+    <sys:String x:Key="Text_OpenTempFolder">Temporary files</sys:String>
+    <sys:String x:Key="Text_OpenTempFolderDesc">View the temporary files created by web links and images.</sys:String>
 
     <!-- App Picker Dialog -->
     <sys:String x:Key="Text_SelectAppsTitle">Select apps</sys:String>

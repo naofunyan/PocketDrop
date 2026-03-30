@@ -1038,13 +1038,6 @@ namespace PocketDrop
                 SelectAllCheckBox.IsChecked = false;
         }
 
-        // --- MENU ACTION: Open Temp Folder ---
-        private void Menu_OpenTemp_Click(object sender, RoutedEventArgs e)
-        {
-            // Opens the Windows File Explorer directly to where your dragged URLs and web images are saved!
-            System.Diagnostics.Process.Start("explorer.exe", Path.GetTempPath());
-        }
-
         // --- MENU ACTION: Settings ---
         private void Menu_Settings_Click(object sender, RoutedEventArgs e)
         {

@@ -7,7 +7,6 @@
     <sys:String x:Key="Text_MenuShare">Chia sẻ qua...</sys:String>
     <sys:String x:Key="Text_MenuCompressZip">Nén thành ZIP...</sys:String>
     <sys:String x:Key="Text_MenuClearItems">Xóa tất cả tập tin</sys:String>
-    <sys:String x:Key="Text_MenuOpenTempFolder">Mở thư mục Temp</sys:String>
     <sys:String x:Key="Text_MenuSettings">Cài đặt</sys:String>
     <sys:String x:Key="Text_DropItemsHere">Thả tập tin vào đây</sys:String>
     <sys:String x:Key="Text_SelectAll">Chọn tất cả</sys:String>
@@ -82,6 +81,9 @@
     <sys:String x:Key="Text_CurrentlyExcluded">Các ứng dụng trong danh sách ngoại lệ:</sys:String>
     <sys:String x:Key="Text_NoAppsExcluded">Chưa có ứng dụng nào trong danh sách ngoại lệ.</sys:String>
     <sys:String x:Key="Text_ManageApps">Quản lý ứng dụng</sys:String>
+
+    <sys:String x:Key="Text_OpenTempFolder">Tập tin tạm thời</sys:String>
+    <sys:String x:Key="Text_OpenTempFolderDesc">Xem các tập tin lưu tạm thời từ liên kết web và hình ảnh.</sys:String>
 
     <!-- App Picker Dialog -->
     <sys:String x:Key="Text_SelectAppsTitle">Chọn ứng dụng</sys:String>

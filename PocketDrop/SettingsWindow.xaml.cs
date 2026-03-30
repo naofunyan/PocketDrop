@@ -268,6 +268,20 @@ namespace PocketDrop
             }
         }
 
+        // --- OPEN TEMP FOLDER ---
+        private void OpenTempFolder_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Opens the Windows File Explorer directly to where your dragged URLs and web images are saved!
+                System.Diagnostics.Process.Start("explorer.exe", System.IO.Path.GetTempPath());
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Could not open folder: {ex.Message}");
+            }
+        }
+
         private void EditPocketKey_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             // ✨ THE FIX: Dynamically read the translated text from memory!

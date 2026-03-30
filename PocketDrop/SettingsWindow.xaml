@@ -294,7 +294,7 @@
                               Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="1.5" 
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" 
                               Stretch="Uniform" Width="18" Height="18" Margin="8,0,16,0"/>
-                        <TextBlock Text="{DynamicResource Text_AppearanceBehavior}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{DynamicResource Text_AppearanceBehavior}" FontSize="16" VerticalAlignment="Center"/>
                     </StackPanel>
                 </RadioButton>
 
@@ -304,7 +304,7 @@
                               Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="1.5" 
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" 
                               Stretch="Uniform" Width="18" Height="18" Margin="8,0,16,0"/>
-                        <TextBlock Text="{DynamicResource Text_ShortcutHeader}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{DynamicResource Text_ShortcutHeader}" FontSize="16" VerticalAlignment="Center"/>
                     </StackPanel>
                 </RadioButton>
 
@@ -314,7 +314,7 @@
                               Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="1.5" 
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" 
                               Stretch="Uniform" Width="18" Height="18" Margin="8,0,16,0"/>
-                        <TextBlock Text="{DynamicResource Text_PocketPreferences}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{DynamicResource Text_PocketPreferences}" FontSize="16" VerticalAlignment="Center"/>
                     </StackPanel>
                 </RadioButton>
 
@@ -324,7 +324,7 @@
                               Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" StrokeThickness="1.5" 
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" 
                               Stretch="Uniform" Width="18" Height="18" Margin="8,0,16,0"/>
-                        <TextBlock Text="{DynamicResource Text_AboutHeader}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{DynamicResource Text_AboutHeader}" FontSize="16" VerticalAlignment="Center"/>
                     </StackPanel>
                 </RadioButton>
             </StackPanel>
@@ -393,6 +393,41 @@
                                     <TextBlock Text="{DynamicResource Text_RunAtStartupDesc}" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource TextSecondary}" Margin="0,2,20,0"/>
                                 </StackPanel>
                                 <CheckBox x:Name="StartupToggle" Grid.Column="2" Content="{DynamicResource Text_ToggleOn}" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Center" Click="StartupToggle_Click"/>
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{DynamicResource SettingCard}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="40"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Path Data="M 22 19 a 2 2 0 0 1 -2 2 H 4 a 2 2 0 0 1 -2 -2 V 5 a 2 2 0 0 1 2 -2 h 5 l 2 3 h 9 a 2 2 0 0 1 2 2 z" 
+                                      Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.5" 
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" 
+                                      Stretch="Uniform" Width="18" Height="18" HorizontalAlignment="Left" Margin="4,0,0,0"/>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{DynamicResource Text_OpenTempFolder}" FontSize="14" Foreground="{DynamicResource TextPrimary}" Margin="0,0,20,0" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{DynamicResource Text_OpenTempFolderDesc}" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource TextSecondary}" Margin="0,2,20,0"/>
+                                </StackPanel>
+
+                                <Button Grid.Column="2" Content="Open" Width="80" Height="32" VerticalAlignment="Center" Click="OpenTempFolder_Click" Cursor="Hand" Foreground="{DynamicResource TextPrimary}" FontSize="14" Margin="0,0,10,0">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{DynamicResource LayerAlt}" BorderBrush="{DynamicResource StrokeControlDefault}" BorderThickness="1" CornerRadius="6" x:Name="BtnBorder">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="BtnBorder" Property="Background" Value="{DynamicResource IconHaloBackground}"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
                             </Grid>
                         </Border>
                     </StackPanel>
