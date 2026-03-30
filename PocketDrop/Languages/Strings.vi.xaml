@@ -128,10 +128,24 @@
     <sys:String x:Key="Text_LicenseIntro">PocketDrop được xây dựng dựa trên các phần mềm mã nguồn mở và tài sản sau đây:</sys:String>
 
     <!-- Shortcut Dialog -->
-    <sys:String x:Key="Text_EditShortcutTitle">Sửa phím tắt</sys:String>
-    <sys:String x:Key="Text_PressLetterKey">Nhấn một phím chữ (A-Z) để thay đổi phím tắt này.</sys:String>
-    <sys:String x:Key="Text_ModifiersLocked">Tổ hợp phím (Win + Shift) được khóa cố định để đảm bảo hệ thống hoạt động ổn định.</sys:String>
+    <sys:String x:Key="Text_EditShortcutTitle">Tùy chỉnh phím tắt</sys:String>
+    <sys:String x:Key="Text_ChangeShortcute">Phím tắt kích hoạt mới</sys:String>
+
+    <sys:String x:Key="Text_ShortcutRule1" xml:space="preserve">Phím tắt nên bắt đầu bằng phím </sys:String>
+    <sys:String x:Key="Text_ShortcutRuleMods">Windows key, Ctrl, Alt</sys:String>
+    <sys:String x:Key="Text_ShortcutRuleOr" xml:space="preserve"> hoặc </sys:String>
+    <sys:String x:Key="Text_ShortcutRuleShift">Shift.</sys:String>
+
+    <sys:String x:Key="Text_Reset">Khôi phục</sys:String>
+    <sys:String x:Key="Text_Clear">Xóa</sys:String>
+
     <sys:String x:Key="Text_Save">Lưu</sys:String>
+
+    <sys:String x:Key="Text_MsgInvalidShortcutTitle">Phím tắt không hợp lệ</sys:String>
+    <sys:String x:Key="Text_MsgNeedModifier">Phím tắt cần phải có ít nhất một phím Windows, Ctrl, Alt hoặc Shift.</sys:String>
+    <sys:String x:Key="Text_MsgNeedValidKey">Hãy thiết lập một phím tắt hợp lệ trước khi lưu.</sys:String>
+    <sys:String x:Key="Text_MsgConflictTitle">Phím tắt này đã được sử dụng</sys:String>
+    <sys:String x:Key="Text_MsgConflictDesc">Tổ hợp phím này hiện đang được ứng dụng khác sử dụng hoặc do Windows thiết lập sẵn.&#x0a;&#x0a;Vui lòng chọn một phím tắt khác.</sys:String>
 
     <!-- Tray Menu -->
     <sys:String x:Key="Text_TrayAddPocket">Tạo Pocket</sys:String>

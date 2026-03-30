@@ -130,9 +130,23 @@
 
     <!-- Shortcut Dialog -->
     <sys:String x:Key="Text_EditShortcutTitle">Edit Shortcut</sys:String>
-    <sys:String x:Key="Text_PressLetterKey">Press a letter key (A-Z) to change this shortcut.</sys:String>
-    <sys:String x:Key="Text_ModifiersLocked">Modifiers (Win + Shift) are locked to ensure system stability.</sys:String>
+    <sys:String x:Key="Text_ChangeShortcute">New activation shortcut</sys:String>
+
+    <sys:String x:Key="Text_ShortcutRule1" xml:space="preserve">A shortcut should start with </sys:String>
+    <sys:String x:Key="Text_ShortcutRuleMods">Windows key, Ctrl, Alt</sys:String>
+    <sys:String x:Key="Text_ShortcutRuleOr" xml:space="preserve"> or </sys:String>
+    <sys:String x:Key="Text_ShortcutRuleShift">Shift.</sys:String>
+
+    <sys:String x:Key="Text_Reset">Reset</sys:String>
+    <sys:String x:Key="Text_Clear">Clear</sys:String>
+
     <sys:String x:Key="Text_Save">Save</sys:String>
+
+    <sys:String x:Key="Text_MsgInvalidShortcutTitle">Invalid Shortcut</sys:String>
+    <sys:String x:Key="Text_MsgNeedModifier">Shortcuts must include at least one modifier key (Windows, Ctrl, Alt, or Shift).</sys:String>
+    <sys:String x:Key="Text_MsgNeedValidKey">Please press a valid key combination before saving.</sys:String>
+    <sys:String x:Key="Text_MsgConflictTitle">Conflict Detected</sys:String>
+    <sys:String x:Key="Text_MsgConflictDesc">This combination is currently in use by another app or reserved by Windows.&#x0a;&#x0a;Please choose a different shortcut.</sys:String>
 
     <!-- Tray Menu -->
     <sys:String x:Key="Text_TrayAddPocket">Add Pocket</sys:String>

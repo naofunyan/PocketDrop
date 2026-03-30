@@ -452,15 +452,9 @@
                                 </StackPanel>
                                 <Border Grid.Column="2" Style="{StaticResource ShortcutBox}">
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Border Style="{StaticResource Keycap}">
-                                            <Path Data="M3 3H11V11H3V3ZM13 3H21V11H13V3ZM3 13H11V21H3V13ZM13 13H21V21H13V13Z" Fill="White" Width="12" Height="12" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <Border Style="{StaticResource Keycap}">
-                                            <TextBlock Text="Shift" Foreground="White" FontWeight="SemiBold" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <Border Style="{StaticResource Keycap}">
-                                            <TextBlock x:Name="PocketKeyText" Text="Z" Foreground="White" FontWeight="SemiBold" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
+
+                                        <StackPanel x:Name="PocketKeysContainer" Orientation="Horizontal"/>
+
                                         <Border Background="Transparent" Cursor="Hand" MouseLeftButtonDown="EditPocketKey_Click">
                                             <Path Data="M3 17.25V21H6.75L17.81 9.94L14.06 6.19L3 17.25ZM20.71 7.04C21.1 6.65 21.1 6.02 20.71 5.63L18.37 3.29C17.98 2.9 17.35 2.9 16.96 3.29L15.13 5.12L18.88 8.87L20.71 7.04Z" Fill="{DynamicResource TextSecondary}" Width="14" Height="14" Margin="10,0,5,0" Stretch="Uniform"/>
                                         </Border>
@@ -486,15 +480,9 @@
                                 </StackPanel>
                                 <Border Grid.Column="2" Style="{StaticResource ShortcutBox}">
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Border Style="{StaticResource Keycap}">
-                                            <Path Data="M3 3H11V11H3V3ZM13 3H21V11H13V3ZM3 13H11V21H3V13ZM13 13H21V21H13V13Z" Fill="White" Width="12" Height="12" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <Border Style="{StaticResource Keycap}">
-                                            <TextBlock Text="Shift" Foreground="White" FontWeight="SemiBold" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <Border Style="{StaticResource Keycap}">
-                                            <TextBlock x:Name="ClipboardKeyText" Text="X" Foreground="White" FontWeight="SemiBold" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
+
+                                        <StackPanel x:Name="ClipboardKeysContainer" Orientation="Horizontal"/>
+
                                         <Border Background="Transparent" Cursor="Hand" MouseLeftButtonDown="EditClipboardKey_Click">
                                             <Path Data="M3 17.25V21H6.75L17.81 9.94L14.06 6.19L3 17.25ZM20.71 7.04C21.1 6.65 21.1 6.02 20.71 5.63L18.37 3.29C17.98 2.9 17.35 2.9 16.96 3.29L15.13 5.12L18.88 8.87L20.71 7.04Z" Fill="{DynamicResource TextSecondary}" Width="14" Height="14" Margin="10,0,5,0" Stretch="Uniform"/>
                                         </Border>

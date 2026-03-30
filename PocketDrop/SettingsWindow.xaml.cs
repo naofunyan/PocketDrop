@@ -31,9 +31,9 @@ namespace PocketDrop
 
             StartupToggle.IsChecked = IsRunAtStartupEnabled();
 
-            // ✨ THE FIX: Force the UI to display your actual saved keys!
-            PocketKeyText.Text = App.PocketKeyChar;
-            ClipboardKeyText.Text = App.ClipboardKeyChar;
+            // ✨ THE FIX: Force the UI to dynamically draw your actual saved keys!
+            RenderKeycaps(PocketKeysContainer, App.PocketModifiers, App.PocketKeyChar);
+            RenderKeycaps(ClipboardKeysContainer, App.ClipboardModifiers, App.ClipboardKeyChar);
 
             // Load Shake Settings
             ShakeToggle.IsChecked = App.EnableMouseShake;
@@ -282,32 +282,87 @@ namespace PocketDrop
             }
         }
 
+        // --- DYNAMIC KEYCAP GENERATOR ---
+        private void RenderKeycaps(StackPanel container, uint mods, string letter)
+        {
+            container.Children.Clear();
+
+            // Order matters! Win -> Ctrl -> Alt -> Shift
+            if ((mods & App.MOD_WIN) != 0) AddKeycap(container, "Win");
+            if ((mods & App.MOD_CTRL) != 0) AddKeycap(container, "Ctrl");
+            if ((mods & App.MOD_ALT) != 0) AddKeycap(container, "Alt");
+            if ((mods & App.MOD_SHIFT) != 0) AddKeycap(container, "Shift");
+
+            AddKeycap(container, letter);
+        }
+
+        private void AddKeycap(StackPanel container, string text)
+        {
+            var border = new Border
+            {
+                Background = new SolidColorBrush(Color.FromRgb(0, 95, 184)), // #005FB8
+                CornerRadius = new CornerRadius(4),
+                // ✨ FIXED: Explicitly declaring Left, Top, Right, Bottom
+                Padding = new Thickness(10, 4, 10, 4),
+                Margin = new Thickness(0, 0, 4, 0),
+                MinWidth = 32
+            };
+
+            if (text == "Win")
+            {
+                border.Child = new Path
+                {
+                    Data = Geometry.Parse("M3 3H11V11H3V3ZM13 3H21V11H13V3ZM3 13H11V21H3V13ZM13 13H21V21H13V13Z"),
+                    Fill = Brushes.White,
+                    Width = 12,
+                    Height = 12,
+                    Stretch = Stretch.Uniform,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+            }
+            else
+            {
+                border.Child = new TextBlock
+                {
+                    Text = text,
+                    Foreground = Brushes.White,
+                    FontWeight = FontWeights.SemiBold,
+                    FontSize = 12,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+            }
+            container.Children.Add(border);
+        }
+
         private void EditPocketKey_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            // ✨ THE FIX: Dynamically read the translated text from memory!
             string dialogTitle = (string)this.FindResource("Text_NewPocketShortcut");
 
-            var dialog = new ShortcutDialog(dialogTitle, PocketKeyText.Text) { Owner = this };
+            // Pass the current keys, AND the default factory reset keys (Win+Shift+Z)
+            var dialog = new ShortcutDialog(dialogTitle, App.PocketKeyChar, App.PocketModifiers, "Z", App.MOD_WIN | App.MOD_SHIFT) { Owner = this };
             if (dialog.ShowDialog() == true)
             {
-                PocketKeyText.Text = dialog.SelectedLetter;
                 App.PocketKeyChar = dialog.SelectedLetter;
                 App.PocketKeyVK = dialog.SelectedVK;
+                App.PocketModifiers = dialog.SelectedModifiers; // Save the new modifiers!
+                RenderKeycaps(PocketKeysContainer, App.PocketModifiers, App.PocketKeyChar);
                 App.ReloadHotkeys();
             }
         }
 
         private void EditClipboardKey_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            // ✨ THE FIX: Dynamically read the translated text from memory!
             string dialogTitle = (string)this.FindResource("Text_ClipboardShortcut");
 
-            var dialog = new ShortcutDialog(dialogTitle, ClipboardKeyText.Text) { Owner = this };
+            var dialog = new ShortcutDialog(dialogTitle, App.ClipboardKeyChar, App.ClipboardModifiers, "X", App.MOD_WIN | App.MOD_SHIFT) { Owner = this };
             if (dialog.ShowDialog() == true)
             {
-                ClipboardKeyText.Text = dialog.SelectedLetter;
                 App.ClipboardKeyChar = dialog.SelectedLetter;
                 App.ClipboardKeyVK = dialog.SelectedVK;
+                App.ClipboardModifiers = dialog.SelectedModifiers; // Save the new modifiers!
+                RenderKeycaps(ClipboardKeysContainer, App.ClipboardModifiers, App.ClipboardKeyChar);
                 App.ReloadHotkeys();
             }
         }

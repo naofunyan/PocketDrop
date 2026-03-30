@@ -48,8 +48,10 @@ namespace PocketDrop
             public int Y;
         };
 
-        private const uint MOD_SHIFT = 0x0004;
-        private const uint MOD_WIN = 0x0008;
+        public const uint MOD_ALT = 0x0001;
+        public const uint MOD_CTRL = 0x0002;
+        public const uint MOD_SHIFT = 0x0004;
+        public const uint MOD_WIN = 0x0008;
         private const int HOTKEY_NEW_POCKET = 9001;
         private const int HOTKEY_NEW_CLIPBOARD = 9002;
 
@@ -59,9 +61,13 @@ namespace PocketDrop
         public static string PocketKeyChar = "Z";
         public static string ClipboardKeyChar = "X";
 
+        // ✨ NEW: Dynamic Modifier Tracking!
+        public static uint PocketModifiers = MOD_WIN | MOD_SHIFT;
+        public static uint ClipboardModifiers = MOD_WIN | MOD_SHIFT;
+
         // ✨ NEW SHAKE SETTINGS
         public static bool EnableMouseShake = true;
-        public static int ShakeMinimumDistance = 150; // Default to 100 pixels
+        public static int ShakeMinimumDistance = 130; // Default to 100 pixels
         public static bool DisableInGameMode = true;
 
         public static int AppTheme = 0; // 0 = System, 1 = Light, 2 = Dark
@@ -97,6 +103,9 @@ namespace PocketDrop
                     ClipboardKeyChar = key.GetValue("ClipboardKeyChar", "X").ToString();
                     ClipboardKeyVK = Convert.ToUInt32(key.GetValue("ClipboardKeyVK", 0x58));
 
+                    PocketModifiers = Convert.ToUInt32(key.GetValue("PocketModifiers", MOD_WIN | MOD_SHIFT));
+                    ClipboardModifiers = Convert.ToUInt32(key.GetValue("ClipboardModifiers", MOD_WIN | MOD_SHIFT));
+
                     EnableMouseShake = Convert.ToBoolean(key.GetValue("EnableMouseShake", true));
                     ShakeMinimumDistance = Convert.ToInt32(key.GetValue("ShakeMinimumDistance", 100));
                     DisableInGameMode = Convert.ToBoolean(key.GetValue("DisableInGameMode", true));
@@ -126,6 +135,8 @@ namespace PocketDrop
                     key.SetValue("PocketKeyVK", (int)PocketKeyVK);
                     key.SetValue("ClipboardKeyChar", ClipboardKeyChar);
                     key.SetValue("ClipboardKeyVK", (int)ClipboardKeyVK);
+                    key.SetValue("PocketModifiers", (int)PocketModifiers);
+                    key.SetValue("ClipboardModifiers", (int)ClipboardModifiers);
 
                     key.SetValue("EnableMouseShake", EnableMouseShake);
                     key.SetValue("ShakeMinimumDistance", ShakeMinimumDistance);
@@ -159,8 +170,8 @@ namespace PocketDrop
                 UnregisterHotKey(IntPtr.Zero, HOTKEY_NEW_CLIPBOARD);
 
                 // 2. Ask Windows for the new keys, and capture its response (true = success, false = rejected)
-                bool successPocket = RegisterHotKey(IntPtr.Zero, HOTKEY_NEW_POCKET, MOD_WIN | MOD_SHIFT, PocketKeyVK);
-                bool successClipboard = RegisterHotKey(IntPtr.Zero, HOTKEY_NEW_CLIPBOARD, MOD_WIN | MOD_SHIFT, ClipboardKeyVK);
+                bool successPocket = RegisterHotKey(IntPtr.Zero, HOTKEY_NEW_POCKET, PocketModifiers, PocketKeyVK);
+                bool successClipboard = RegisterHotKey(IntPtr.Zero, HOTKEY_NEW_CLIPBOARD, ClipboardModifiers, ClipboardKeyVK);
 
                 // 3. If Windows says NO, alert the user!
                 if (!successPocket || !successClipboard)

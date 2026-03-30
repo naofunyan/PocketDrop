@@ -5,7 +5,7 @@
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         FontFamily="Segoe UI Variable, Segoe UI, sans-serif"
-        Loaded="Window_Loaded" KeyDown="Window_KeyDown">
+        Loaded="Window_Loaded" PreviewKeyDown="Window_PreviewKeyDown">
 
     <Border Background="{DynamicResource LayerDefault}" BorderBrush="{DynamicResource StrokeCardDefault}" BorderThickness="1" CornerRadius="8" Margin="20">
         <Border.Effect>
@@ -19,22 +19,29 @@
             </Grid.RowDefinitions>
 
             <StackPanel Grid.Row="0" Margin="24,24,24,0">
-                <TextBlock x:Name="TitleText" Text="New shelf shortcut" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,10"/>
-                <TextBlock Text="{DynamicResource Text_PressLetterKey}" FontSize="14" Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,40"/>
+                <TextBlock x:Name="TitleText" Text="{DynamicResource Text_ChangeShortcute}" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,10"/>
 
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                    <Border Background="#005FB8" CornerRadius="4" Padding="14,10" Margin="0,0,6,0" MinWidth="48">
-                        <Path Data="M3 3H11V11H3V3ZM13 3H21V11H13V3ZM3 13H11V21H3V13ZM13 13H21V21H13V13Z" Fill="White" Width="16" Height="16" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
-                    <Border Background="#005FB8" CornerRadius="4" Padding="14,10" Margin="0,0,6,0" MinWidth="48">
-                        <TextBlock Text="Shift" Foreground="White" FontWeight="SemiBold" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
-                    <Border Background="#005FB8" CornerRadius="4" Padding="14,10" MinWidth="48">
-                        <TextBlock x:Name="TargetKeyText" Text="Z" Foreground="White" FontWeight="SemiBold" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
+                <TextBlock FontSize="14" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,40">
+                    <Run Text="{DynamicResource Text_ShortcutRule1}"/><Run FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource Text_ShortcutRuleMods}"/><Run Text="{DynamicResource Text_ShortcutRuleOr}"/><Run FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource Text_ShortcutRuleShift}"/>
+                </TextBlock>
+
+                <StackPanel x:Name="DialogKeysContainer" Orientation="Horizontal" HorizontalAlignment="Center" MinHeight="44"/>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
+
+                    <StackPanel Orientation="Horizontal" Cursor="Hand" MouseLeftButtonDown="Reset_Click" Margin="0,0,24,0" Background="Transparent">
+                        <Path Data="M 12 4 C 7.58 4 4 7.58 4 12 C 4 16.42 7.58 20 12 20 C 15.73 20 18.84 17.45 19.73 14 H 17.65 C 16.83 16.33 14.61 18 12 18 C 8.69 18 6 15.31 6 12 C 6 8.69 8.69 6 12 6 C 13.66 6 15.14 6.69 16.22 7.78 L 13 11 H 20 V 4 L 17.65 6.35 C 16.2 4.9 14.21 4 12 4 Z" 
+                              Fill="{DynamicResource AccentDefault}" Width="14" Height="14" Stretch="Uniform" Margin="0,0,6,0"/>
+                        <TextBlock Text="{DynamicResource Text_Reset}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource AccentDefault}"/>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Cursor="Hand" MouseLeftButtonDown="Clear_Click" Background="Transparent">
+                        <Path Data="M 19 6.41 L 17.59 5 L 12 10.59 L 6.41 5 L 5 6.41 L 10.59 12 L 5 17.59 L 6.41 19 L 12 13.41 L 17.59 19 L 19 17.59 L 13.41 12 L 19 6.41 Z" 
+                              Fill="{DynamicResource AccentDefault}" Width="14" Height="14" Stretch="Uniform" Margin="0,0,6,0"/>
+                        <TextBlock Text="{DynamicResource Text_Clear}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource AccentDefault}"/>
+                    </StackPanel>
+
                 </StackPanel>
-
-                <TextBlock Text="{DynamicResource Text_ModifiersLocked}" FontSize="12" Foreground="{DynamicResource TextSecondary}" Margin="0,45,0,0"/>
             </StackPanel>
 
             <Border Grid.Row="1" Background="{DynamicResource LayerAlt}" BorderBrush="{DynamicResource StrokeControlDefault}" BorderThickness="0,1,0,0" CornerRadius="0,0,8,8" Padding="24,16">
@@ -44,20 +51,40 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <Button Grid.Column="0" Content="{DynamicResource Text_Save}" Click="Save_Click" Foreground="White" Background="#005FB8" BorderThickness="0" Padding="0,8" Margin="0,0,8,0" Cursor="Hand" FontSize="14" FontWeight="SemiBold">
-                        <Button.Resources>
-                            <Style TargetType="Border">
-                                <Setter Property="CornerRadius" Value="4"/>
-                            </Style>
-                        </Button.Resources>
+                    <Button Grid.Column="0" Content="{DynamicResource Text_Save}" Click="Save_Click" Foreground="White" BorderThickness="0" Padding="0,8" Margin="0,0,8,0" Cursor="Hand" FontSize="14" FontWeight="SemiBold">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="BtnBorder" Background="#005FB8" CornerRadius="4">
+                                    <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="BtnBorder" Property="Background" Value="#004A91"/>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter TargetName="BtnBorder" Property="Background" Value="#003E7A"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
                     </Button>
 
-                    <Button Grid.Column="1" Content="{DynamicResource Text_Cancel}" Click="Cancel_Click" Foreground="{DynamicResource TextPrimary}" Background="{DynamicResource LayerDefault}" BorderBrush="{DynamicResource StrokeControlDefault}" BorderThickness="1" Padding="0,8" Margin="8,0,0,0" Cursor="Hand" FontSize="14" FontWeight="SemiBold">
-                        <Button.Resources>
-                            <Style TargetType="Border">
-                                <Setter Property="CornerRadius" Value="4"/>
-                            </Style>
-                        </Button.Resources>
+                    <Button Grid.Column="1" Content="{DynamicResource Text_Cancel}" Click="Cancel_Click" Foreground="{DynamicResource TextPrimary}" BorderThickness="0" Padding="0,8" Margin="8,0,0,0" Cursor="Hand" FontSize="14" FontWeight="SemiBold">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="BtnBorder" Background="{DynamicResource LayerDefault}" BorderBrush="{DynamicResource StrokeControlDefault}" BorderThickness="1" CornerRadius="4">
+                                    <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="BtnBorder" Property="Background" Value="{DynamicResource IconHaloBackground}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter TargetName="BtnBorder" Property="Background" Value="{DynamicResource LayerAlt}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
                     </Button>
                 </Grid>
             </Border>
