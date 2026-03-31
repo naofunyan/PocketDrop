@@ -1011,13 +1011,87 @@ namespace PocketDrop
         {
             if (MoreButton.ContextMenu != null)
             {
-                // Align the menu directly under the 3-dots icon
+                // 1. Count the files
+                int selectedCount = (ItemsListBox != null && ItemsListBox.SelectedItems.Count > 0)
+                    ? ItemsListBox.SelectedItems.Count
+                    : PocketedItems.Count;
+
+                // 2. ✨ THE FIX: Dynamically link to the translation resources!
+                if (selectedCount > 1)
+                {
+                    Menu_DynamicOpen.SetResourceReference(MenuItem.HeaderProperty, "Text_MenuOpen");
+                }
+                else
+                {
+                    Menu_DynamicOpen.SetResourceReference(MenuItem.HeaderProperty, "Text_MenuOpenWith");
+                }
+
+                // 3. Align the menu directly under the 3-dots icon
                 MoreButton.ContextMenu.PlacementTarget = MoreButton;
                 MoreButton.ContextMenu.Placement = PlacementMode.Bottom;
                 MoreButton.ContextMenu.VerticalOffset = 4;
 
-                // Open it!
+                // 4. Open it!
                 MoreButton.ContextMenu.IsOpen = true;
+            }
+        }
+
+        // --- MENU ACTION: Smart Open (Switches based on count) ---
+        private void Menu_DynamicOpen_Click(object sender, RoutedEventArgs e)
+        {
+            // 1. Gather the selected files (or all of them if none are selected)
+            var itemsToOpen = (ItemsListBox != null && ItemsListBox.SelectedItems.Count > 0)
+                ? ItemsListBox.SelectedItems.Cast<PocketItem>().ToList()
+                : PocketedItems.ToList();
+
+            if (itemsToOpen.Count == 0) return;
+
+            // 2. SCENARIO A: Only 1 file -> Show the native "How do you want to open this?" dialog
+            if (itemsToOpen.Count == 1)
+            {
+                string targetFilePath = itemsToOpen[0].FilePath;
+
+                if (!string.IsNullOrEmpty(targetFilePath) && File.Exists(targetFilePath))
+                {
+                    System.Threading.Tasks.Task.Run(() =>
+                    {
+                        try
+                        {
+                            OPENASINFO info = new OPENASINFO();
+                            info.pcszFile = targetFilePath;
+                            info.pcszClass = null;
+                            info.oaUIAction = 7;
+                            SHOpenWithDialog(IntPtr.Zero, ref info);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Could not open file picker: {ex.Message}");
+                        }
+                    });
+                }
+            }
+            // 3. SCENARIO B: Multiple files -> Open them all instantly in their default apps!
+            else
+            {
+                foreach (var item in itemsToOpen)
+                {
+                    if (File.Exists(item.FilePath))
+                    {
+                        try
+                        {
+                            // UseShellExecute acts exactly like double-clicking the file in Windows Explorer
+                            Process.Start(new ProcessStartInfo
+                            {
+                                FileName = item.FilePath,
+                                UseShellExecute = true
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Could not open {item.FileName}: {ex.Message}");
+                        }
+                    }
+                }
             }
         }
 

@@ -177,7 +177,7 @@
 
                                 </ContextMenu.Resources>
 
-                                <MenuItem Header="{DynamicResource Text_MenuOpenWith}" Click="Menu_OpenWith_Click" />
+                                <MenuItem x:Name="Menu_DynamicOpen" Header="{DynamicResource Text_MenuOpenWith}" Click="Menu_DynamicOpen_Click" />
                                 <MenuItem Header="{DynamicResource Text_MenuShare}" Click="Menu_Share_Click" />
                                 <MenuItem Header="{DynamicResource Text_MenuCompressZip}" Click="Menu_CompressZip_Click" />
                                 <MenuItem Header="{DynamicResource Text_MenuClearItems}" Click="Menu_ClearItems_Click" />
