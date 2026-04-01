@@ -73,6 +73,8 @@ namespace PocketDrop
 
         public static int AppTheme = 0; // 0 = System, 1 = Light, 2 = Dark
 
+        // Defaulting to true for the best out-of-the-box user experience
+        public static bool AutoCompressFoldersShare { get; set; } = true;
         public static bool CloseWhenOpenWith { get; set; } = false;
 
         // --- NATIVE GAME MODE DETECTION ---

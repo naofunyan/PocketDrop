@@ -136,6 +136,9 @@ namespace PocketDrop
                 using (var mod = proc.MainModule)
                     _hookHandle = SetWindowsHookEx(WH_MOUSE_LL, _hookProc, GetModuleHandle(mod.ModuleName), 0);
             }
+
+            // ✨ Clean up heavy temp files from previous sessions!
+            System.Threading.Tasks.Task.Run(() => CleanupOldShareZips());
         }
 
         protected override void OnClosed(EventArgs e)
@@ -1209,38 +1212,80 @@ namespace PocketDrop
         // Class-level variables to handle the share lifecycle
         private List<string> _filesToSharePaths;
         private DataTransferManager _shareManager;
+        private List<PocketItem> _pendingShareItems;
 
         // --- MENU ACTION: Share ---
-        private void Menu_Share_Click(object sender, RoutedEventArgs e)
+        private async void Menu_Share_Click(object sender, RoutedEventArgs e)
         {
-            // 1. Gather all files to share
             var itemsToShare = (ItemsListBox != null && ItemsListBox.SelectedItems.Count > 0)
                 ? ItemsListBox.SelectedItems.Cast<PocketItem>().ToList()
                 : PocketedItems.ToList();
 
             if (itemsToShare.Count == 0) return;
+            if (ExpandButton != null) ExpandButton.IsChecked = false; // Collapse the popup menu
 
-            // 2. Save all their paths to our new list!
-            _filesToSharePaths = itemsToShare.Select(item => item.FilePath).ToList();
+            bool containsFolders = itemsToShare.Any(item => Directory.Exists(item.FilePath));
 
+            // --- 1. HANDLE FOLDERS & ZIPPING FIRST ---
+            if (containsFolders)
+            {
+                if (App.AutoCompressFoldersShare)
+                {
+                    try
+                    {
+                        // Show loading UI
+                        if (FileIconContainer != null) FileIconContainer.Visibility = Visibility.Collapsed;
+                        if (StatusText != null)
+                        {
+                            StatusText.Text = "Compressing for Share...";
+                            StatusText.Visibility = Visibility.Visible;
+                        }
+
+                        // ZIP FIRST! Wait for it to finish completely.
+                        string tempZipPath = await CreateTempZipFromItemsAsync(itemsToShare);
+
+                        // Set the payload to our shiny new single zip file
+                        _filesToSharePaths = new List<string> { tempZipPath };
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Failed to compress the folder.\n\nError: {ex.Message}", "Compression Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return; // Abort share
+                    }
+                    finally
+                    {
+                        // Clean up UI instantly
+                        if (StatusText != null) StatusText.Visibility = Visibility.Collapsed;
+                        if (FileIconContainer != null) FileIconContainer.Visibility = Visibility.Visible;
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Folders cannot be shared directly. Please use 'Compress to ZIP' first or enable Auto-Compress in Settings.",
+                                    "Share Action Failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+            }
+            else
+            {
+                // No folders? Just grab the standard file paths
+                _filesToSharePaths = itemsToShare.Select(item => item.FilePath).ToList();
+            }
+
+            // --- 2. NOW TRIGGER THE SHARE UI ---
+            // The files are 100% ready, so Windows has nothing to wait for!
             try
             {
-                // 1. Get the exact Window Handle (HWND) of your WPF app
                 IntPtr hwnd = new WindowInteropHelper(this).Handle;
-
-                // 2. Access the native Windows 11 Share factory
                 var factory = WinRT.ActivationFactory.Get("Windows.ApplicationModel.DataTransfer.DataTransferManager");
-
-                // THE FIX: Extract the raw COM pointer and create a standard .NET COM Wrapper
-                // This perfectly bypasses the ObjectReference error!
                 var interop = (IDataTransferManagerInterop)Marshal.GetObjectForIUnknown(factory.ThisPtr);
 
-                // 3. Get the Share Manager assigned to THIS specific window
                 Guid guid = Guid.Parse("a5caee9b-8708-49d1-8d36-67d25a8da00c");
                 IntPtr ptr = interop.GetForWindow(hwnd, ref guid);
                 _shareManager = WinRT.MarshalInterface<DataTransferManager>.FromAbi(ptr);
 
-                // 4. Attach our file to the payload and show the UI!
+                // Hook the event and show the UI
+                _shareManager.DataRequested -= ShareManager_DataRequested;
                 _shareManager.DataRequested += ShareManager_DataRequested;
                 interop.ShowShareUIForWindow(hwnd);
             }
@@ -1253,35 +1298,114 @@ namespace PocketDrop
         // --- BUILDING THE SHARE PAYLOAD ---
         private async void ShareManager_DataRequested(DataTransferManager sender, DataRequestedEventArgs args)
         {
-            // A deferral tells Windows to keep the Share UI spinning for a millisecond while we load the file from the hard drive
+            // A micro-deferral just to allow the async WinRT Storage API to fetch the files
             DataRequestDeferral deferral = args.Request.GetDeferral();
 
             try
             {
-                // ✨ Dynamic Share Title
-                args.Request.Data.Properties.Title = _filesToSharePaths.Count == 1
-                    ? "Sharing 1 file from PocketDrop"
-                    : $"Sharing {_filesToSharePaths.Count} files from PocketDrop";
+                if (_filesToSharePaths == null || _filesToSharePaths.Count == 0) return;
 
-                // ✨ Loop through and convert ALL paths into Windows Storage Files!
+                // Dynamic title
+                args.Request.Data.Properties.Title = _filesToSharePaths.Count == 1
+                    ? "Sharing 1 item from PocketDrop"
+                    : $"Sharing {_filesToSharePaths.Count} items from PocketDrop";
+
+                // Quickly map the string paths to Windows Storage Files
                 List<IStorageItem> storageItems = new List<IStorageItem>();
                 foreach (string path in _filesToSharePaths)
                 {
                     if (File.Exists(path))
                     {
-                        StorageFile file = await StorageFile.GetFileFromPathAsync(path);
-                        storageItems.Add(file);
+                        storageItems.Add(await StorageFile.GetFileFromPathAsync(path));
                     }
                 }
 
-                // Send the entire array to the Share UI
                 args.Request.Data.SetStorageItems(storageItems);
+            }
+            catch (Exception ex)
+            {
+                args.Request.FailWithDisplayText($"Failed to prepare files: {ex.Message}");
             }
             finally
             {
-                // Unhook the event so it doesn't fire twice next time, and release the loading spinner
-                _shareManager.DataRequested -= ShareManager_DataRequested;
+                // Unhook to prevent ghost fires, and complete the deferral immediately
+                if (_shareManager != null)
+                {
+                    _shareManager.DataRequested -= ShareManager_DataRequested;
+                }
                 deferral.Complete();
+            }
+        }
+
+        // --- HELPER: Silently compress mixed items into a temp ZIP ---
+        private async System.Threading.Tasks.Task<string> CreateTempZipFromItemsAsync(List<PocketItem> items)
+        {
+            // Create a unique zip file in the Windows Temp directory
+            string zipName = $"PocketDrop_Share_{DateTime.Now:yyyyMMdd_HHmmss}.zip";
+            string zipPath = Path.Combine(Path.GetTempPath(), zipName);
+
+            // Run the heavy compression on a background thread to keep the UI perfectly smooth!
+            await System.Threading.Tasks.Task.Run(() =>
+            {
+                using (var archive = System.IO.Compression.ZipFile.Open(zipPath, System.IO.Compression.ZipArchiveMode.Create))
+                {
+                    foreach (var item in items)
+                    {
+                        if (Directory.Exists(item.FilePath))
+                        {
+                            // It's a folder: Add the folder and all its contents recursively
+                            AddDirectoryToZip(archive, item.FilePath, Path.GetFileName(item.FilePath));
+                        }
+                        else if (File.Exists(item.FilePath))
+                        {
+                            // It's a standard file: Just add it to the root of the zip
+                            archive.CreateEntryFromFile(item.FilePath, Path.GetFileName(item.FilePath));
+                        }
+                    }
+                }
+            });
+
+            return zipPath;
+        }
+
+        // --- HELPER: Clean up leftover ZIPs from previous share sessions ---
+        private void CleanupOldShareZips()
+        {
+            try
+            {
+                string tempPath = Path.GetTempPath();
+
+                // Find all our custom ZIP files in the temp folder
+                string[] oldZips = Directory.GetFiles(tempPath, "PocketDrop_Share_*.zip");
+
+                foreach (string zip in oldZips)
+                {
+                    // Extra safety: Only delete ZIPs older than 1 hour 
+                    // to ensure we don't delete something the user is actively sharing!
+                    FileInfo fi = new FileInfo(zip);
+                    if (fi.CreationTime < DateTime.Now.AddHours(-1))
+                    {
+                        File.Delete(zip);
+                    }
+                }
+            }
+            catch
+            {
+                // Silently ignore any locked files. We will catch them on the next launch! 
+            }
+        }
+
+        // --- HELPER: Recursively add folder contents to the ZIP ---
+        private void AddDirectoryToZip(System.IO.Compression.ZipArchive archive, string sourceDir, string entryRootName)
+        {
+            string[] files = Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories);
+            foreach (string file in files)
+            {
+                // Calculate the relative path so the folder structure is preserved inside the ZIP
+                string relativePath = file.Substring(sourceDir.Length).TrimStart('\\', '/');
+                string zipEntryName = Path.Combine(entryRootName, relativePath).Replace('\\', '/');
+
+                archive.CreateEntryFromFile(file, zipEntryName);
             }
         }
 

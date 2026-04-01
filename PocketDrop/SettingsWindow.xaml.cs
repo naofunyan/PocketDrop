@@ -46,6 +46,8 @@ namespace PocketDrop
 
             LayoutCombo.SelectedIndex = App.ItemsLayoutMode;
 
+            AutoCompressShareToggle.IsChecked = App.AutoCompressFoldersShare;
+
             CloseEmptiedToggle.IsChecked = App.CloseWhenEmptied;
 
             CloseOpenWithToggle.IsChecked = App.CloseWhenOpenWith;
@@ -472,6 +474,12 @@ namespace PocketDrop
                 App.ItemsLayoutMode = LayoutCombo.SelectedIndex;
                 App.SaveSettings();
             }
+        }
+
+        private void AutoCompressShareToggle_Click(object sender, RoutedEventArgs e)
+        {
+            App.AutoCompressFoldersShare = AutoCompressShareToggle.IsChecked ?? true;
+            App.SaveSettings(); // Assumes you use this method to save to your config/registry
         }
 
         private void CloseEmptiedToggle_Click(object sender, RoutedEventArgs e)

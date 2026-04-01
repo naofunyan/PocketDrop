@@ -735,6 +735,28 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
+
+                                <Path Data="M 10 4 H 4 c -1.1 0 -1.99 .9 -1.99 2 L 2 18 c 0 1.1 .9 2 2 2 h 16 c 1.1 0 2 -.9 2 -2 V 8 c 0 -1.1 -.9 -2 -2 -2 h -8 l -2 -2 z M 16 10 v 2 M 16 14 v 2" 
+                                      Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.5" 
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" 
+                                      Stretch="Uniform" Width="18" Height="18" HorizontalAlignment="Left" Margin="4,0,0,0"/>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="Auto compress folders when shared" FontSize="14" Foreground="{DynamicResource TextPrimary}" Margin="0,0,20,0" TextWrapping="Wrap"/>
+                                    <TextBlock Text="Zips folders into a single file before passing them to the Windows Share UI." FontSize="12" Foreground="{DynamicResource TextSecondary}" Margin="0,2,20,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <CheckBox x:Name="AutoCompressShareToggle" Grid.Column="2" Content="{DynamicResource Text_ToggleOn}" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Center" Click="AutoCompressShareToggle_Click"/>
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{DynamicResource SettingCard}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="40"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
                                 <Path Data="M 12 2 A 10 10 0 1 1 12 22 A 10 10 0 1 1 12 2 Z M 15 9 L 9 15 M 9 9 L 15 15" 
                                       Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.5" 
                                       StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" 
@@ -747,7 +769,7 @@
                             </Grid>
                         </Border>
 
-                        <Border Style="{DynamicResource SettingCard}" Margin="0,8,0,0">
+                        <Border Style="{DynamicResource SettingCard}">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="40"/>
