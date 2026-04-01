@@ -1093,6 +1093,13 @@ namespace PocketDrop
                     }
                 }
             }
+
+            // 4. ✨ THE NEW FEATURE: Auto-close the pocket if the user enabled it in Settings
+            if (App.CloseWhenOpenWith)
+            {
+                if (ExpandButton != null) ExpandButton.IsChecked = false; // Collapse the popup menu visually
+                ForceClose(); // Safely animate the window away and clean up memory!
+            }
         }
 
         // --- MENU ACTION: Clear All ---

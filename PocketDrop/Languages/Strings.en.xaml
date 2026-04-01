@@ -86,6 +86,8 @@
 
     <sys:String x:Key="Text_OpenTempFolder">Temporary files</sys:String>
     <sys:String x:Key="Text_OpenTempFolderDesc">View the temporary files created by web links and images.</sys:String>
+    <sys:String x:Key="Text_CloseOpenWith">Close Pocket after opening files</sys:String>
+    <sys:String x:Key="Text_CloseOpenWithDesc">Close the Pocket automatically after you open a file using the Open or Open with menu.</sys:String>
 
     <!-- App Picker Dialog -->
     <sys:String x:Key="Text_SelectAppsTitle">Select apps</sys:String>

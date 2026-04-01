@@ -746,6 +746,28 @@
                                 <CheckBox x:Name="CloseEmptiedToggle" Grid.Column="2" Content="{DynamicResource Text_ToggleOn}" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Center" Click="CloseEmptiedToggle_Click"/>
                             </Grid>
                         </Border>
+
+                        <Border Style="{DynamicResource SettingCard}" Margin="0,8,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="40"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Path Data="M 11 4 L 20 4 L 20 13 M 20 4 L 9 15 M 15 20 L 4 20 L 4 9 L 9 9"
+                                      Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.5"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent"
+                                      Stretch="Uniform" Width="18" Height="18" HorizontalAlignment="Left" Margin="4,0,0,0"/>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{DynamicResource Text_CloseOpenWith}" FontSize="14" Foreground="{DynamicResource TextPrimary}" Margin="0,0,20,0" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{DynamicResource Text_CloseOpenWithDesc}" FontSize="12" Foreground="{DynamicResource TextSecondary}" Margin="0,2,20,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <CheckBox x:Name="CloseOpenWithToggle" Grid.Column="2" Content="{DynamicResource Text_ToggleOn}" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Center" Click="CloseOpenWithToggle_Click"/>
+                            </Grid>
+                        </Border>
                     </StackPanel>
 
                     <StackPanel x:Name="AboutPanel" Style="{StaticResource AnimatedPanel}" Visibility="{Binding IsChecked, ElementName=NavAbout, Converter={StaticResource BoolToVis}}">

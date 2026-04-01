@@ -1,12 +1,13 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Windows;
-using System.Windows.Forms;
-using System.Windows.Input;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Forms;
+using System.Windows.Input;
 
 namespace PocketDrop
 {
@@ -72,6 +73,8 @@ namespace PocketDrop
 
         public static int AppTheme = 0; // 0 = System, 1 = Light, 2 = Dark
 
+        public static bool CloseWhenOpenWith { get; set; } = false;
+
         // --- NATIVE GAME MODE DETECTION ---
         [System.Runtime.InteropServices.DllImport("shell32.dll")]
         public static extern int SHQueryUserNotificationState(out int pquns);
@@ -118,6 +121,8 @@ namespace PocketDrop
 
                     CloseWhenEmptied = Convert.ToBoolean(key.GetValue("CloseWhenEmptied", true));
 
+                    CloseWhenOpenWith = Convert.ToBoolean(key.GetValue("CloseWhenOpenWith", false));
+
                     AppTheme = Convert.ToInt32(key.GetValue("AppTheme", 0));
                     AppLanguage = key.GetValue("AppLanguage", "English").ToString();
                 }
@@ -149,6 +154,8 @@ namespace PocketDrop
                     key.SetValue("ItemsLayoutMode", ItemsLayoutMode);
 
                     key.SetValue("CloseWhenEmptied", CloseWhenEmptied);
+
+                    key.SetValue("CloseWhenOpenWith", CloseWhenOpenWith);
 
                     key.SetValue("AppTheme", AppTheme);
 

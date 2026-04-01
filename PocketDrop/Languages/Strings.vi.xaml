@@ -85,6 +85,8 @@
 
     <sys:String x:Key="Text_OpenTempFolder">Tập tin tạm thời</sys:String>
     <sys:String x:Key="Text_OpenTempFolderDesc">Xem các tập tin lưu tạm thời từ liên kết web và hình ảnh.</sys:String>
+    <sys:String x:Key="Text_CloseOpenWith">Đóng OW</sys:String>
+    <sys:String x:Key="Text_CloseOpenWithDesc">Đóng OW Disc</sys:String>
 
     <!-- App Picker Dialog -->
     <sys:String x:Key="Text_SelectAppsTitle">Chọn ứng dụng</sys:String>
