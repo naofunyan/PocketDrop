@@ -75,6 +75,8 @@ namespace PocketDrop
 
         // Defaulting to true for the best out-of-the-box user experience
         public static bool AutoCompressFoldersShare { get; set; } = true;
+
+        public static bool CloseWhenShare { get; set; } = true;
         public static bool CloseWhenOpenWith { get; set; } = false;
 
         // --- NATIVE GAME MODE DETECTION ---

@@ -16,7 +16,26 @@
     <sys:String x:Key="Text_Items">files</sys:String>
     <sys:String x:Key="Text_FileSelected">file selected</sys:String>
     <sys:String x:Key="Text_FilesSelected">files selected</sys:String>
-    
+
+    <sys:String x:Key="Text_CompressingShare">Compressing for Share...</sys:String>
+    <sys:String x:Key="Text_ShareFolderErrorTitle">Share Action Failed</sys:String>
+    <sys:String x:Key="Text_ShareFolderErrorDesc">Folders cannot be shared directly. Please use 'Compress to ZIP' first or enable Auto-Compress in Settings.</sys:String>
+    <sys:String x:Key="Text_ShareCompressErrorTitle">Compression Error</sys:String>
+    <sys:String x:Key="Text_ShareCompressErrorDesc">Failed to compress the folder.</sys:String>
+    <sys:String x:Key="Text_ShareErrorTitle">Share Error</sys:String>
+    <sys:String x:Key="Text_ShareTitleSingle">Sharing 1 item from PocketDrop</sys:String>
+    <sys:String x:Key="Text_ShareTitleMultiple">Sharing {0} items from PocketDrop</sys:String>
+
+    <sys:String x:Key="Text_AutoCompressShare">Auto compress folders when shared</sys:String>
+    <sys:String x:Key="Text_AutoCompressShareDesc">Zips folders into a single file before passing them to the Windows Share UI.</sys:String>
+    <sys:String x:Key="Text_CloseShare">Close pocket after sharing</sys:String>
+    <sys:String x:Key="Text_CloseShareDesc">Automatically closes the Pocket when you share items.</sys:String>
+
+    <sys:String x:Key="Text_ErrorPrefix">Error:</sys:String>
+    <sys:String x:Key="Text_ShareErrorDesc">Share failed to prepare the files.</sys:String>
+    <sys:String x:Key="Text_ShareFailText">Failed to prepare files:</sys:String>
+    <sys:String x:Key="Text_Reason">Reason:</sys:String>
+
     <!-- Saved Pockets Window -->
     <sys:String x:Key="Text_SavedPocketsTitle">My Pockets</sys:String>
     <sys:String x:Key="Text_EmptyPockets" xml:space="preserve">Your files appear here&#x0a;when you close Pockets.</sys:String>

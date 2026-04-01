@@ -52,6 +52,8 @@ namespace PocketDrop
 
             CloseOpenWithToggle.IsChecked = App.CloseWhenOpenWith;
 
+            CloseShareToggle.IsChecked = App.CloseWhenShare;
+
             // Grab the text-based Informational Version
             var versionAttr = System.Reflection.Assembly.GetExecutingAssembly()
                 .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
@@ -492,6 +494,12 @@ namespace PocketDrop
         {
             App.CloseWhenOpenWith = CloseOpenWithToggle.IsChecked ?? true;
             App.SaveSettings(); // Assumes you have your standard save logic here!
+        }
+
+        private void CloseShareToggle_Click(object sender, RoutedEventArgs e)
+        {
+            App.CloseWhenShare = CloseShareToggle.IsChecked ?? true;
+            App.SaveSettings();
         }
 
         // ══════════════════════════════════════════════════════

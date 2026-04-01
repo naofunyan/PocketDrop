@@ -742,8 +742,8 @@
                                       Stretch="Uniform" Width="18" Height="18" HorizontalAlignment="Left" Margin="4,0,0,0"/>
 
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                    <TextBlock Text="Auto compress folders when shared" FontSize="14" Foreground="{DynamicResource TextPrimary}" Margin="0,0,20,0" TextWrapping="Wrap"/>
-                                    <TextBlock Text="Zips folders into a single file before passing them to the Windows Share UI." FontSize="12" Foreground="{DynamicResource TextSecondary}" Margin="0,2,20,0" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{DynamicResource Text_AutoCompressShare}" FontSize="14" Foreground="{DynamicResource TextPrimary}" Margin="0,0,20,0" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{DynamicResource Text_AutoCompressShareDesc}" FontSize="12" Foreground="{DynamicResource TextSecondary}" Margin="0,2,20,0" TextWrapping="Wrap"/>
                                 </StackPanel>
 
                                 <CheckBox x:Name="AutoCompressShareToggle" Grid.Column="2" Content="{DynamicResource Text_ToggleOn}" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Center" Click="AutoCompressShareToggle_Click"/>
@@ -788,6 +788,28 @@
                                 </StackPanel>
 
                                 <CheckBox x:Name="CloseOpenWithToggle" Grid.Column="2" Content="{DynamicResource Text_ToggleOn}" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Center" Click="CloseOpenWithToggle_Click"/>
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{DynamicResource SettingCard}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="40"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Path Data="M 20 11 v 8 a 2 2 0 0 1 -2 2 H 6 a 2 2 0 0 1 -2 -2 V 7 a 2 2 0 0 1 2 -2 h 7 M 15 3 h 6 v 6 M 10 14 L 21 3"
+                                      Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.5"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent"
+                                      Stretch="Uniform" Width="18" Height="18" HorizontalAlignment="Left" Margin="4,0,0,0"/>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{DynamicResource Text_CloseShare}" FontSize="14" Foreground="{DynamicResource TextPrimary}" Margin="0,0,20,0" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{DynamicResource Text_CloseShareDesc}" FontSize="12" Foreground="{DynamicResource TextSecondary}" Margin="0,2,20,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <CheckBox x:Name="CloseShareToggle" Grid.Column="2" Content="{DynamicResource Text_ToggleOn}" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Center" Click="CloseShareToggle_Click"/>
                             </Grid>
                         </Border>
                     </StackPanel>

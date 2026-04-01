@@ -17,6 +17,25 @@
     <sys:String x:Key="Text_FileSelected">tập tin được chọn</sys:String>
     <sys:String x:Key="Text_FilesSelected">tập tin được chọn</sys:String>
 
+    <sys:String x:Key="Text_CompressingShare">Đang nén để chia sẻ...</sys:String>
+    <sys:String x:Key="Text_ShareFolderErrorTitle">Chia sẻ thất bại</sys:String>
+    <sys:String x:Key="Text_ShareFolderErrorDesc">Không thể chia sẻ trực tiếp thư mục. Vui lòng sử dụng 'Nén thành ZIP' trước hoặc bật Tự động nén trong Cài đặt.</sys:String>
+    <sys:String x:Key="Text_ShareCompressErrorTitle">Lỗi nén</sys:String>
+    <sys:String x:Key="Text_ShareCompressErrorDesc">Không thể nén thư mục.</sys:String>
+    <sys:String x:Key="Text_ShareErrorTitle">Lỗi chia sẻ</sys:String>
+    <sys:String x:Key="Text_ShareTitleSingle">Đang chia sẻ 1 mục từ PocketDrop</sys:String>
+    <sys:String x:Key="Text_ShareTitleMultiple">Đang chia sẻ {0} mục từ PocketDrop</sys:String>
+    
+    <sys:String x:Key="Text_AutoCompressShare">Tự động nén thư mục khi chia sẻ</sys:String>
+    <sys:String x:Key="Text_AutoCompressShareDesc">Nén các thư mục thành một tệp duy nhất trước khi chuyển chúng đến giao diện Chia sẻ của Windows.</sys:String>
+    <sys:String x:Key="Text_CloseShare">Đóng Pocket sau khi chia sẻ</sys:String>
+    <sys:String x:Key="Text_CloseShareDesc">Tự động đóng Pocket khi bạn chia sẻ các mục.</sys:String>
+    
+    <sys:String x:Key="Text_ErrorPrefix">Lỗi:</sys:String>
+    <sys:String x:Key="Text_ShareErrorDesc">Quá trình chia sẻ không thể chuẩn bị tệp.</sys:String>
+    <sys:String x:Key="Text_ShareFailText">Không thể chuẩn bị tệp:</sys:String>
+    <sys:String x:Key="Text_Reason">Lý do:</sys:String>
+
     <!-- Saved Pockets Window -->
     <sys:String x:Key="Text_SavedPocketsTitle">Các Pocket của bạn</sys:String>
     <sys:String x:Key="Text_EmptyPockets" xml:space="preserve">Các tập tin của bạn sẽ xuất hiện&#x0a;ở đây khi bạn đóng các Pocket.</sys:String>

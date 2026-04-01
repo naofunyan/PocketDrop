@@ -1237,7 +1237,7 @@ namespace PocketDrop
                         if (FileIconContainer != null) FileIconContainer.Visibility = Visibility.Collapsed;
                         if (StatusText != null)
                         {
-                            StatusText.Text = "Compressing for Share...";
+                            StatusText.Text = (string)Application.Current.Resources["Text_CompressingShare"];
                             StatusText.Visibility = Visibility.Visible;
                         }
 
@@ -1249,8 +1249,12 @@ namespace PocketDrop
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"Failed to compress the folder.\n\nError: {ex.Message}", "Compression Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return; // Abort share
+                        string errorDesc = (string)Application.Current.Resources["Text_ShareCompressErrorDesc"];
+                        string errorTitle = (string)Application.Current.Resources["Text_ShareCompressErrorTitle"];
+                        string errorPrefix = (string)Application.Current.Resources["Text_ErrorPrefix"];
+
+                        MessageBox.Show($"{errorDesc}\n\n{errorPrefix} {ex.Message}", errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
                     }
                     finally
                     {
@@ -1261,8 +1265,9 @@ namespace PocketDrop
                 }
                 else
                 {
-                    MessageBox.Show("Folders cannot be shared directly. Please use 'Compress to ZIP' first or enable Auto-Compress in Settings.",
-                                    "Share Action Failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    string warningDesc = (string)Application.Current.Resources["Text_ShareFolderErrorDesc"];
+                    string warningTitle = (string)Application.Current.Resources["Text_ShareFolderErrorTitle"];
+                    MessageBox.Show(warningDesc, warningTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
             }
@@ -1288,6 +1293,13 @@ namespace PocketDrop
                 _shareManager.DataRequested -= ShareManager_DataRequested;
                 _shareManager.DataRequested += ShareManager_DataRequested;
                 interop.ShowShareUIForWindow(hwnd);
+
+                // ✨ THE FIX: Move the Auto-Close logic here to the very end!
+                // This ensures the zip finishes, the share UI pops up, AND THEN the pocket closes.
+                if (App.CloseWhenShare)
+                {
+                    ForceClose(); // Safely animates the window away and cleans up memory!
+                }
             }
             catch (Exception ex)
             {
@@ -1305,10 +1317,13 @@ namespace PocketDrop
             {
                 if (_filesToSharePaths == null || _filesToSharePaths.Count == 0) return;
 
-                // Dynamic title
+                // ✨ THE FIX: Swapped _pendingShareItems for _filesToSharePaths
+                string singleTitle = (string)Application.Current.Resources["Text_ShareTitleSingle"];
+                string multiTitleTemplate = (string)Application.Current.Resources["Text_ShareTitleMultiple"];
+
                 args.Request.Data.Properties.Title = _filesToSharePaths.Count == 1
-                    ? "Sharing 1 item from PocketDrop"
-                    : $"Sharing {_filesToSharePaths.Count} items from PocketDrop";
+                    ? singleTitle
+                    : string.Format(multiTitleTemplate, _filesToSharePaths.Count);
 
                 // Quickly map the string paths to Windows Storage Files
                 List<IStorageItem> storageItems = new List<IStorageItem>();
@@ -1324,7 +1339,17 @@ namespace PocketDrop
             }
             catch (Exception ex)
             {
-                args.Request.FailWithDisplayText($"Failed to prepare files: {ex.Message}");
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    string errorTitle = (string)Application.Current.Resources["Text_ShareErrorTitle"];
+                    string errorDesc = (string)Application.Current.Resources["Text_ShareErrorDesc"];
+                    string reasonText = (string)Application.Current.Resources["Text_Reason"];
+
+                    MessageBox.Show($"{errorDesc}\n\n{reasonText} {ex.Message}", errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+                });
+
+                string failText = (string)Application.Current.Resources["Text_ShareFailText"];
+                args.Request.FailWithDisplayText($"{failText} {ex.Message}");
             }
             finally
             {
