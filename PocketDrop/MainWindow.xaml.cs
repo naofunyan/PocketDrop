@@ -193,6 +193,24 @@ namespace PocketDrop
                             continue;
                         }
 
+                        // ✨ SCENARIO 3: Reject 0-byte files (corrupted, empty, or currently downloading)
+                        try
+                        {
+                            if (File.Exists(filePath))
+                            {
+                                FileInfo fi = new FileInfo(filePath);
+                                if (fi.Length == 0)
+                                {
+                                    Console.WriteLine($"Skipped 0-byte file: {filePath}");
+                                    continue; // Skip processing this file entirely
+                                }
+                            }
+                        }
+                        catch
+                        {
+                            continue; // If we can't even read the file size (strict lock), skip it safely!
+                        }
+
                         // ✨ SCENARIO 2: Auto-rename if the name is taken, but the path is different
                         string originalName = Path.GetFileName(filePath);
                         string nameWithoutExt = Path.GetFileNameWithoutExtension(filePath);
