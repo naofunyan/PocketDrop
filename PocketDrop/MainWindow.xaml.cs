@@ -323,6 +323,7 @@ namespace PocketDrop
             startPoint = null;
         }
 
+
         // --- RELEASING THE FILES (Dragging Out) ---
         private void Window_MouseMove(object sender, MouseEventArgs e)
         {
@@ -480,10 +481,19 @@ namespace PocketDrop
         }
 
         // --- ITEM LIST: TRACK CLICK ON A LIST ITEM ---
+        private bool _suppressToggleOnUp = false;
+
         private void ItemsList_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
+            // ✨ THE FIX: If this is a double-click, ignore the drag logic and let it pass through!
+            if (e.ClickCount == 2)
+            {
+                return;
+            }
+
             // Never trigger the background window drag from this area
             startPoint = null;
+            _suppressToggleOnUp = false;
 
             // Find the ListBoxItem under the cursor
             var hit = e.OriginalSource as DependencyObject;
@@ -496,22 +506,48 @@ namespace PocketDrop
                 // and suppress the click so ListBox doesn't deselect anything.
                 _dragCandidates = ItemsListBox.SelectedItems.Cast<PocketItem>().ToList();
                 _listDragStart = e.GetPosition(null);
-                e.Handled = true;
+                e.Handled = true; // Blocks the instant unselect!
             }
             else if (hit is ListBoxItem)
             {
-                // Clicking a single unselected item: let ListBox handle selection normally,
-                // but arm a drag so a single-item drag also works.
+                // Clicking an unselected item: WPF will select it automatically.
+                // We set a flag so we don't accidentally unselect it on mouse release!
+                _suppressToggleOnUp = true;
                 _dragCandidates = null;
                 _listDragStart = e.GetPosition(null);
-                // Do NOT set e.Handled — ListBox must update its selection first
+                // Do NOT set e.Handled
             }
             else
             {
-                // Click on empty space: let ListBox do rubber-band, don't arm drag
                 _dragCandidates = null;
                 _listDragStart = null;
             }
+        }
+
+        private void ItemsList_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            // If _listDragStart is still set, it means the user clicked and released WITHOUT dragging
+            if (_listDragStart != null)
+            {
+                var hit = e.OriginalSource as DependencyObject;
+                while (hit != null && !(hit is ListBoxItem) && !(hit is ListBox))
+                    hit = VisualTreeHelper.GetParent(hit);
+
+                // If they clicked an already-selected item, manually unselect it now!
+                if (hit is ListBoxItem lbi && !_suppressToggleOnUp)
+                {
+                    var item = lbi.DataContext as PocketItem;
+                    if (item != null && ItemsListBox.SelectedItems.Contains(item))
+                    {
+                        ItemsListBox.SelectedItems.Remove(item);
+                    }
+                }
+            }
+
+            // Reset trackers
+            _listDragStart = null;
+            _dragCandidates = null;
+            _suppressToggleOnUp = false;
         }
 
         // --- ITEM LIST: DRAG ONLY SELECTED ITEMS OUT ---
@@ -991,6 +1027,44 @@ namespace PocketDrop
             {
                 UpdateItemCountDisplay(PocketedItems.Count);
             }
+
+            if (DeleteSelectedButton != null)
+            {
+                // Show the delete button if at least 1 item is selected
+                DeleteSelectedButton.Visibility = ItemsListBox.SelectedItems.Count > 0
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+            }
+        }
+
+        private void DeleteSelected_Click(object sender, RoutedEventArgs e)
+        {
+            // Grab a safe copy of the selected items to avoid enumeration errors while deleting
+            var selectedItems = ItemsListBox.SelectedItems.Cast<PocketItem>().ToList();
+
+            if (selectedItems.Count == 0) return;
+
+            foreach (var item in selectedItems)
+            {
+                // Optional: If you want to delete temp files associated with this item, call CleanupTempFile(item.FilePath) here
+                PocketedItems.Remove(item);
+            }
+
+            // Refresh the background UI preview stack if the popup is closed later
+            if (PocketedItems.Count == 0)
+            {
+                if (StackContainer != null) StackContainer.Children.Clear();
+            }
+            else
+            {
+                UpdateStackPreview();
+            }
+
+            // Update the counter numbers dynamically
+            UpdateItemCountDisplay(PocketedItems.Count);
+
+            // Hide the button again now that the selection is cleared
+            DeleteSelectedButton.Visibility = Visibility.Collapsed;
         }
 
         // --- HELPER: Formats raw bytes into readable KB/MB/GB ---
