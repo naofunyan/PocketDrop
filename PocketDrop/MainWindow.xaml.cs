@@ -1689,6 +1689,12 @@ namespace PocketDrop
                     System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{zipPath}\"");
                 }
             }
+            // ✨ THE NEW LOGIC: Close the pocket if the user enabled it!
+            if (App.CloseWhenCompress)
+            {
+                if (ExpandButton != null) ExpandButton.IsChecked = false; // Collapse the popup menu visually
+                ForceClose(); // Safely animate the window away and clean up memory!
+            }
         }
 
         // --- HELPER: Safely delete temporary files ---

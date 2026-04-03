@@ -79,6 +79,8 @@ namespace PocketDrop
         public static bool CloseWhenShare { get; set; } = true;
         public static bool CloseWhenOpenWith { get; set; } = false;
 
+        public static bool CloseWhenCompress = false; // Default to false
+
         // --- NATIVE GAME MODE DETECTION ---
         [System.Runtime.InteropServices.DllImport("shell32.dll")]
         public static extern int SHQueryUserNotificationState(out int pquns);

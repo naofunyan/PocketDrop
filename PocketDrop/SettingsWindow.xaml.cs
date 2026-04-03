@@ -54,6 +54,8 @@ namespace PocketDrop
 
             CloseShareToggle.IsChecked = App.CloseWhenShare;
 
+            CloseCompressToggle.IsChecked = App.CloseWhenCompress;
+
             // Grab the text-based Informational Version
             var versionAttr = System.Reflection.Assembly.GetExecutingAssembly()
                 .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
@@ -499,6 +501,12 @@ namespace PocketDrop
         private void CloseShareToggle_Click(object sender, RoutedEventArgs e)
         {
             App.CloseWhenShare = CloseShareToggle.IsChecked ?? true;
+            App.SaveSettings();
+        }
+
+        private void CloseCompressToggle_Click(object sender, RoutedEventArgs e)
+        {
+            App.CloseWhenCompress = CloseCompressToggle.IsChecked ?? true;
             App.SaveSettings();
         }
 

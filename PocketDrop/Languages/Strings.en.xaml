@@ -164,6 +164,8 @@
     <sys:String x:Key="Text_CloseShare">Close pocket after sharing</sys:String>
     <sys:String x:Key="Text_CloseShareDesc">Automatically closes the Pocket when you share items.</sys:String>
 
+    <sys:String x:Key="Text_CloseCompress">Close Pocket after compress ZIP</sys:String>
+    <sys:String x:Key="Text_CloseCompressDesc">Automatically closes the Pocket when you use the 'Compress to ZIP' action.</sys:String>
 
     <!-- Settings Window - About -->
     <sys:String x:Key="Text_AboutHeader">About</sys:String>
