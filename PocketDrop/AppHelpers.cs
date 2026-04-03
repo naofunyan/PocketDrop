@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.IO;
+using System.Windows;
 
 namespace PocketDrop
 {
@@ -114,6 +115,80 @@ namespace PocketDrop
 
                 return false;
             }
+        }
+
+        // ══════════════════════════════════════════════════════
+        // Collision Renamer ALGORITHM
+        // ══════════════════════════════════════════════════════
+        public static string GetSafeDisplayName(IEnumerable<PocketItem> currentItems, string originalPath)
+        {
+            string originalName = Path.GetFileName(originalPath);
+            string nameWithoutExt = Path.GetFileNameWithoutExtension(originalPath);
+            string extension = Path.GetExtension(originalPath);
+
+            string finalDisplayName = originalName;
+            int counter = 1;
+
+            // Keep counting up until we find a name that isn't taken!
+            while (currentItems.Any(item => item.FileName.Equals(finalDisplayName, StringComparison.OrdinalIgnoreCase)))
+            {
+                finalDisplayName = $"{nameWithoutExt} ({counter}){extension}";
+                counter++;
+            }
+
+            return finalDisplayName;
+        }
+
+        // ══════════════════════════════════════════════════════
+        // Move the Window Placement ALGORITHM
+        // ══════════════════════════════════════════════════════
+        public static Point CalculateWindowPosition(int placementMode, double cursorX, double cursorY, double w, double h, double workAreaLeft, double workAreaTop, double workAreaRight, double workAreaBottom)
+        {
+            // Default position (Near Mouse)
+            double targetLeft = cursorX - (w / 2) + 40;
+            double targetTop = cursorY - h - 80;
+
+            // Keep "Near Mouse" safely on screen
+            targetLeft = Math.Max(workAreaLeft + 8, Math.Min(targetLeft, workAreaRight - w - 8));
+            targetTop = Math.Max(workAreaTop + 8, Math.Min(targetTop, workAreaBottom - h - 8));
+
+            switch (placementMode)
+            {
+                case 1: // Top edge
+                    targetLeft = workAreaLeft + ((workAreaRight - workAreaLeft) / 2) - (w / 2);
+                    targetTop = workAreaTop + 8;
+                    break;
+                case 2: // Bottom edge
+                    targetLeft = workAreaLeft + ((workAreaRight - workAreaLeft) / 2) - (w / 2);
+                    targetTop = workAreaBottom - h - 8;
+                    break;
+                case 3: // Left edge
+                    targetLeft = workAreaLeft + 8;
+                    targetTop = workAreaTop + ((workAreaBottom - workAreaTop) / 2) - (h / 2);
+                    break;
+                case 4: // Right edge
+                    targetLeft = workAreaRight - w - 8;
+                    targetTop = workAreaTop + ((workAreaBottom - workAreaTop) / 2) - (h / 2);
+                    break;
+                case 5: // Top left corner
+                    targetLeft = workAreaLeft + 8;
+                    targetTop = workAreaTop + 8;
+                    break;
+                case 6: // Top right corner
+                    targetLeft = workAreaRight - w - 8;
+                    targetTop = workAreaTop + 8;
+                    break;
+                case 7: // Bottom left corner
+                    targetLeft = workAreaLeft + 8;
+                    targetTop = workAreaBottom - h - 8;
+                    break;
+                case 8: // Bottom right corner
+                    targetLeft = workAreaRight - w - 8;
+                    targetTop = workAreaBottom - h - 8;
+                    break;
+            }
+
+            return new Point(targetLeft, targetTop);
         }
     }
 }

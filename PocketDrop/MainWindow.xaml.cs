@@ -86,7 +86,6 @@ namespace PocketDrop
         private static bool _hasSpawnedPocketThisDrag = false; // ✨ NEW: The Lockout Flag!
 
 
-
         // ══════════════════════════════════════════════════════
         // --- VIEW MODE LOGIC ---
         private string _currentViewMode = "Grid"; // Default to Grid
@@ -214,18 +213,7 @@ namespace PocketDrop
                         }
 
                         // ✨ SCENARIO 2: Auto-rename if the name is taken, but the path is different
-                        string originalName = Path.GetFileName(filePath);
-                        string nameWithoutExt = Path.GetFileNameWithoutExtension(filePath);
-                        string extension = Path.GetExtension(filePath);
-
-                        string finalDisplayName = originalName;
-                        int counter = 1;
-
-                        while (PocketedItems.Any(item => item.FileName.Equals(finalDisplayName, StringComparison.OrdinalIgnoreCase)))
-                        {
-                            finalDisplayName = $"{nameWithoutExt} ({counter}){extension}";
-                            counter++;
-                        }
+                        string finalDisplayName = AppHelpers.GetSafeDisplayName(PocketedItems, filePath);
 
                         // THE FIX: Push the heavy image downscaling to a background worker thread!
                         System.Windows.Media.ImageSource fileIcon = await System.Threading.Tasks.Task.Run(() =>
@@ -305,13 +293,7 @@ namespace PocketDrop
                         string domain = uriResult.Host.Replace("www.", "");
 
                         // ✨ URL SCENARIO 2: If the user drops multiple links from the same domain, number them!
-                        string finalDomainName = domain;
-                        int urlCounter = 1;
-                        while (PocketedItems.Any(item => item.FileName.Equals(finalDomainName, StringComparison.OrdinalIgnoreCase)))
-                        {
-                            finalDomainName = $"{domain} ({urlCounter})";
-                            urlCounter++;
-                        }
+                        string finalDomainName = AppHelpers.GetSafeDisplayName(PocketedItems, domain);
 
                         string tempFolder = Path.GetTempPath();
                         string fileName = $"{domain} Link_{DateTime.Now.Ticks}.url";
@@ -800,54 +782,15 @@ namespace PocketDrop
             double w = this.ActualWidth > 0 ? this.ActualWidth : (double.IsNaN(this.Width) ? 380 : this.Width);
             double h = this.ActualHeight > 0 ? this.ActualHeight : (double.IsNaN(this.Height) ? 500 : this.Height);
 
-            // 4. Default position (Near Mouse)
-            double targetLeft = cursorX - (w / 2) + 40;
-            double targetTop = cursorY - h - 80;
-
-            // Keep "Near Mouse" safely on screen
-            targetLeft = Math.Max(workAreaLeft + 8, Math.Min(targetLeft, workAreaRight - w - 8));
-            targetTop = Math.Max(workAreaTop + 8, Math.Min(targetTop, workAreaBottom - h - 8));
-
-            // 5. Override based on the user's setting (NOW USING SCALED MATH)
-            switch (App.PocketPlacement)
-            {
-                case 1: // Top edge
-                    targetLeft = workAreaLeft + (workAreaWidth / 2) - (w / 2);
-                    targetTop = workAreaTop + 8;
-                    break;
-                case 2: // Bottom edge
-                    targetLeft = workAreaLeft + (workAreaWidth / 2) - (w / 2);
-                    targetTop = workAreaBottom - h - 8;
-                    break;
-                case 3: // Left edge
-                    targetLeft = workAreaLeft + 8;
-                    targetTop = workAreaTop + (workAreaHeight / 2) - (h / 2);
-                    break;
-                case 4: // Right edge
-                    targetLeft = workAreaRight - w - 8;
-                    targetTop = workAreaTop + (workAreaHeight / 2) - (h / 2);
-                    break;
-                case 5: // Top left corner
-                    targetLeft = workAreaLeft + 8;
-                    targetTop = workAreaTop + 8;
-                    break;
-                case 6: // Top right corner
-                    targetLeft = workAreaRight - w - 8;
-                    targetTop = workAreaTop + 8;
-                    break;
-                case 7: // Bottom left corner
-                    targetLeft = workAreaLeft + 8;
-                    targetTop = workAreaBottom - h - 8;
-                    break;
-                case 8: // Bottom right corner
-                    targetLeft = workAreaRight - w - 8;
-                    targetTop = workAreaBottom - h - 8;
-                    break;
-            }
+            // 4 & 5. Override based on the user's setting (Using decoupled math!)
+            Point finalPos = AppHelpers.CalculateWindowPosition(
+                App.PocketPlacement,
+                cursorX, cursorY, w, h,
+                workAreaLeft, workAreaTop, workAreaRight, workAreaBottom);
 
             // 6. Apply the final, perfectly scaled position!
-            this.Left = targetLeft;
-            this.Top = targetTop;
+            this.Left = finalPos.X;
+            this.Top = finalPos.Y;
             this.IsHitTestVisible = true;
 
             // --- ANIMATIONS ---
