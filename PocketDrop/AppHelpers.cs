@@ -1,18 +1,19 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.IO;
+using System.Linq;
 using System.Windows;
-using Microsoft.Win32;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace PocketDrop
 {
     public static class AppHelpers
     {
-        // ══════════════════════════════════════════════════════
-        // FILE MATH
-        // ══════════════════════════════════════════════════════
+        // ================================================ //
+        // File size calculation
+        // ================================================ //
         public static string FormatBytes(long bytes)
         {
             if (bytes == 0) return "0 B";
@@ -22,9 +23,9 @@ namespace PocketDrop
             return $"{num.ToString("0.0", CultureInfo.InvariantCulture)} {suffixes[place]}";
         }
 
-        // ══════════════════════════════════════════════════════
-        // LIST MANAGEMENT
-        // ══════════════════════════════════════════════════════
+        // ================================================ //
+        // Duplicate detection
+        // ================================================ //
         public static bool IsDuplicate(IEnumerable<PocketItem> currentItems, string newFilePath)
         {
             if (string.IsNullOrEmpty(newFilePath)) return false;
@@ -32,32 +33,31 @@ namespace PocketDrop
                 item.FilePath.Equals(newFilePath, StringComparison.OrdinalIgnoreCase));
         }
 
-        // ══════════════════════════════════════════════════════
-        // JIT VALIDATION (GHOST FILE CHECK)
-        // ══════════════════════════════════════════════════════
+        // ================================================ //
+        // Remove dead files
+        // ================================================ //
         public static bool RemoveDeadFiles(IList<PocketItem> currentItems)
         {
             bool removedAny = false;
 
-            // Iterate backward so we can safely delete items while looping
+            // Iterate backward to safely delete items during loop
             for (int i = currentItems.Count - 1; i >= 0; i--)
             {
                 string path = currentItems[i].FilePath;
 
-                // If the file AND directory no longer exist on the hard drive
+                // Remove entry if file and directory no longer exist on disk
                 if (!File.Exists(path) && !Directory.Exists(path))
                 {
                     currentItems.RemoveAt(i);
                     removedAny = true;
                 }
             }
-
             return removedAny;
         }
 
-        // ══════════════════════════════════════════════════════
-        // SHAKE DETECTOR ALGORITHM
-        // ══════════════════════════════════════════════════════
+        // ================================================ //
+        // Shake detection
+        // ================================================ //
         public class ShakeDetector
         {
             private Queue<long> _swingTimestamps = new Queue<long>();
@@ -81,35 +81,33 @@ namespace PocketDrop
 
                 int newDir = deltaX > 0 ? 1 : -1;
 
-                // Did we change direction? (A "Swing")
+                // Detect direction change swing in shake algorithm
                 if (_currentDir != 0 && newDir != _currentDir)
                 {
-                    // How far did we travel before changing direction?
+                    // Calculate travel distance before each direction change
                     int swingDistance = Math.Abs(_lastX - _swingOriginX);
 
                     if (swingDistance >= minDistancePx)
                     {
-                        // Valid swing! Record the time.
-                        _swingTimestamps.Enqueue(currentTimestampMs);
+                        _swingTimestamps.Enqueue(currentTimestampMs); // Record timestamp on valid swing detection
                     }
 
-                    // Reset origin for the new swing direction
-                    _swingOriginX = _lastX;
+                    _swingOriginX = _lastX; // Reset origin for the new swing direction
                 }
 
                 _currentDir = newDir;
                 _lastX = currentMouseX;
 
-                // Clean up old swings that fell outside the time window
+                // Prune swings outside the time window
                 while (_swingTimestamps.Count > 0 && (currentTimestampMs - _swingTimestamps.Peek()) > maxTimeMs)
                 {
                     _swingTimestamps.Dequeue();
                 }
 
-                // Did we hit the required number of swings?
+                // Check if swing count meets shake threshold
                 if (_swingTimestamps.Count >= requiredSwings)
                 {
-                    _swingTimestamps.Clear(); // Reset so it doesn't instantly trigger again
+                    _swingTimestamps.Clear(); // Reset state to prevent immediate re-trigger
                     _isFirstMove = true;
                     return true;
                 }
@@ -118,9 +116,9 @@ namespace PocketDrop
             }
         }
 
-        // ══════════════════════════════════════════════════════
-        // Collision Renamer ALGORITHM
-        // ══════════════════════════════════════════════════════
+        // ================================================ //
+        // Collision renamer 
+        // ================================================ //
         public static string GetSafeDisplayName(IEnumerable<PocketItem> currentItems, string originalPath)
         {
             string originalName = Path.GetFileName(originalPath);
@@ -130,7 +128,7 @@ namespace PocketDrop
             string finalDisplayName = originalName;
             int counter = 1;
 
-            // Keep counting up until we find a name that isn't taken!
+            // Increment suffix until unique filename is found
             while (currentItems.Any(item => item.FileName.Equals(finalDisplayName, StringComparison.OrdinalIgnoreCase)))
             {
                 finalDisplayName = $"{nameWithoutExt} ({counter}){extension}";
@@ -140,9 +138,9 @@ namespace PocketDrop
             return finalDisplayName;
         }
 
-        // ══════════════════════════════════════════════════════
-        // Move the Window Placement ALGORITHM
-        // ══════════════════════════════════════════════════════
+        // ================================================ //
+        // Pocket placement
+        // ================================================ //
         public static Point CalculateWindowPosition(int placementMode, double cursorX, double cursorY, double w, double h, double workAreaLeft, double workAreaTop, double workAreaRight, double workAreaBottom)
         {
             // Default position (Near Mouse)
@@ -192,23 +190,21 @@ namespace PocketDrop
             return new Point(targetLeft, targetTop);
         }
 
-        // ══════════════════════════════════════════════════════
-        // Calculate My Pocket position ALGORITHM
-        // ══════════════════════════════════════════════════════
+        // ================================================ //
+        // Calculate My Pocket position
+        // ================================================ //
         public static Point CalculateTaskbarSnapPosition(double windowWidth, double windowHeight, double workAreaWidth, double workAreaHeight, double shadowMargin)
         {
-            // Subtract the window size from the total screen size to push it to the right/bottom edge,
-            // then add the shadow margin back so the invisible borders bleed off the screen.
+            // Align window to edge accounting for shadow margin bleed
             double targetLeft = workAreaWidth - windowWidth + shadowMargin;
             double targetTop = workAreaHeight - windowHeight + shadowMargin;
 
             return new Point(targetLeft, targetTop);
         }
 
-        // ══════════════════════════════════════════════════════
-        // Check DarkMode ALGORITHM
-        // ══════════════════════════════════════════════════════
-
+        // ================================================ //
+        // Detect Windows dark mode
+        // ================================================ //
         public static bool IsWindowsInDarkMode()
         {
             try
@@ -226,9 +222,9 @@ namespace PocketDrop
             return false;
         }
 
-        // ══════════════════════════════════════════════════════
-        // Run at Startup ALGORITHM
-        // ══════════════════════════════════════════════════════
+        // ================================================ //
+        // Run at startup
+        // ================================================ //
         public static bool IsRunAtStartupEnabled()
         {
             try
@@ -266,10 +262,10 @@ namespace PocketDrop
             return false; // Failed
         }
 
-        // ══════════════════════════════════════════════════════
-        // Version check ALGORITHM
-        // ══════════════════════════════════════════════════════
-        // --- HELPER: Safe URL Launcher ---
+        // ================================================ //
+        // Version check
+        // ================================================ //
+        // URL Launcher
         public static void OpenUrl(string url)
         {
             try
@@ -282,14 +278,13 @@ namespace PocketDrop
             }
             catch (Exception ex)
             {
-                // Actually log the error so we aren't completely blind!
-                Console.WriteLine($"URL Error: {ex.Message}");
+                Console.WriteLine($"URL Error: {ex.Message}"); // Log the error
             }
         }
 
         public static bool IsUpdateAvailable(string currentVersionText, string onlineVersionText)
         {
-            // Clean up the strings just in case GitHub added invisible spaces or newlines
+            // Trim version string to strip whitespace and newlines
             string currentClean = currentVersionText?.Trim() ?? "";
             string onlineClean = onlineVersionText?.Trim() ?? "";
 
@@ -299,12 +294,13 @@ namespace PocketDrop
                 return latest > current;
             }
 
-            // If the strings are garbage (like "HTML Error 404"), safely return false
+            // Return false on malformed or error version string
             return false;
         }
 
-
-        // --- NATIVE GAME MODE DETECTION ---
+        // ================================================ //
+        // Game mode detection
+        // ================================================ //
         [System.Runtime.InteropServices.DllImport("shell32.dll")]
         private static extern int SHQueryUserNotificationState(out int pquns);
 
@@ -320,7 +316,9 @@ namespace PocketDrop
             catch { return false; }
         }
 
-        // --- NATIVE FOREGROUND WINDOW DETECTION ---
+        // ================================================ //
+        // Foreground window detection
+        // ================================================ //
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern IntPtr GetForegroundWindow();
 
@@ -329,7 +327,6 @@ namespace PocketDrop
 
         public static bool IsForegroundAppExcluded()
         {
-            // ✨ THE FIX: We must specify "App.ExcludedApps" so the Helper knows where to find the setting!
             if (string.IsNullOrWhiteSpace(App.ExcludedApps)) return false;
 
             try
@@ -344,7 +341,6 @@ namespace PocketDrop
                 {
                     string pName = process.ProcessName.ToLower();
 
-                    // ✨ THE FIX: Again, specify "App.ExcludedApps" here!
                     var rules = App.ExcludedApps.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
                     foreach (var ruleText in rules)
@@ -361,7 +357,6 @@ namespace PocketDrop
                 }
             }
             catch { }
-
             return false;
         }
     }
