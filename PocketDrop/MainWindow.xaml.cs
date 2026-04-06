@@ -689,8 +689,8 @@ namespace PocketDrop
                 {
                     // 1. Check all user settings before doing math
                     if (!App.EnableMouseShake) goto done;
-                    if (App.DisableInGameMode && App.IsGameModeActive()) goto done;
-                    if (App.IsForegroundAppExcluded()) goto done;
+                    if (App.DisableInGameMode && AppHelpers.IsGameModeActive()) goto done;
+                    if (AppHelpers.IsForegroundAppExcluded()) goto done;
                     if (_hasSpawnedPocketThisDrag) goto done; // Don't spawn duplicates!
 
                     // 2. Feed the raw coordinates to our new decoupled brain

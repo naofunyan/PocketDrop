@@ -109,7 +109,8 @@
     <sys:String x:Key="Text_MsgNeedValidKey">Hãy thiết lập một phím tắt hợp lệ trước khi lưu.</sys:String>
     <sys:String x:Key="Text_MsgConflictTitle">Phím tắt này đã được sử dụng</sys:String>
     <sys:String x:Key="Text_MsgConflictDesc">Tổ hợp phím này hiện đang được ứng dụng khác sử dụng hoặc do Windows thiết lập sẵn.&#x0a;&#x0a;Vui lòng chọn một phím tắt khác.</sys:String>
-
+    <sys:String x:Key="Text_ShortcutErrorTitle">Lỗi phím tắt</sys:String>
+    <sys:String x:Key="Text_ShortcutErrorMsg">Windows đã chặn phím tắt này!&#x0a;&#x0a;Có vẻ như một ứng dụng chạy ngầm khác (như Snipping Tool, PowerToys, hoặc trình quay màn hình) đang chiếm phím này rồi.&#x0a;&#x0a;Bạn hãy thử chọn một phím khác nhé.</sys:String>
 
     <sys:String x:Key="Text_ShakeMouse">Lắc chuột để mở Pocket mới</sys:String>
     <sys:String x:Key="Text_ShakeMouseDesc">Lắc chuột sang trái và phải trong khi kéo tệp để mở Pocket mới.</sys:String>
@@ -172,6 +173,9 @@
     <sys:String x:Key="Text_AboutHeader">Giới thiệu</sys:String>
     <sys:String x:Key="Text_Close">Đóng</sys:String>
 
+    <sys:String x:Key="Text_UpdateAvailableTitle">Đã có bản cập nhật</sys:String>
+    <sys:String x:Key="Text_UpdateAvailableMsg">Đã có phiên bản mới của PocketDrop ({0})!&#x0a;&#x0a;Bạn có muốn tải xuống ngay bây giờ không?</sys:String>
+
     <sys:String x:Key="Text_Copyright">Phát triển bởi Naofunyan. © 2026 Bảo lưu mọi quyền.</sys:String>
 
     <sys:String x:Key="Text_PrivacyPolicy">Chính sách bảo mật</sys:String>
@@ -196,5 +200,8 @@
     <sys:String x:Key="Text_TraySettings">Cài đặt</sys:String>
     <sys:String x:Key="Text_TrayReportBug">Báo cáo lỗi</sys:String>
     <sys:String x:Key="Text_TrayQuit">Thoát PocketDrop</sys:String>
+
+    <sys:String x:Key="Text_SessionHistoryTitle">Lịch sử hoạt động</sys:String>
+    <sys:String x:Key="Text_SessionHistoryMsg">Hiện đang có {0} mục trong lịch sử hoạt động.</sys:String>
 
 </ResourceDictionary>

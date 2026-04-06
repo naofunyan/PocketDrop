@@ -269,6 +269,24 @@ namespace PocketDrop
         // ══════════════════════════════════════════════════════
         // Version check ALGORITHM
         // ══════════════════════════════════════════════════════
+        // --- HELPER: Safe URL Launcher ---
+        public static void OpenUrl(string url)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                // Actually log the error so we aren't completely blind!
+                Console.WriteLine($"URL Error: {ex.Message}");
+            }
+        }
+
         public static bool IsUpdateAvailable(string currentVersionText, string onlineVersionText)
         {
             // Clean up the strings just in case GitHub added invisible spaces or newlines
@@ -282,6 +300,68 @@ namespace PocketDrop
             }
 
             // If the strings are garbage (like "HTML Error 404"), safely return false
+            return false;
+        }
+
+
+        // --- NATIVE GAME MODE DETECTION ---
+        [System.Runtime.InteropServices.DllImport("shell32.dll")]
+        private static extern int SHQueryUserNotificationState(out int pquns);
+
+        public static bool IsGameModeActive()
+        {
+            try
+            {
+                SHQueryUserNotificationState(out int state);
+                // 3 = QUNS_RUNNING_D3D_FULL_SCREEN (DirectX Fullscreen Games)
+                // 4 = QUNS_PRESENTATION_MODE (Fullscreen Video / PowerPoint)
+                return state == 3 || state == 4;
+            }
+            catch { return false; }
+        }
+
+        // --- NATIVE FOREGROUND WINDOW DETECTION ---
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+        public static bool IsForegroundAppExcluded()
+        {
+            // ✨ THE FIX: We must specify "App.ExcludedApps" so the Helper knows where to find the setting!
+            if (string.IsNullOrWhiteSpace(App.ExcludedApps)) return false;
+
+            try
+            {
+                IntPtr hWnd = GetForegroundWindow();
+                if (hWnd == IntPtr.Zero) return false;
+
+                GetWindowThreadProcessId(hWnd, out uint pid);
+                if (pid == 0) return false;
+
+                using (var process = System.Diagnostics.Process.GetProcessById((int)pid))
+                {
+                    string pName = process.ProcessName.ToLower();
+
+                    // ✨ THE FIX: Again, specify "App.ExcludedApps" here!
+                    var rules = App.ExcludedApps.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+                    foreach (var ruleText in rules)
+                    {
+                        string rule = System.IO.Path.GetFileNameWithoutExtension(ruleText.Trim()).ToLower();
+
+                        if (string.IsNullOrEmpty(rule)) continue;
+
+                        if (pName.Contains(rule))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch { }
+
             return false;
         }
     }

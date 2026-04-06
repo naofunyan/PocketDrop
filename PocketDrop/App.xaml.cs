@@ -14,41 +14,77 @@ namespace PocketDrop
     public partial class App : System.Windows.Application
     {
 
+        // ================================================ //
+        // 1. GLOBAL VARIABLES & SETTINGS
+        // ================================================ //
+
         // Global master list to hold every file dropped during this session
         public static List<PocketItem> SessionHistory = new List<PocketItem>();
 
-        private static System.Windows.Forms.NotifyIcon? _trayIcon;
+        // Global flag so the rest of the app knows an update is waiting
+        public static bool UpdateAvailable = false;
+        public static string UpdateUrl = "https://github.com/naofunyan/PocketDrop/releases/latest";
 
-        // ✨ Class-level tray menu items for translation
-        public static System.Windows.Forms.ToolStripMenuItem TrayAddPocketItem;
-        public static System.Windows.Forms.ToolStripMenuItem TrayAddClipboardItem;
-        public static System.Windows.Forms.ToolStripMenuItem TraySavedPocketsItem;
-        public static System.Windows.Forms.ToolStripMenuItem TraySettingsItem;
-        public static System.Windows.Forms.ToolStripMenuItem TrayReportBugItem;
-        public static System.Windows.Forms.ToolStripMenuItem TrayQuitItem;
 
-        // ✨ NEW: Native API to force focus and dismiss the tray menu!
+        // ================================================ //
+        // 2. USER SETTINGS & PREFERENCES
+        // ================================================ //
+
+        // General
+        public static int AppTheme = 0; // 0 = System, 1 = Light, 2 = Dark
+        public static string AppLanguage = "English";
+
+        // Pocket Activation - Hotkey Preferences
+        public static uint PocketKeyVK = 0x5A; // Z
+        public static uint ClipboardKeyVK = 0x58; // X
+        public static string PocketKeyChar = "Z";
+        public static string ClipboardKeyChar = "X";
+        public static uint PocketModifiers = MOD_WIN | MOD_SHIFT;
+        public static uint ClipboardModifiers = MOD_WIN | MOD_SHIFT;
+
+        // Pocket Activation - Mouse Shake Preferences
+        public static bool EnableMouseShake = true;
+        public static int ShakeMinimumDistance = 130;
+        public static bool DisableInGameMode = true;
+
+        // Pocket Activation - Pocket Placement
+        public static int PocketPlacement = 0; // 0 = Near mouse, 1 = Top edge,...
+
+        // Pocket Activation - App Exceptions
+        public static string ExcludedApps = "";
+
+        // Pocket Interaction - Detail View Layout
+        public static int ItemsLayoutMode = 0; // 0 = Grid, 1 = List
+
+        // Pocket Interaction - Copy Item To Destination
+        public static bool CopyItemToDestination { get; set; } = true; // Default True = Copy, False = Move
+
+        // Pocket Interaction - Auto Compress Folders When Sharing
+        public static bool AutoCompressFoldersShare { get; set; } = true;
+
+        // Pocket Interaction - Close Pocket After Action
+        public static bool CloseWhenEmptied = true;
+        public static bool CloseWhenOpenWith { get; set; } = false;
+        public static bool CloseWhenShare { get; set; } = true;
+        public static bool CloseWhenCompress = false;
+
+
+        // ================================================ //
+        // 3. NATIVE WINDOWS APIS (P / INVOKE)
+        // ================================================ //
+
+        // Force the My Pockets window to the absolute front of the screen
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
 
-        // --- GLOBAL HOTKEY APIS ---
+        // Global Hotkeys - Register Win+Shift+Z and Win+Shift+X so they work even when the app is minimized
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
 
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-        internal static extern bool GetCursorPos(ref Win32Point pt);
-
-        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-        internal struct Win32Point
-        {
-            public int X;
-            public int Y;
-        };
-
+        // Required OS constants for registering the hotkeys
         public const uint MOD_ALT = 0x0001;
         public const uint MOD_CTRL = 0x0002;
         public const uint MOD_SHIFT = 0x0004;
@@ -56,49 +92,26 @@ namespace PocketDrop
         private const int HOTKEY_NEW_POCKET = 9001;
         private const int HOTKEY_NEW_CLIPBOARD = 9002;
 
-        // ✨ NEW: Dynamic variables instead of locked constants!
-        public static uint PocketKeyVK = 0x5A; // Z
-        public static uint ClipboardKeyVK = 0x58; // X
-        public static string PocketKeyChar = "Z";
-        public static string ClipboardKeyChar = "X";
+        // Mouse Tracking
+        // Find the exact pixel location of the mouse cursor to spawn the Pocket
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        internal static extern bool GetCursorPos(ref Win32Point pt);
 
-        // ✨ NEW: Dynamic Modifier Tracking!
-        public static uint PocketModifiers = MOD_WIN | MOD_SHIFT;
-        public static uint ClipboardModifiers = MOD_WIN | MOD_SHIFT;
-
-        // ✨ NEW SHAKE SETTINGS
-        public static bool EnableMouseShake = true;
-        public static int ShakeMinimumDistance = 130; // Default to 100 pixels
-        public static bool DisableInGameMode = true;
-
-        public static int AppTheme = 0; // 0 = System, 1 = Light, 2 = Dark
-
-        // Defaulting to true for the best out-of-the-box user experience
-        public static bool AutoCompressFoldersShare { get; set; } = true;
-
-        public static bool CloseWhenShare { get; set; } = true;
-        public static bool CloseWhenOpenWith { get; set; } = false;
-
-        public static bool CloseWhenCompress = false; // Default to false
-
-        // --- NATIVE GAME MODE DETECTION ---
-        [System.Runtime.InteropServices.DllImport("shell32.dll")]
-        public static extern int SHQueryUserNotificationState(out int pquns);
-
-        public static bool IsGameModeActive()
+        // Required OS struct to hold the X/Y coordinates from GetCursorPos
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        internal struct Win32Point
         {
-            try
-            {
-                SHQueryUserNotificationState(out int state);
-                // 3 = QUNS_RUNNING_D3D_FULL_SCREEN (DirectX Fullscreen Games)
-                // 4 = QUNS_PRESENTATION_MODE (Fullscreen Video / PowerPoint)
-                return state == 3 || state == 4;
-            }
-            catch { return false; }
-        }
+            public int X;
+            public int Y;
+        };
 
 
-        // ✨ THE FIX: Save the keys permanently to the Windows Registry!
+        // ================================================ //
+        // 4. APP LIFECYCLE (STARTUP & EXIT)
+        // ================================================ //
+
+        // Read all user preferences from Windows
         public static void LoadSettings()
         {
             try
@@ -108,27 +121,19 @@ namespace PocketDrop
                     // Convert safely handles the conversion so the app never crashes on load
                     PocketKeyChar = key.GetValue("PocketKeyChar", "Z").ToString();
                     PocketKeyVK = Convert.ToUInt32(key.GetValue("PocketKeyVK", 0x5A));
-
                     ClipboardKeyChar = key.GetValue("ClipboardKeyChar", "X").ToString();
                     ClipboardKeyVK = Convert.ToUInt32(key.GetValue("ClipboardKeyVK", 0x58));
-
                     PocketModifiers = Convert.ToUInt32(key.GetValue("PocketModifiers", MOD_WIN | MOD_SHIFT));
                     ClipboardModifiers = Convert.ToUInt32(key.GetValue("ClipboardModifiers", MOD_WIN | MOD_SHIFT));
 
                     EnableMouseShake = Convert.ToBoolean(key.GetValue("EnableMouseShake", true));
                     ShakeMinimumDistance = Convert.ToInt32(key.GetValue("ShakeMinimumDistance", 100));
                     DisableInGameMode = Convert.ToBoolean(key.GetValue("DisableInGameMode", true));
-
                     ExcludedApps = key.GetValue("ExcludedApps", "").ToString();
-
                     PocketPlacement = Convert.ToInt32(key.GetValue("PocketPlacement", 0));
-
                     ItemsLayoutMode = Convert.ToInt32(key.GetValue("ItemsLayoutMode", 0));
-
                     CloseWhenEmptied = Convert.ToBoolean(key.GetValue("CloseWhenEmptied", true));
-
                     CloseWhenOpenWith = Convert.ToBoolean(key.GetValue("CloseWhenOpenWith", false));
-
                     AppTheme = Convert.ToInt32(key.GetValue("AppTheme", 0));
                     AppLanguage = key.GetValue("AppLanguage", "English").ToString();
                 }
@@ -136,6 +141,7 @@ namespace PocketDrop
             catch { }
         }
 
+        // Save preferences on every setting change
         public static void SaveSettings()
         {
             try
@@ -148,94 +154,22 @@ namespace PocketDrop
                     key.SetValue("ClipboardKeyVK", (int)ClipboardKeyVK);
                     key.SetValue("PocketModifiers", (int)PocketModifiers);
                     key.SetValue("ClipboardModifiers", (int)ClipboardModifiers);
-
                     key.SetValue("EnableMouseShake", EnableMouseShake);
                     key.SetValue("ShakeMinimumDistance", ShakeMinimumDistance);
                     key.SetValue("DisableInGameMode", DisableInGameMode);
-
                     key.SetValue("ExcludedApps", ExcludedApps);
-
                     key.SetValue("PocketPlacement", PocketPlacement);
-
                     key.SetValue("ItemsLayoutMode", ItemsLayoutMode);
-
                     key.SetValue("CloseWhenEmptied", CloseWhenEmptied);
-
                     key.SetValue("CloseWhenOpenWith", CloseWhenOpenWith);
-
                     key.SetValue("AppTheme", AppTheme);
-
                     key.SetValue("AppLanguage", AppLanguage);
                 }
             }
             catch { }
         }
 
-        // ✨ THE MASTER FIX 2: Force Thread Synchronization!
-        public static void ReloadHotkeys()
-        {
-            System.Windows.Application.Current.Dispatcher.Invoke(() =>
-            {
-                SaveSettings();
-
-                // 1. Wipe the old keys
-                UnregisterHotKey(IntPtr.Zero, HOTKEY_NEW_POCKET);
-                UnregisterHotKey(IntPtr.Zero, HOTKEY_NEW_CLIPBOARD);
-
-                // 2. Ask Windows for the new keys, and capture its response (true = success, false = rejected)
-                bool successPocket = RegisterHotKey(IntPtr.Zero, HOTKEY_NEW_POCKET, PocketModifiers, PocketKeyVK);
-                bool successClipboard = RegisterHotKey(IntPtr.Zero, HOTKEY_NEW_CLIPBOARD, ClipboardModifiers, ClipboardKeyVK);
-
-                // 3. If Windows says NO, alert the user!
-                if (!successPocket || !successClipboard)
-                {
-                    System.Windows.MessageBox.Show(
-                        "Windows blocked this shortcut!\n\nThis usually means another background app (like Snipping Tool, PowerToys, or a graphics overlay) is already holding this key hostage.\n\nPlease try a different letter.",
-                        "Shortcut Error",
-                        System.Windows.MessageBoxButton.OK,
-                        System.Windows.MessageBoxImage.Warning);
-                }
-            });
-        }
-
-        // ✨ THE NEW SETTING STATE: Copy by default (true). If false, it's a Move.
-        public static bool CopyItemToDestination { get; set; } = true;
-
-        public static string AppLanguage = "English";
-
-        // Helper to ask Windows what theme the OS is currently using
-        public static bool IsWindowsInDarkMode()
-        {
-            try
-            {
-                using (var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"))
-                {
-                    if (key?.GetValue("AppsUseLightTheme") != null)
-                    {
-                        // Windows uses 0 for Dark Mode, and 1 for Light Mode
-                        return (int)key.GetValue("AppsUseLightTheme") == 0;
-                    }
-                }
-            }
-            catch { }
-            return false; // Safe fallback
-        }
-
-        // ✨ Fetches the translations for the WinForms tray!
-        public static void UpdateTrayMenuLanguage()
-        {
-            if (TrayAddPocketItem == null) return;
-
-            TrayAddPocketItem.Text = (string)System.Windows.Application.Current.TryFindResource("Text_TrayAddPocket");
-            TrayAddClipboardItem.Text = (string)System.Windows.Application.Current.TryFindResource("Text_TrayAddClipboard");
-            TraySavedPocketsItem.Text = (string)System.Windows.Application.Current.TryFindResource("Text_TraySavedPockets");
-            TraySettingsItem.Text = (string)System.Windows.Application.Current.TryFindResource("Text_TraySettings");
-            TrayReportBugItem.Text = (string)System.Windows.Application.Current.TryFindResource("Text_TrayReportBug");
-            TrayQuitItem.Text = (string)System.Windows.Application.Current.TryFindResource("Text_TrayQuit");
-
-            if (_trayIcon != null) _trayIcon.Text = "PocketDrop";
-        }
-
+        // The Boot Sequence
         protected override async void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
@@ -257,69 +191,60 @@ namespace PocketDrop
             }
             catch { }
 
-            // 2. Inject Language Dictionary
-            string dictPath = AppLanguage == "Vietnamese"
-                ? "pack://application:,,,/PocketDrop;component/Languages/Strings.vi.xaml"
-                : "pack://application:,,,/PocketDrop;component/Languages/Strings.en.xaml";
+            // 2. Inject Language & Theme Dictionaries
+            string dictPath = AppLanguage == "Vietnamese" ? "pack://application:,,,/PocketDrop;component/Languages/Strings.vi.xaml" : "pack://application:,,,/PocketDrop;component/Languages/Strings.en.xaml";
+            System.Windows.Application.Current.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri(dictPath) });
 
-            ResourceDictionary languageDict = new ResourceDictionary();
-            languageDict.Source = new Uri(dictPath);
-            System.Windows.Application.Current.Resources.MergedDictionaries.Add(languageDict);
-
-            // 3. Inject Theme Dictionary
-            bool useDarkMode = AppTheme == 0 ? IsWindowsInDarkMode() : AppTheme == 2;
+            bool useDarkMode = AppTheme == 0 ? AppHelpers.IsWindowsInDarkMode() : AppTheme == 2;
             string themeFileName = useDarkMode ? "DarkTheme.xaml" : "LightTheme.xaml";
-            Uri themeUri = new Uri($"pack://application:,,,/PocketDrop;component/Themes/{themeFileName}");
-            System.Windows.Application.Current.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = themeUri });
+            System.Windows.Application.Current.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri($"pack://application:,,,/PocketDrop;component/Themes/{themeFileName}") });
 
-            // THE FIX: Tell WPF to stay alive in the background even if zero windows are open!
+            // 3. Tell WPF to stay alive in the background
             System.Windows.Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
             var trayMenu = new System.Windows.Forms.ContextMenuStrip();
             trayMenu.ShowImageMargin = false;
 
-            // --- NEW: Spawns a brand new Pocket Window ---
+            // Spawns a brand new Pocket Window
             TrayAddPocketItem = new System.Windows.Forms.ToolStripMenuItem();
             TrayAddPocketItem.Click += (s, ev) =>
             {
                 var newPocket = new MainWindow();
                 newPocket.Show();
 
-                // THE FIX: Force the window to be fully visible and interactive!
+                // Force the window to be fully visible and interactive
                 newPocket.Opacity = 1;
                 newPocket.IsHitTestVisible = true;
-                newPocket.Activate(); // Brings it to the front of your screen
+                newPocket.Activate(); // Brings it to the front
             };
 
-            // --- NEW: Spawns a new Pocket and Pastes from Clipboard ---
+            // Spawns a new Pocket and Pastes from Clipboard
             TrayAddClipboardItem = new System.Windows.Forms.ToolStripMenuItem("Add Pocket from clipboard");
             TrayAddClipboardItem.Click += (s, ev) =>
             {
                 var newPocket = new MainWindow();
                 newPocket.Show();
 
-                // THE FIX: Force the window to be fully visible and interactive!
+                // Force the window to be fully visible and interactive
                 newPocket.Opacity = 1;
                 newPocket.IsHitTestVisible = true;
                 newPocket.Activate();
-
                 newPocket.PasteFromClipboard();
             };
 
             TraySavedPocketsItem = new System.Windows.Forms.ToolStripMenuItem("Saved Pockets");
             TraySavedPocketsItem.Click += (s, ev) =>
             {
-                // Check if the window is already open!
+                // Check if the window is already open
                 var existingWindow = System.Windows.Application.Current.Windows.OfType<SavedPocketsWindow>().FirstOrDefault();
 
                 if (existingWindow != null)
                 {
-                    // If it is, just bring it to the front
-                    existingWindow.Activate();
+                    existingWindow.Activate(); // Bring existing window to front if already running
                 }
                 else
                 {
-                    // If it isn't, spawn a new one
+                    // Spawn new window if no instance is running
                     var historyWindow = new SavedPocketsWindow();
                     historyWindow.Show();
                     historyWindow.Activate();
@@ -329,12 +254,12 @@ namespace PocketDrop
             TraySettingsItem = new System.Windows.Forms.ToolStripMenuItem("Settings");
             TraySettingsItem.Click += (s, ev) =>
             {
-                // ✨ Check if the settings window is already open!
+                // Check if the settings window is already open
                 var existingSettings = System.Windows.Application.Current.Windows.OfType<SettingsWindow>().FirstOrDefault();
 
                 if (existingSettings != null)
                 {
-                    // If it is open (but maybe minimized), restore it and bring it to the front
+                    // If it is open / minimized, restore it and bring it to the front
                     if (existingSettings.WindowState == WindowState.Minimized)
                     {
                         existingSettings.WindowState = WindowState.Normal;
@@ -343,7 +268,7 @@ namespace PocketDrop
                 }
                 else
                 {
-                    // If it isn't open at all, safely spawn a new one
+                    // If it isn't open at all, spawn a new one
                     var settingsWindow = new SettingsWindow();
                     settingsWindow.Show();
                     settingsWindow.Activate();
@@ -353,37 +278,27 @@ namespace PocketDrop
             TrayReportBugItem = new System.Windows.Forms.ToolStripMenuItem("Report bug");
             TrayReportBugItem.Click += (s, ev) =>
             {
-                try
-                {
-                    // This will open the user's default web browser to your issue tracker!
-                    // (You can replace this URL with your actual GitHub/GitLab repo later)
-                    var psi = new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = "https://github.com/naofunyan/PocketDrop/issues",
-                        UseShellExecute = true
-                    };
-                    System.Diagnostics.Process.Start(psi);
-                }
-                catch (Exception ex)
-                {
-                    System.Windows.MessageBox.Show($"Could not open bug reporter: {ex.Message}");
-                }
+                AppHelpers.OpenUrl("https://github.com/naofunyan/PocketDrop/issues");
             };
 
-            TrayQuitItem = new System.Windows.Forms.ToolStripMenuItem("Quit Dropshelf");
+            TrayQuitItem = new System.Windows.Forms.ToolStripMenuItem("Quit PocketDrop");
             TrayQuitItem.Click += (s, ev) =>
             {
                 System.Windows.Application.Current.Shutdown();
             };
 
-            // ✨ Register Global Hotkeys (IntPtr.Zero attaches them to the app's main background thread)
+            // 4. Register Global Hotkeys
             LoadSettings();
             ReloadHotkeys();
 
-            // Tell WPF to listen for global Windows messages
+            // 5. Tell WPF to listen for global Windows messages
             System.Windows.Interop.ComponentDispatcher.ThreadPreprocessMessage += ComponentDispatcher_ThreadPreprocessMessage;
 
-            // ✨ Load the text before adding to the menu
+            // 6. Run the update check silently in the background
+            await CheckForUpdatesOnStartup();
+
+
+            // Tray System - Load the text before adding to the menu
             UpdateTrayMenuLanguage();
 
             trayMenu.Items.Add(TrayAddPocketItem);
@@ -398,29 +313,24 @@ namespace PocketDrop
 
             _trayIcon = new System.Windows.Forms.NotifyIcon();
 
-            // 1. Grab your custom icon from the Assets folder
+            // 1. Grab icon from the Assets folder
             var iconUri = new Uri("pack://application:,,,/Assets/PocketDrop.ico", UriKind.Absolute);
             var iconStream = System.Windows.Application.GetResourceStream(iconUri).Stream;
 
-            // 2. Feed it directly to the tray icon (Replacing the old SystemIcons.Application line)
+            // 2. Feed it directly to the tray icon
             _trayIcon.Icon = new System.Drawing.Icon(iconStream);
 
             _trayIcon.ContextMenuStrip = trayMenu;
             _trayIcon.Visible = true;
             _trayIcon.Text = "PocketDrop";
 
-            // Run the update check silently in the background
-            await CheckForUpdatesOnStartup();
-
-
-            // ✨ THE FIX: Open Saved Pockets on Left-Click!
+            // Open My Pockets on Left-Click
             _trayIcon.MouseClick += async (s, e) =>
             {
                 // Only trigger on Left click
                 if (e.Button == System.Windows.Forms.MouseButtons.Left)
                 {
-                    // ✨ THE NEW MAGIC TRICK: Fire a fake 'Escape' keypress!
-                    // This forces Windows to instantly break the Hover Lock and close the tray menu.
+                    // Fire fake Escape keypress to break hover lock and close tray menu
                     System.Windows.Forms.SendKeys.SendWait("{ESC}");
 
                     var existingWindow = System.Windows.Application.Current.Windows.OfType<SavedPocketsWindow>().FirstOrDefault();
@@ -437,10 +347,9 @@ namespace PocketDrop
                         targetWindow.Show(); // Spawn a new one instantly
                     }
 
-                    // Keep our tiny delay to let the ESC key closing animation finish smoothly
+                    // Keep delay to let ESC closing animation finish
                     await System.Threading.Tasks.Task.Delay(100);
 
-                    // Now command the absolute OS foreground!
                     targetWindow.Activate();
                     targetWindow.Focus();
 
@@ -450,22 +359,67 @@ namespace PocketDrop
             };
         }
 
-        private void TrayIcon_Click(object? sender, EventArgs e)
+        // Background Update check
+        private async Task CheckForUpdatesOnStartup()
         {
-            // For right now, just show a message box. 
-            System.Windows.MessageBox.Show($"Your session history currently holds {SessionHistory.Count} items.");
+            try
+            {
+                using (HttpClient client = new HttpClient())
+                {
+                    client.Timeout = TimeSpan.FromSeconds(5);
+                    client.DefaultRequestHeaders.CacheControl = new System.Net.Http.Headers.CacheControlHeaderValue { NoCache = true };
+
+                    string url = "https://raw.githubusercontent.com/naofunyan/PocketDrop/main/version.txt";
+                    string latestVersionString = await client.GetStringAsync(url);
+
+                    // Bump version to match current app version
+                    string currentVersionString = "1.0.0";
+
+                    bool hasUpdate = AppHelpers.IsUpdateAvailable(currentVersionString, latestVersionString);
+
+                    if (hasUpdate)
+                    {
+                        // 1. Flip the global flag to true
+                        UpdateAvailable = true;
+
+                        // Fetch translations with English fallback
+                        string titleTemplate = (string)System.Windows.Application.Current.TryFindResource("Text_UpdateAvailableTitle") ?? "Update Available";
+                        string msgTemplate = (string)System.Windows.Application.Current.TryFindResource("Text_UpdateAvailableMsg") ?? "A new version of PocketDrop ({0}) is available!\n\nWould you like to download it now?";
+
+                        // Inject the version number into the {0} placeholder
+                        string finalMessage = string.Format(msgTemplate, latestVersionString.Trim());
+
+                        // 2. Alert the user immediately with a localized prompt
+                        MessageBoxResult result = System.Windows.MessageBox.Show(
+                            finalMessage,
+                            titleTemplate,
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Information);
+
+                        if (result == MessageBoxResult.Yes)
+                        {
+                            AppHelpers.OpenUrl(UpdateUrl);
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Silent fail if no internet or GitHub blocks the request
+            }
         }
 
+        // The Shutdown Sequence
         protected override void OnExit(ExitEventArgs e)
         {
-            // Clean up the tray icon so it doesn't linger after closing
+            // Clean up the tray icon
             if (_trayIcon != null)
             {
                 _trayIcon.Visible = false;
                 _trayIcon.Dispose();
             }
 
-            // FINAL CLEANUP: Wipe all temp files when the app actually quits
+            // Wipe all temp files when the app quits
             foreach (var item in SessionHistory)
             {
                 try
@@ -482,7 +436,93 @@ namespace PocketDrop
             base.OnExit(e);
         }
 
-        // --- CATCHING THE GLOBAL KEYSTROKE ---
+
+        // ================================================ //
+        // 5. SYSTEM TRAY & MENUS
+        // ================================================ //
+
+        // The master taskbar icon
+        private static System.Windows.Forms.NotifyIcon? _trayIcon;
+
+        // Class-level tray menu items for translation
+        public static System.Windows.Forms.ToolStripMenuItem TrayAddPocketItem;
+        public static System.Windows.Forms.ToolStripMenuItem TrayAddClipboardItem;
+        public static System.Windows.Forms.ToolStripMenuItem TraySavedPocketsItem;
+        public static System.Windows.Forms.ToolStripMenuItem TraySettingsItem;
+        public static System.Windows.Forms.ToolStripMenuItem TrayReportBugItem;
+        public static System.Windows.Forms.ToolStripMenuItem TrayQuitItem;
+
+        // Fetch tray translations on startup and language change
+        public static void UpdateTrayMenuLanguage()
+        {
+            if (TrayAddPocketItem == null) return;
+
+            TrayAddPocketItem.Text = (string)System.Windows.Application.Current.TryFindResource("Text_TrayAddPocket");
+            TrayAddClipboardItem.Text = (string)System.Windows.Application.Current.TryFindResource("Text_TrayAddClipboard");
+            TraySavedPocketsItem.Text = (string)System.Windows.Application.Current.TryFindResource("Text_TraySavedPockets");
+            TraySettingsItem.Text = (string)System.Windows.Application.Current.TryFindResource("Text_TraySettings");
+            TrayReportBugItem.Text = (string)System.Windows.Application.Current.TryFindResource("Text_TrayReportBug");
+            TrayQuitItem.Text = (string)System.Windows.Application.Current.TryFindResource("Text_TrayQuit");
+
+            if (_trayIcon != null) _trayIcon.Text = "PocketDrop";
+        }
+
+        // Triggered when the user clicks the tray icon
+        private void TrayIcon_Click(object? sender, EventArgs e)
+        {
+            // 1. Fetch raw translated strings with English fallback
+            string titleTemplate = (string)System.Windows.Application.Current.TryFindResource("Text_SessionHistoryTitle") ?? "Session History";
+            string msgTemplate = (string)System.Windows.Application.Current.TryFindResource("Text_SessionHistoryMsg") ?? "Your session history currently holds {0} items.";
+
+            // 2. Inject the live count into the {0} placeholder
+            string finalMessage = string.Format(msgTemplate, SessionHistory.Count);
+
+            // 3. Show the message box
+            System.Windows.MessageBox.Show(
+                finalMessage,
+                titleTemplate,
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+
+
+        // ================================================ //
+        // 6. GLOBAL INPUT HANDLING (HOTKEYS & MOUSE)
+        // ================================================ //
+
+        // Force thread sync on startup and shortcut settings change
+        public static void ReloadHotkeys()
+        {
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            {
+                SaveSettings();
+
+                // 1. Wipe the old keys
+                UnregisterHotKey(IntPtr.Zero, HOTKEY_NEW_POCKET);
+                UnregisterHotKey(IntPtr.Zero, HOTKEY_NEW_CLIPBOARD);
+
+                // 2. Ask Windows for the new keys, and capture its response (true = success, false = rejected)
+                bool successPocket = RegisterHotKey(IntPtr.Zero, HOTKEY_NEW_POCKET, PocketModifiers, PocketKeyVK);
+                bool successClipboard = RegisterHotKey(IntPtr.Zero, HOTKEY_NEW_CLIPBOARD, ClipboardModifiers, ClipboardKeyVK);
+
+                // 3. If Windows says NO, alert the user!
+                if (!successPocket || !successClipboard)
+                {
+                    // Fetch raw translated strings with English fallback
+                    string titleText = (string)System.Windows.Application.Current.TryFindResource("Text_ShortcutErrorTitle") ?? "Shortcut Error";
+                    string msgText = (string)System.Windows.Application.Current.TryFindResource("Text_ShortcutErrorMsg") ?? "Windows blocked this shortcut!\n\nThis usually means another background app (like Snipping Tool, PowerToys, or a graphics overlay) is already holding this key hostage.\n\nPlease try a different letter.";
+
+                    // Show the message box
+                    System.Windows.MessageBox.Show(
+                        msgText,
+                        titleText,
+                        System.Windows.MessageBoxButton.OK,
+                        System.Windows.MessageBoxImage.Warning);
+                }
+            });
+        }
+
+        // Listen for global keystrokes in background thread
         private void ComponentDispatcher_ThreadPreprocessMessage(ref System.Windows.Interop.MSG msg, ref bool handled)
         {
             const int WM_HOTKEY = 0x0312;
@@ -506,7 +546,7 @@ namespace PocketDrop
             }
         }
 
-        // --- SPAWNING THE POCKET ---
+        // Spawning the Pocket
         private void SpawnPocketAtCursor(bool pasteFromClipboard)
         {
             // 1. Find exactly where the mouse is right now
@@ -527,13 +567,13 @@ namespace PocketDrop
                 targetPocket.Show();
             }
 
-            // 3. Trigger the animation right at the mouse cursor!
+            // 3. Trigger the animation right at the mouse cursor
             targetPocket.ShowPocketDrop(mousePos.X, mousePos.Y);
 
-            // 4. If they pressed X, automatically pull the clipboard data!
+            // 4. If the user pressed X, automatically pull the clipboard data
             if (pasteFromClipboard)
             {
-                // Wait just 100ms for the window to finish expanding, then paste
+                // Wait 100ms for the window to finish expanding, then paste
                 System.Threading.Tasks.Task.Delay(100).ContinueWith(_ =>
                 {
                     System.Windows.Application.Current.Dispatcher.Invoke(() =>
@@ -541,119 +581,6 @@ namespace PocketDrop
                         targetPocket.PasteFromClipboard();
                     });
                 });
-            }
-        }
-
-        // ✨ EXCLUDED APPS SETTINGS
-        public static string ExcludedApps = "";
-
-        // ✨ POCKET PREFERENCES
-        public static int PocketPlacement = 0; // 0 = Near mouse, 1 = Top edge, etc.
-
-        public static int ItemsLayoutMode = 0;
-
-        public static bool CloseWhenEmptied = true;
-
-        // --- NATIVE FOREGROUND WINDOW DETECTION ---
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        private static extern IntPtr GetForegroundWindow();
-
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
-
-        public static bool IsForegroundAppExcluded()
-        {
-            if (string.IsNullOrWhiteSpace(ExcludedApps)) return false;
-
-            try
-            {
-                // 1. Get the currently active window
-                IntPtr hWnd = GetForegroundWindow();
-                if (hWnd == IntPtr.Zero) return false;
-
-                // 2. Get the Process ID of that window
-                GetWindowThreadProcessId(hWnd, out uint pid);
-                if (pid == 0) return false;
-
-                // 3. Look up the process name
-                using (var process = System.Diagnostics.Process.GetProcessById((int)pid))
-                {
-                    string pName = process.ProcessName.ToLower(); // e.g., "notepad" or "msedge"
-
-                    // 4. Split the user's list by new lines
-                    var rules = ExcludedApps.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-
-                    foreach (var ruleText in rules)
-                    {
-                        // ✨ THE FIX: System.IO.Path instantly strips out folder paths and ".exe"!
-                        // "C:\...\msedge.exe" becomes "msedge"
-                        // "LeagueClient" stays "leagueclient"
-                        string rule = System.IO.Path.GetFileNameWithoutExtension(ruleText.Trim()).ToLower();
-
-                        if (string.IsNullOrEmpty(rule)) continue;
-
-                        if (pName.Contains(rule))
-                        {
-                            return true; // Abort the shake!
-                        }
-                    }
-                }
-            }
-            catch { } // Failsafe (e.g., system processes we don't have permission to read)
-
-            return false;
-        }
-
-        // ✨ NEW: Global flag so the rest of the app knows an update is waiting
-        public static bool UpdateAvailable = false;
-        public static string UpdateUrl = "https://github.com/YOUR_USERNAME/PocketDrop/releases/latest";
-
-        private async Task CheckForUpdatesOnStartup()
-        {
-            try
-            {
-                using (HttpClient client = new HttpClient())
-                {
-                    client.Timeout = TimeSpan.FromSeconds(5);
-                    client.DefaultRequestHeaders.CacheControl = new System.Net.Http.Headers.CacheControlHeaderValue { NoCache = true };
-
-                    string url = "https://raw.githubusercontent.com/YOUR_USERNAME/PocketDrop/main/version.txt";
-                    string latestVersionString = await client.GetStringAsync(url);
-                    latestVersionString = latestVersionString.Trim();
-
-                    // Make sure this matches your current app version!
-                    string currentVersionString = "1.0.0";
-
-                    if (Version.TryParse(currentVersionString, out Version current) &&
-                        Version.TryParse(latestVersionString, out Version latest))
-                    {
-                        if (latest > current)
-                        {
-                            // 1. Flip the global flag to true
-                            UpdateAvailable = true;
-
-                            // 2. Alert the user immediately with a native Windows prompt!
-                            MessageBoxResult result = System.Windows.MessageBox.Show(
-                                $"A new version of PocketDrop ({latestVersionString}) is available!\n\nWould you like to download it now?",
-                                "Update Available",
-                                MessageBoxButton.YesNo,
-                                MessageBoxImage.Information);
-
-                            if (result == MessageBoxResult.Yes)
-                            {
-                                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                                {
-                                    FileName = UpdateUrl,
-                                    UseShellExecute = true
-                                });
-                            }
-                        }
-                    }
-                }
-            }
-            catch
-            {
-                // Silent fail if no internet
             }
         }
     }

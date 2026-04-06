@@ -479,27 +479,13 @@ namespace PocketDrop
         private void Rate_Click(object sender, MouseButtonEventArgs e)
         {
             // Opens the Windows Store directly to your app (replace with your actual Store ID later)
-            OpenUrl("ms-windows-store://review/?ProductId=YOUR_APP_ID");
+            AppHelpers.OpenUrl("ms-windows-store://review/?ProductId=YOUR_APP_ID");
         }
 
         private void GetHelp_Click(object sender, MouseButtonEventArgs e)
         {
             // The large "Get Help" card can also point straight to your GitHub Issues!
-            OpenUrl("https://github.com/naofunyan/PocketDrop/issues");
-        }
-
-        // Helper method to safely launch URLs in the user's default browser
-        private void OpenUrl(string url)
-        {
-            try
-            {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = url,
-                    UseShellExecute = true
-                });
-            }
-            catch { }
+            AppHelpers.OpenUrl("https://github.com/naofunyan/PocketDrop/issues");
         }
 
         // --- OPEN GITHUB WHEN THEY CLICK UPDATE ---
@@ -509,7 +495,7 @@ namespace PocketDrop
             // ✨ 1. If the background scanner already found one, just open the download page!
             if (App.UpdateAvailable)
             {
-                OpenUrl(App.UpdateUrl); // ✨ Just one clean, safe line!
+                AppHelpers.OpenUrl(App.UpdateUrl); // ✨ Just one clean, safe line!
                 return;
             }
 
@@ -542,7 +528,7 @@ namespace PocketDrop
 
                         if (result == MessageBoxResult.Yes)
                         {
-                            OpenUrl(App.UpdateUrl); // Using your safe URL helper!
+                            AppHelpers.OpenUrl(App.UpdateUrl); // Using your safe URL helper!
                         }
                         else
                         {

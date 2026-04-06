@@ -109,6 +109,8 @@
     <sys:String x:Key="Text_MsgNeedValidKey">Please press a valid key combination before saving.</sys:String>
     <sys:String x:Key="Text_MsgConflictTitle">Conflict Detected</sys:String>
     <sys:String x:Key="Text_MsgConflictDesc">This combination is currently in use by another app or reserved by Windows.&#x0a;&#x0a;Please choose a different shortcut.</sys:String>
+    <sys:String x:Key="Text_ShortcutErrorTitle">Shortcut Error</sys:String>
+    <sys:String x:Key="Text_ShortcutErrorMsg">Windows blocked this shortcut!&#x0a;&#x0a;This usually means another background app (like Snipping Tool, PowerToys, or a graphics overlay) is already holding this key hostage.&#x0a;&#x0a;Please try a different letter.</sys:String>
 
     <sys:String x:Key="Text_ShakeMouse">Shake to open a new Pocket</sys:String>
     <sys:String x:Key="Text_ShakeMouseDesc">Wiggle your mouse left and right while dragging files to instantly open a Pocket.</sys:String>
@@ -170,7 +172,10 @@
     <!-- Settings Window - About -->
     <sys:String x:Key="Text_AboutHeader">About</sys:String>
     <sys:String x:Key="Text_Close">Close</sys:String>
-    
+
+    <sys:String x:Key="Text_UpdateAvailableTitle">Update Available</sys:String>
+    <sys:String x:Key="Text_UpdateAvailableMsg">A new version of PocketDrop ({0}) is available!&#x0a;&#x0a;Would you like to download it now?</sys:String>
+
     <sys:String x:Key="Text_Copyright">Developed by Naofunyan. © 2026 All rights reserved.</sys:String>
     
     <sys:String x:Key="Text_PrivacyPolicy">Privacy policy</sys:String>
@@ -195,6 +200,9 @@
     <sys:String x:Key="Text_TraySettings">Settings</sys:String>
     <sys:String x:Key="Text_TrayReportBug">Report bug</sys:String>
     <sys:String x:Key="Text_TrayQuit">Quit PocketDrop</sys:String>
-    
+
+    <sys:String x:Key="Text_SessionHistoryTitle">Session History</sys:String>
+    <sys:String x:Key="Text_SessionHistoryMsg">Your session history currently holds {0} items.</sys:String>
+
 
 </ResourceDictionary>
