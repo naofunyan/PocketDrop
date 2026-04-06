@@ -47,7 +47,7 @@ namespace PocketDrop
                                          .ToList();
 
             // 3. Loop through the temporary list to check off any apps the user previously saved
-            foreach (var app in _allApps)
+            foreach (var app in scannedApps)
             {
                 if (savedList.Contains(app.ExePath.ToLower()) ||
                     savedList.Contains(System.IO.Path.GetFileName(app.ExePath).ToLower()))

@@ -1,7 +1,7 @@
 ﻿using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
-using System.Drawing; // Might require adding the System.Drawing.Common NuGet package
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -13,17 +13,22 @@ namespace PocketDrop
 {
     public static class AppScanner
     {
+
+        // ================================================ //
+        // 1. THE CORE SCANNING ENGINE
+        // ================================================ //
+
+        // Scan Windows Registry to find all installed applications and their executable paths.
         public static List<AppItem> GetInstalledApps()
         {
             var appList = new List<AppItem>();
             var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            // The 3 standard Windows Registry locations where installed apps live
             string[] registryKeys = new string[]
             {
-                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
-                @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall",
-                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" // For CurrentUser
+                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall", // Standard 64-bit apps
+                @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall", // Standard 32-bit apps
+                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" // Current User specific apps
             };
 
             foreach (var keyPath in registryKeys)
@@ -45,18 +50,19 @@ namespace PocketDrop
                             string displayIcon = subkey.GetValue("DisplayIcon") as string;
                             string installLocation = subkey.GetValue("InstallLocation") as string;
 
-                            // Clean up the icon path (sometimes Windows leaves quotes around it or adds an icon index like ",0")
+                            // Strip quotes and icon index from registry icon path
                             string exePath = CleanExePath(displayIcon);
 
-                            // If the DisplayIcon wasn't an exe, try to find one in the InstallLocation
+                            // Fallback to InstallLocation exe if DisplayIcon is not an exe
                             if (string.IsNullOrEmpty(exePath) && !string.IsNullOrEmpty(installLocation) && Directory.Exists(installLocation))
                             {
                                 exePath = Directory.GetFiles(installLocation, "*.exe").FirstOrDefault();
                             }
 
-                            // If we found a valid, real .exe file that we haven't already added...
+                            // Skip invalid or duplicate exe entries
                             if (!string.IsNullOrEmpty(exePath) && File.Exists(exePath) && !seenPaths.Contains(exePath))
                             {
+                                // Fallback to filename if app display name is missing
                                 if (string.IsNullOrEmpty(displayName))
                                     displayName = Path.GetFileNameWithoutExtension(exePath);
 
@@ -74,12 +80,16 @@ namespace PocketDrop
                     }
                 }
             }
-
-            // Sort alphabetically before returning!
+            // Sort app list alphabetically before returning
             return appList.OrderBy(a => a.AppName).ToList();
         }
 
-        // Helper: Extracts the native Windows icon from an .exe and converts it to a WPF ImageSource
+
+        // ================================================ //
+        // 2. DATA EXTRACTION HELPERS
+        // ================================================ //
+
+        // Extracts the native Windows icon from an .exe and converts it to a WPF-friendly ImageSource.
         public static ImageSource GetIconFromExe(string path)
         {
             try
@@ -93,7 +103,7 @@ namespace PocketDrop
                             Int32Rect.Empty,
                             BitmapSizeOptions.FromEmptyOptions());
 
-                        // ✨ THE FIX: Freeze the image so the UI thread is allowed to touch it!
+                        // Freeze the image for UI thread access
                         bitmapSource.Freeze();
 
                         return bitmapSource;
@@ -101,14 +111,15 @@ namespace PocketDrop
                 }
             }
             catch { }
-            return null; // Return null if it fails
+            return null; // Return null if it fails (the UI will just show no icon)
         }
 
-        // Helper: Windows registry paths are notoriously messy. This cleans them up.
+        // Strip quotes and icon indexes from messy registry paths
         private static string CleanExePath(string path)
         {
             if (string.IsNullOrEmpty(path)) return null;
 
+            // Strip out surrounding spaces and quotation marks
             path = path.Trim('"', ' ');
 
             // Remove icon indexes (e.g., "C:\app.exe,0")
@@ -118,6 +129,7 @@ namespace PocketDrop
                 path = path.Substring(0, commaIndex);
             }
 
+            // Return path only if it resolves to a valid executable file
             if (path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
             {
                 return path;
