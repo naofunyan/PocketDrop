@@ -1,72 +1,66 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
-using Microsoft.Win32;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Shapes;
+using static Microsoft.WindowsAPICodePack.Shell.PropertySystem.SystemProperties.System;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace PocketDrop
 {
-    /// <summary>
-    /// Interaction logic for SettingsWindow.xaml
-    /// </summary>
     public partial class SettingsWindow : Window
     {
-        // ✨ ADD THIS LINE RIGHT HERE, OUTSIDE OF ANY METHODS!
+        // ================================================ //
+        // 1. STATE & VARIABLES
+        // ================================================ //
+
+        // Prevents language change event during window initialization
         private bool _isLanguageLoaded = false;
+
+
+        // ================================================ //
+        // 2. WINDOW LIFECYCLE (STARTUP)
+        // ================================================ //
+
         public SettingsWindow()
         {
             InitializeComponent();
 
-            // ✨ THE FIX 1: Load the current state of the setting when the window opens!
+            // 1. Load basic toggles and combo boxes
             CopyItemToDestinationCheckbox.IsChecked = App.CopyItemToDestination;
-
             StartupToggle.IsChecked = AppHelpers.IsRunAtStartupEnabled();
-
-            // ✨ THE FIX: Force the UI to dynamically draw your actual saved keys!
-            RenderKeycaps(PocketKeysContainer, App.PocketModifiers, App.PocketKeyChar);
-            RenderKeycaps(ClipboardKeysContainer, App.ClipboardModifiers, App.ClipboardKeyChar);
-
-            // Load Shake Settings
             ShakeToggle.IsChecked = App.EnableMouseShake;
             ShakeDistText.Text = App.ShakeMinimumDistance.ToString();
             GameModeCheck.IsChecked = App.DisableInGameMode;
-
-            RefreshExcludedAppsDisplay();
-
             PlacementCombo.SelectedIndex = App.PocketPlacement;
-
             LayoutCombo.SelectedIndex = App.ItemsLayoutMode;
-
             AutoCompressShareToggle.IsChecked = App.AutoCompressFoldersShare;
-
             CloseEmptiedToggle.IsChecked = App.CloseWhenEmptied;
-
             CloseOpenWithToggle.IsChecked = App.CloseWhenOpenWith;
-
             CloseShareToggle.IsChecked = App.CloseWhenShare;
-
             CloseCompressToggle.IsChecked = App.CloseWhenCompress;
 
-            // Grab the text-based Informational Version
+            // 2. Dynamically draw the saved shortcut keys
+            RenderKeycaps(PocketKeysContainer, App.PocketModifiers, App.PocketKeyChar);
+            RenderKeycaps(ClipboardKeysContainer, App.ClipboardModifiers, App.ClipboardKeyChar);
+
+            // 3. Load the exception apps UI
+            RefreshExcludedAppsDisplay();
+
+            // 4. Get the version number, chopping off the Git hash
             var versionAttr = System.Reflection.Assembly.GetExecutingAssembly()
                 .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
                 as System.Reflection.AssemblyInformationalVersionAttribute[];
 
             if (versionAttr != null && versionAttr.Length > 0)
             {
-                // ✨ THE FIX: Chop off the Git hash at the '+' symbol
                 string cleanVersion = versionAttr[0].InformationalVersion.Split('+')[0].Replace("-beta", " Beta ");
 
-                // Update the UI text!
+                // Update the UI text
                 AppVersionText.Text = $"Version {cleanVersion}";
             }
             else
@@ -74,11 +68,11 @@ namespace PocketDrop
                 AppVersionText.Text = "Version 1.0.0";
             }
 
-            // <--- Add the Theme load here! --->
+            // 5. Load and apply the Theme
             ThemeCombo.SelectedIndex = App.AppTheme;
             ApplyTheme(App.AppTheme);
 
-            // ✨ ADD THIS TO SYNC THE UI WITH THE SAVED LANGUAGE
+            // 6. Load and apply the Language
             if (App.AppLanguage == "Vietnamese")
             {
                 LanguageCombo.SelectedIndex = 1;
@@ -90,20 +84,18 @@ namespace PocketDrop
             // Mark as loaded so the event doesn't trigger during window creation
             _isLanguageLoaded = true;
 
-            // ✨ SMART SYNC: Check if the background startup scanner already found an update!
+            // 7. Check if background scanner already found an update
             if (App.UpdateAvailable)
             {
                 CheckUpdateBtn.Content = "Update Available!";
-                // Optional: Make it green to grab their attention!
                 CheckUpdateBtn.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(40, 167, 69));
             }
-
         }
 
-        // ══════════════════════════════════════════════════════
-        // THEME ENGINE
-        // ══════════════════════════════════════════════════════
 
+        // ================================================ //
+        // 3. THEME & LANGUAGE ENGINE
+        // ================================================ //
         private void ThemeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (ThemeCombo != null && this.IsLoaded)
@@ -122,11 +114,10 @@ namespace PocketDrop
 
             var dictionaries = System.Windows.Application.Current.Resources.MergedDictionaries;
 
-            // 1. Create and add the new theme at the very end (so it safely overrides everything)
             var newThemeDict = new ResourceDictionary { Source = themeUri };
             dictionaries.Add(newThemeDict);
 
-            // 2. Find ALL old theme files and remove them to prevent conflicts and memory leaks!
+            // Remove old theme files to prevent conflicts and memory leaks
             var oldThemes = new List<ResourceDictionary>();
             foreach (var dict in dictionaries)
             {
@@ -141,10 +132,6 @@ namespace PocketDrop
                 dictionaries.Remove(oldTheme);
             }
         }
-
-        // ══════════════════════════════════════════════════════
-        // LANGUAGE ENGINE
-        // ══════════════════════════════════════════════════════
 
         private async void LanguageCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -163,11 +150,10 @@ namespace PocketDrop
 
             var dictionaries = System.Windows.Application.Current.Resources.MergedDictionaries;
 
-            // 1. Create and add the new language at the very end
             var newLangDict = new ResourceDictionary { Source = new Uri(dictPath) };
             dictionaries.Add(newLangDict);
 
-            // 2. Clean up any old language files sitting in memory
+            // Clean up any old language files sitting in memory
             var oldLangs = new List<ResourceDictionary>();
             foreach (var dict in dictionaries)
             {
@@ -182,58 +168,128 @@ namespace PocketDrop
                 dictionaries.Remove(oldLang);
             }
 
-            // ✨ THE FIX: Wait 50 milliseconds to let WPF finish loading the dictionary into memory!
+            // Wait 50ms for WPF to finish loading resource dictionary
             await System.Threading.Tasks.Task.Delay(50);
 
-            // Now tell the tray menu to fetch the words
+            // Trigger tray menu to fetch updated translations
             App.UpdateTrayMenuLanguage();
         }
 
-        // ✨ THE FIX 2: Update the global setting when the user toggles the switch!
-        private void Copy_Click(object sender, RoutedEventArgs e)
-        {
-            App.CopyItemToDestination = CopyItemToDestinationCheckbox.IsChecked ?? true;
-        }
 
-        // ══════════════════════════════════════════════════════
-        // STARTUP ENGINE
-        // ══════════════════════════════════════════════════════
-
+        // ================================================ //
+        // 4. PREFERENCES & TOGGLES (THE CHECKBOXES)
+        // ================================================ //
         private void StartupToggle_Click(object sender, RoutedEventArgs e)
         {
             bool enable = StartupToggle.IsChecked ?? false;
 
-            // ✨ Call the decoupled math, passing the process path!
             bool success = AppHelpers.SetRunAtStartup(enable, Environment.ProcessPath);
 
             if (!success)
             {
-                MessageBox.Show("Could not update startup settings.", "Permission Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                string errorTitle = (string)Application.Current.Resources["Text_StartupErrorTitle"] ?? "Permission Error";
+                string errorMsg = (string)Application.Current.Resources["Text_StartupErrorMsg"] ?? "Could not update startup settings.";
+
+                MessageBox.Show(errorMsg, errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
                 StartupToggle.IsChecked = !enable; // Revert UI
             }
         }
 
-
-        // --- OPEN TEMP FOLDER ---
-        private void OpenTempFolder_Click(object sender, RoutedEventArgs e)
+        // Update global setting on toggle switch change
+        private void Copy_Click(object sender, RoutedEventArgs e)
         {
-            try
+            App.CopyItemToDestination = CopyItemToDestinationCheckbox.IsChecked ?? true;
+            App.SaveSettings();
+        }
+
+        private void ShakeToggle_Click(object sender, RoutedEventArgs e)
+        {
+            App.EnableMouseShake = ShakeToggle.IsChecked ?? true;
+            App.SaveSettings();
+        }
+
+        private void GameModeCheck_Click(object sender, RoutedEventArgs e)
+        {
+            App.DisableInGameMode = GameModeCheck.IsChecked ?? true;
+            App.SaveSettings();
+        }
+
+        private void AutoCompressShareToggle_Click(object sender, RoutedEventArgs e)
+        {
+            App.AutoCompressFoldersShare = AutoCompressShareToggle.IsChecked ?? true;
+            App.SaveSettings();
+        }
+
+        private void CloseEmptiedToggle_Click(object sender, RoutedEventArgs e)
+        {
+            App.CloseWhenEmptied = CloseEmptiedToggle.IsChecked ?? true;
+            App.SaveSettings();
+        }
+
+        private void CloseOpenWithToggle_Click(object sender, RoutedEventArgs e)
+        {
+            App.CloseWhenOpenWith = CloseOpenWithToggle.IsChecked ?? true;
+            App.SaveSettings();
+        }
+
+        private void CloseShareToggle_Click(object sender, RoutedEventArgs e)
+        {
+            App.CloseWhenShare = CloseShareToggle.IsChecked ?? true;
+            App.SaveSettings();
+        }
+
+        private void CloseCompressToggle_Click(object sender, RoutedEventArgs e)
+        {
+            App.CloseWhenCompress = CloseCompressToggle.IsChecked ?? true;
+            App.SaveSettings();
+        }
+
+        private void PlacementCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (PlacementCombo != null && this.IsLoaded)
             {
-                // Opens the Windows File Explorer directly to where your dragged URLs and web images are saved!
-                System.Diagnostics.Process.Start("explorer.exe", System.IO.Path.GetTempPath());
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Could not open folder: {ex.Message}");
+                App.PocketPlacement = PlacementCombo.SelectedIndex;
+                App.SaveSettings();
             }
         }
 
-        // --- DYNAMIC KEYCAP GENERATOR ---
+        private void LayoutCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (LayoutCombo != null && this.IsLoaded)
+            {
+                App.ItemsLayoutMode = LayoutCombo.SelectedIndex;
+                App.SaveSettings();
+            }
+        }
+
+        // Drop focus on Enter key press
+        private void ShakeDistText_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                Keyboard.ClearFocus();
+            }
+        }
+
+        private void ShakeDistText_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            // Only save input if value is a valid number
+            if (int.TryParse(ShakeDistText.Text, out int dist))
+            {
+                App.ShakeMinimumDistance = dist;
+                App.SaveSettings();
+            }
+        }
+
+
+        // ================================================ //
+        // 5. SHORTCUTS & APP EXCLUSIONS
+        // ================================================ //
+
         private void RenderKeycaps(StackPanel container, uint mods, string letter)
         {
             container.Children.Clear();
 
-            // Order matters! Win -> Ctrl -> Alt -> Shift
             if ((mods & App.MOD_WIN) != 0) AddKeycap(container, "Win");
             if ((mods & App.MOD_CTRL) != 0) AddKeycap(container, "Ctrl");
             if ((mods & App.MOD_ALT) != 0) AddKeycap(container, "Alt");
@@ -248,7 +304,7 @@ namespace PocketDrop
             {
                 Background = new SolidColorBrush(Color.FromRgb(0, 95, 184)), // #005FB8
                 CornerRadius = new CornerRadius(4),
-                // ✨ FIXED: Explicitly declaring Left, Top, Right, Bottom
+
                 Padding = new Thickness(10, 4, 10, 4),
                 Margin = new Thickness(0, 0, 4, 0),
                 MinWidth = 32
@@ -286,13 +342,13 @@ namespace PocketDrop
         {
             string dialogTitle = (string)this.FindResource("Text_NewPocketShortcut");
 
-            // Pass the current keys, AND the default factory reset keys (Win+Shift+Z)
+            // Pass current and factory-reset keys to shortcut handler
             var dialog = new ShortcutDialog(dialogTitle, App.PocketKeyChar, App.PocketModifiers, "Z", App.MOD_WIN | App.MOD_SHIFT) { Owner = this };
             if (dialog.ShowDialog() == true)
             {
                 App.PocketKeyChar = dialog.SelectedLetter;
                 App.PocketKeyVK = dialog.SelectedVK;
-                App.PocketModifiers = dialog.SelectedModifiers; // Save the new modifiers!
+                App.PocketModifiers = dialog.SelectedModifiers; // Save the new modifiers
                 RenderKeycaps(PocketKeysContainer, App.PocketModifiers, App.PocketKeyChar);
                 App.ReloadHotkeys();
             }
@@ -307,59 +363,25 @@ namespace PocketDrop
             {
                 App.ClipboardKeyChar = dialog.SelectedLetter;
                 App.ClipboardKeyVK = dialog.SelectedVK;
-                App.ClipboardModifiers = dialog.SelectedModifiers; // Save the new modifiers!
+                App.ClipboardModifiers = dialog.SelectedModifiers; // Save the new modifiers
                 RenderKeycaps(ClipboardKeysContainer, App.ClipboardModifiers, App.ClipboardKeyChar);
                 App.ReloadHotkeys();
             }
         }
 
-        private void ShakeToggle_Click(object sender, RoutedEventArgs e)
-        {
-            App.EnableMouseShake = ShakeToggle.IsChecked ?? true;
-            App.SaveSettings();
-        }
-
-        // --- COMMIT TEXT BOX ON ENTER ---
-        private void ShakeDistText_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter)
-            {
-                // This removes the blinking cursor and drops focus, 
-                // essentially telling the app "I am done typing, save this!"
-                Keyboard.ClearFocus();
-            }
-        }
-
-        private void GameModeCheck_Click(object sender, RoutedEventArgs e)
-        {
-            App.DisableInGameMode = GameModeCheck.IsChecked ?? true;
-            App.SaveSettings();
-        }
-
-        private void ShakeDistText_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            // Only save if they typed a valid number
-            if (int.TryParse(ShakeDistText.Text, out int dist))
-            {
-                App.ShakeMinimumDistance = dist;
-                App.SaveSettings();
-            }
-        }
-
         private void OpenAppPicker_Click(object sender, RoutedEventArgs e)
         {
-            // Open the dialog and pass in the currently saved apps
+            // Open exceptions dialog with currently saved apps
             var dialog = new AppPickerDialog(App.ExcludedApps) { Owner = this };
 
-            // If they clicked "Save"...
+            // If the user clicked "Save"
             if (dialog.ShowDialog() == true)
             {
-                // Save the new string to your global settings
+                // Save the new string to global settings
                 App.ExcludedApps = dialog.FinalExcludedAppsString;
                 App.SaveSettings();
 
-                // Refresh the UI only if changes were actually saved!
-                RefreshExcludedAppsDisplay();
+                RefreshExcludedAppsDisplay(); // Refresh UI only when changes are confirmed saved
             }
         }
 
@@ -380,7 +402,7 @@ namespace PocketDrop
                 .Select(p => p.Trim())
                 .ToList();
 
-            // Run the icon extraction on a background thread!
+            // Run the icon extraction on a background thread
             var displayItems = await System.Threading.Tasks.Task.Run(() =>
             {
                 var list = new List<AppItem>();
@@ -389,119 +411,68 @@ namespace PocketDrop
                     list.Add(new AppItem
                     {
                         AppName = System.IO.Path.GetFileNameWithoutExtension(path),
-                        // This calls our existing scanner which safely Freezes the image!
                         AppIcon = AppScanner.GetIconFromExe(path)
                     });
                 }
                 return list;
             });
 
-            // Feed the resulting list of AppItems to our XAML grid
+            // Bind AppItem list to XAML grid
             ExcludedAppsIconDisplay.ItemsSource = displayItems;
         }
 
-        private void PlacementCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+
+        // ================================================ //
+        // 6. ABOUT, LINKS, & OVERLAYS
+        // ================================================ //
+        
+        // Open temp folder
+        private void OpenTempFolder_Click(object sender, RoutedEventArgs e)
         {
-            if (PlacementCombo != null && this.IsLoaded)
+            try
             {
-                App.PocketPlacement = PlacementCombo.SelectedIndex;
-                App.SaveSettings();
+                System.Diagnostics.Process.Start("explorer.exe", System.IO.Path.GetTempPath());
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Could not open folder: {ex.Message}");
             }
         }
 
-        private void LayoutCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (LayoutCombo != null && this.IsLoaded)
-            {
-                App.ItemsLayoutMode = LayoutCombo.SelectedIndex;
-                App.SaveSettings();
-            }
-        }
+        private void PrivacyPolicy_Click(object sender, MouseButtonEventArgs e) => PrivacyOverlay.Visibility = Visibility.Visible;
+        private void ClosePrivacy_Click(object sender, RoutedEventArgs e) => PrivacyOverlay.Visibility = Visibility.Collapsed;
 
-        private void AutoCompressShareToggle_Click(object sender, RoutedEventArgs e)
-        {
-            App.AutoCompressFoldersShare = AutoCompressShareToggle.IsChecked ?? true;
-            App.SaveSettings(); // Assumes you use this method to save to your config/registry
-        }
-
-        private void CloseEmptiedToggle_Click(object sender, RoutedEventArgs e)
-        {
-            App.CloseWhenEmptied = CloseEmptiedToggle.IsChecked ?? true;
-            App.SaveSettings();
-        }
-
-        private void CloseOpenWithToggle_Click(object sender, RoutedEventArgs e)
-        {
-            App.CloseWhenOpenWith = CloseOpenWithToggle.IsChecked ?? true;
-            App.SaveSettings(); // Assumes you have your standard save logic here!
-        }
-
-        private void CloseShareToggle_Click(object sender, RoutedEventArgs e)
-        {
-            App.CloseWhenShare = CloseShareToggle.IsChecked ?? true;
-            App.SaveSettings();
-        }
-
-        private void CloseCompressToggle_Click(object sender, RoutedEventArgs e)
-        {
-            App.CloseWhenCompress = CloseCompressToggle.IsChecked ?? true;
-            App.SaveSettings();
-        }
-
-        // ══════════════════════════════════════════════════════
-        // ABOUT SECTION LINKS
-        // ══════════════════════════════════════════════════════
-
-        private void PrivacyPolicy_Click(object sender, MouseButtonEventArgs e)
-        {
-            // Show the popup overlay!
-            PrivacyOverlay.Visibility = Visibility.Visible;
-        }
-
-        private void ClosePrivacy_Click(object sender, RoutedEventArgs e)
-        {
-            // Hide the popup overlay!
-            PrivacyOverlay.Visibility = Visibility.Collapsed;
-        }
-
-        private void ThirdParty_Click(object sender, MouseButtonEventArgs e)
-        {
-            // Show the Licenses popup overlay!
-            LicenseOverlay.Visibility = Visibility.Visible;
-        }
-
-        private void CloseLicense_Click(object sender, RoutedEventArgs e)
-        {
-            // Hide the Licenses popup overlay!
-            LicenseOverlay.Visibility = Visibility.Collapsed;
-        }
+        private void ThirdParty_Click(object sender, MouseButtonEventArgs e) => LicenseOverlay.Visibility = Visibility.Visible;
+        private void CloseLicense_Click(object sender, RoutedEventArgs e) => LicenseOverlay.Visibility = Visibility.Collapsed;
 
         private void Rate_Click(object sender, MouseButtonEventArgs e)
         {
-            // Opens the Windows Store directly to your app (replace with your actual Store ID later)
             AppHelpers.OpenUrl("ms-windows-store://review/?ProductId=YOUR_APP_ID");
         }
 
         private void GetHelp_Click(object sender, MouseButtonEventArgs e)
         {
-            // The large "Get Help" card can also point straight to your GitHub Issues!
             AppHelpers.OpenUrl("https://github.com/naofunyan/PocketDrop/issues");
         }
 
-        // --- OPEN GITHUB WHEN THEY CLICK UPDATE ---
-        // --- HYBRID UPDATE CHECKER ---
+
+        // ================================================ //
+        // 7. UPDATE CHECKER ENGINE
+        // ================================================ //
+
+        // Update checker
         private async void CheckUpdateBtn_Click(object sender, RoutedEventArgs e)
         {
-            // ✨ 1. If the background scanner already found one, just open the download page!
+            // 1. Open download page if background scanner found update
             if (App.UpdateAvailable)
             {
-                AppHelpers.OpenUrl(App.UpdateUrl); // ✨ Just one clean, safe line!
+                AppHelpers.OpenUrl(App.UpdateUrl);
                 return;
             }
 
-            // ✨ 2. Otherwise, run the manual network scan!
+            // 2. Run manual version check if no cached result
             CheckUpdateBtn.IsEnabled = false;
-            CheckUpdateBtn.Content = "Checking...";
+            CheckUpdateBtn.Content = (string)Application.Current.Resources["Text_CheckingUpdate"] ?? "Checking...";
 
             try
             {
@@ -514,7 +485,6 @@ namespace PocketDrop
                     string latestVersionString = await client.GetStringAsync(url);
                     string currentVersionString = "1.0.0";
 
-                    // ✨ THE FIX: Ask the decoupled brain to do the math!
                     bool hasUpdate = AppHelpers.IsUpdateAvailable(currentVersionString, latestVersionString);
 
                     if (hasUpdate)
@@ -522,41 +492,49 @@ namespace PocketDrop
                         App.UpdateAvailable = true;
                         App.UpdateUrl = "https://github.com/naofunyan/PocketDrop/releases/latest";
 
-                        MessageBoxResult result = MessageBox.Show(
-                            $"A new version of PocketDrop ({latestVersionString.Trim()}) is available!\n\nWould you like to download it now?",
-                            "Update Available", MessageBoxButton.YesNo, MessageBoxImage.Information);
+                        string updateTitle = (string)Application.Current.Resources["Text_UpdateAvailableTitle"] ?? "Update Available";
+                        string updateMsgTemplate = (string)Application.Current.Resources["Text_UpdateAvailableMsg"] ?? "A new version of PocketDrop ({0}) is available!\n\nWould you like to download it now?";
+                        string updateMsg = string.Format(updateMsgTemplate, latestVersionString.Trim());
+
+                        MessageBoxResult result = MessageBox.Show(updateMsg, updateTitle, MessageBoxButton.YesNo, MessageBoxImage.Information);
 
                         if (result == MessageBoxResult.Yes)
                         {
-                            AppHelpers.OpenUrl(App.UpdateUrl); // Using your safe URL helper!
+                            AppHelpers.OpenUrl(App.UpdateUrl);
                         }
                         else
                         {
-                            CheckUpdateBtn.Content = "Update Available!";
+                            CheckUpdateBtn.Content = (string)Application.Current.Resources["Text_UpdateAvailableBtn"] ?? "Update Available!";
                             CheckUpdateBtn.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(40, 167, 69));
                         }
                     }
                     else
                     {
-                        MessageBox.Show("You are already using the latest version of PocketDrop.", "Up to Date", MessageBoxButton.OK, MessageBoxImage.Information);
+                        string upToDateTitle = (string)Application.Current.Resources["Text_UpdateUpToDateTitle"] ?? "Up to Date";
+                        string upToDateMsg = (string)Application.Current.Resources["Text_UpdateUpToDateMsg"] ?? "You are already using the latest version of PocketDrop.";
+
+                        MessageBox.Show(upToDateMsg, upToDateTitle, MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                 }
             }
             catch
             {
-                MessageBox.Show("Could not connect to the update server. Please check your internet connection and try again.", "Update Check Failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                string failTitle = (string)Application.Current.Resources["Text_UpdateCheckFailedTitle"] ?? "Update Check Failed";
+                string failMsg = (string)Application.Current.Resources["Text_UpdateCheckFailedMsg"] ?? "Could not connect to the update server. Please check your internet connection and try again.";
+
+                MessageBox.Show(failMsg, failTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             finally
             {
-                // Only reset the button back to normal if an update WASN'T found
+                // Only reset version check button if no update was found
                 if (!App.UpdateAvailable)
                 {
                     CheckUpdateBtn.IsEnabled = true;
-                    CheckUpdateBtn.Content = "Check for updates";
+                    CheckUpdateBtn.Content = (string)Application.Current.Resources["Text_CheckUpdatesBtn"] ?? "Check for updates";
                 }
                 else
                 {
-                    CheckUpdateBtn.IsEnabled = true; // Keep it clickable!
+                    CheckUpdateBtn.IsEnabled = true;
                 }
             }
         }

@@ -18,7 +18,7 @@
     <!-- Main Window - More Menu -->
     <sys:String x:Key="Text_MenuOpen">Open...</sys:String>
     <sys:String x:Key="Text_MenuOpenWith">Open with...</sys:String>
-    
+
     <sys:String x:Key="Text_MenuShare">Share with...</sys:String>
     <sys:String x:Key="Text_CompressingShare">Compressing for Share...</sys:String>
     <sys:String x:Key="Text_ShareFolderErrorTitle">Share Action Failed</sys:String>
@@ -62,6 +62,9 @@
     <sys:String x:Key="Text_Delete">Delete</sys:String>
     <sys:String x:Key="Text_DeleteSelected">Delete selected</sys:String>
 
+    <system:String x:Key="Text_ErrorTitle">Error</system:String>
+    <system:String x:Key="Text_OpenFileError">Could not open the file:</system:String>
+
     <sys:String x:Key="Text_SortDefault">Default</sys:String>
     <sys:String x:Key="Text_SortDefaultTooltip">Sort: Default Order</sys:String>
     <sys:String x:Key="Text_ToastRestoredDefault">Default Sort</sys:String>
@@ -74,6 +77,8 @@
 
     <!-- Settings Window -->
     <sys:String x:Key="Text_SettingsTitle">Settings</sys:String>
+    <sys:String x:Key="Text_StartupErrorTitle">Permission Error</sys:String>
+    <sys:String x:Key="Text_StartupErrorMsg">Could not update startup settings.</sys:String>
 
     <!-- Settings Window - General -->
     <sys:String x:Key="Text_AppearanceBehavior">General</sys:String>
@@ -175,6 +180,13 @@
 
     <sys:String x:Key="Text_UpdateAvailableTitle">Update Available</sys:String>
     <sys:String x:Key="Text_UpdateAvailableMsg">A new version of PocketDrop ({0}) is available!&#x0a;&#x0a;Would you like to download it now?</sys:String>
+    <sys:String x:Key="Text_CheckingUpdate">Checking...</sys:String>
+    <sys:String x:Key="Text_UpdateAvailableBtn">Update Available</sys:String>
+    <sys:String x:Key="Text_CheckUpdatesBtn">Check for updates</sys:String>
+    <sys:String x:Key="Text_UpdateUpToDateTitle">Up to Date</sys:String>
+    <sys:String x:Key="Text_UpdateUpToDateMsg">You are already using the latest version of PocketDrop.</sys:String>
+    <sys:String x:Key="Text_UpdateCheckFailedTitle">Update Check Failed</sys:String>
+    <sys:String x:Key="Text_UpdateCheckFailedMsg">Could not connect to the update server. Please check your internet connection and try again.</sys:String>
 
     <sys:String x:Key="Text_Copyright">Developed by Naofunyan. © 2026 All rights reserved.</sys:String>
     

@@ -288,7 +288,10 @@ namespace PocketDrop
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show("Could not open file: " + ex.Message, "Error");
+                        string errorTitle = (string)Application.Current.Resources["Text_ErrorTitle"] ?? "Error";
+                        string errorPrefix = (string)Application.Current.Resources["Text_OpenFileError"] ?? "Could not open file:";
+
+                        MessageBox.Show($"{errorPrefix}\n\n{ex.Message}", errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
                 e.Handled = true;

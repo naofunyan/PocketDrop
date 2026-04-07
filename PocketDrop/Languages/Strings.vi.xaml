@@ -62,6 +62,9 @@
     <sys:String x:Key="Text_Delete">Xóa</sys:String>
     <sys:String x:Key="Text_DeleteSelected">Xóa các nội dung đã chọn</sys:String>
 
+    <sys:String x:Key="Text_ErrorTitle">Lỗi</sys:String>
+    <sys:String x:Key="Text_OpenFileError">Không thể mở tập tin:</sys:String>
+
     <sys:String x:Key="Text_SortDefault">Mặc định</sys:String>
     <sys:String x:Key="Text_SortDefaultTooltip">Sắp xếp: Thứ tự mặc định</sys:String>
     <sys:String x:Key="Text_ToastRestoredDefault">Sắp xếp theo mặc định</sys:String>
@@ -74,6 +77,8 @@
 
     <!-- Settings Window -->
     <sys:String x:Key="Text_SettingsTitle">Cài đặt</sys:String>
+    <sys:String x:Key="Text_StartupErrorTitle">Lỗi quyền truy cập</sys:String>
+    <sys:String x:Key="Text_StartupErrorMsg">Không thể cập nhật thiết lập khởi động.</sys:String>
 
     <!-- Settings Window - General -->
     <sys:String x:Key="Text_AppearanceBehavior">Cài Đặt Chung</sys:String>
@@ -175,6 +180,13 @@
 
     <sys:String x:Key="Text_UpdateAvailableTitle">Đã có bản cập nhật</sys:String>
     <sys:String x:Key="Text_UpdateAvailableMsg">Đã có phiên bản mới của PocketDrop ({0})!&#x0a;&#x0a;Bạn có muốn tải xuống ngay bây giờ không?</sys:String>
+    <sys:String x:Key="Text_CheckingUpdate">Đang kiểm tra...</sys:String>
+    <sys:String x:Key="Text_UpdateAvailableBtn">Đã có bản cập nhật mới</sys:String>
+    <sys:String x:Key="Text_CheckUpdatesBtn">Kiểm tra cập nhật</sys:String>
+    <sys:String x:Key="Text_UpdateUpToDateTitle">Đang ở phiên bản mới nhất</sys:String>
+    <sys:String x:Key="Text_UpdateUpToDateMsg">Bạn đang sử dụng phiên bản PocketDrop mới nhất.</sys:String>
+    <sys:String x:Key="Text_UpdateCheckFailedTitle">Lỗi kiểm tra cập nhật</sys:String>
+    <sys:String x:Key="Text_UpdateCheckFailedMsg">Lỗi kết nối máy chủ. Vui lòng kiểm tra kết nối mạng của bạn và thử lại.</sys:String>
 
     <sys:String x:Key="Text_Copyright">Phát triển bởi Naofunyan. © 2026 Bảo lưu mọi quyền.</sys:String>
 
