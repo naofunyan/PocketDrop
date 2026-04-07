@@ -9,45 +9,21 @@
         Icon="/Assets/PocketDrop.ico">
 
     <Window.Resources>
-        <!-- ══ Fluent 2 — White frosted glass, 90% opacity ══ -->
-        <!-- Force Segoe UI Variable on ALL TextBlocks (including inside Popup's separate HwndSource) -->
+
         <Style TargetType="TextBlock">
             <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI"/>
             <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
         </Style>
 
-        <Style x:Key="FullWidthSeparator" TargetType="MenuItem">
-            <Setter Property="OverridesDefaultStyle" Value="True"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="MenuItem">
-                        <Rectangle Height="1" 
-                           Grid.ColumnSpan="3"
-                           Fill="{DynamicResource StrokeControlDefault}" 
-                           SnapsToDevicePixels="True" 
-                           Margin="-4,6"/>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- ══ Grid Item Template — 90×90 ══ -->
         <DataTemplate x:Key="GridTemplate">
             <StackPanel Margin="5" Width="96" UseLayoutRounding="True">
-                <Border CornerRadius="6" Background="Transparent"
-                        Width="90" Height="90" ClipToBounds="True">
-                    <Image Source="{Binding Icon}" Stretch="Uniform"
-                           UseLayoutRounding="True" SnapsToDevicePixels="True"
-                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                <Border CornerRadius="6" Background="Transparent" Width="90" Height="90" ClipToBounds="True">
+                    <Image Source="{Binding Icon}" Stretch="Uniform" UseLayoutRounding="True" SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="HighQuality"/>
                 </Border>
-                <TextBlock Text="{Binding FileName}" FontSize="11"
-                           Foreground="{DynamicResource TextPrimary}"
-                           TextAlignment="Center" TextTrimming="CharacterEllipsis"
-                           Margin="0,5,0,0"/>
+                <TextBlock Text="{Binding FileName}" FontSize="11" Foreground="{DynamicResource TextPrimary}" TextAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,5,0,0"/>
             </StackPanel>
         </DataTemplate>
 
-        <!-- ══ List Item Template ══ -->
         <DataTemplate x:Key="ListTemplate">
             <Border Margin="0,3" CornerRadius="8" Padding="12,10">
                 <Grid>
@@ -55,41 +31,152 @@
                         <ColumnDefinition Width="60"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    <Border CornerRadius="6" Width="48" Height="48"
-                            Background="Transparent" BorderThickness="0"
-                            HorizontalAlignment="Center" ClipToBounds="True">
-                        <Image Source="{Binding Icon}"
-                               UseLayoutRounding="True" SnapsToDevicePixels="True"
-                               RenderOptions.BitmapScalingMode="HighQuality"
-                               Stretch="Uniform"/>
+                    <Border CornerRadius="6" Width="48" Height="48" Background="Transparent" BorderThickness="0" HorizontalAlignment="Center" ClipToBounds="True">
+                        <Image Source="{Binding Icon}" UseLayoutRounding="True" SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="HighQuality" Stretch="Uniform"/>
                     </Border>
-                    <TextBlock Grid.Column="1" Text="{Binding FileName}"
-                               VerticalAlignment="Center" FontSize="14"
-                               Foreground="{DynamicResource TextPrimary}"
-                               Margin="14,0,0,0" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Grid.Column="1" Text="{Binding FileName}" VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextPrimary}" Margin="14,0,0,0" TextTrimming="CharacterEllipsis"/>
                 </Grid>
             </Border>
         </DataTemplate>
+
+        <ControlTemplate x:Key="MoreButtonTemplate" TargetType="Button">
+            <Grid Background="Transparent">
+                <Border CornerRadius="12" Background="{DynamicResource IconHaloBackground}" />
+                <Viewbox Width="14" Height="14" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,1,0,0">
+                    <Canvas Width="24" Height="24">
+                        <Path Fill="{DynamicResource TextSecondary}" Data="M5,10 a2,2 0 1,1 0,4 a2,2 0 1,1 0,-4 z M12,10 a2,2 0 1,1 0,4 a2,2 0 1,1 0,-4 z M19,10 a2,2 0 1,1 0,4 a2,2 0 1,1 0,-4 z"/>
+                    </Canvas>
+                </Viewbox>
+            </Grid>
+        </ControlTemplate>
+
+        <ControlTemplate x:Key="ExpandToggleTemplate" TargetType="ToggleButton">
+            <Border Background="{DynamicResource LayerDefault}" BorderBrush="{DynamicResource StrokeControlDefault}" BorderThickness="1" CornerRadius="6" Padding="14,5">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+        </ControlTemplate>
+
+        <ControlTemplate x:Key="DeleteButtonTemplate" TargetType="Button">
+            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="20" x:Name="BtnBorder">
+                <Viewbox Width="18" Height="18" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="-1.5,0,1.5,0">
+                    <Path x:Name="TrashIcon" Data="M3 6H21 M19 6V20C19 21.1046 18.1046 22 17 22H7C5.89543 22 5 21.1046 5 20V6 M8 6V4C8 2.89543 8.89543 2 10 2H14C15.1046 2 16 2.89543 16 4V6 M10 11V17 M14 11V17" 
+                          Stroke="{DynamicResource TextPrimary}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent"/>
+                </Viewbox>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="BtnBorder" Property="Background" Value="#1AD13438"/>
+                    <Setter TargetName="BtnBorder" Property="BorderBrush" Value="#D13438"/>
+                    <Setter TargetName="TrashIcon" Property="Stroke" Value="#D13438"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <Style x:Key="PocketContextMenuStyle" TargetType="ContextMenu">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContextMenu">
+                        <Border Background="{DynamicResource LayerDefault}" BorderBrush="{DynamicResource StrokeCardDefault}" BorderThickness="1" CornerRadius="8" Padding="0,4">
+                            <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PocketMenuItemStyle" TargetType="MenuItem">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Border x:Name="BgBorder" Background="Transparent" CornerRadius="4" Margin="4,2">
+                            <ContentPresenter Content="{TemplateBinding Header}" Margin="{TemplateBinding Padding}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="BgBorder" Property="Background" Value="#0F000000"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="FullWidthSeparator" TargetType="MenuItem">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Rectangle Height="1" Grid.ColumnSpan="3" Fill="{DynamicResource StrokeControlDefault}" SnapsToDevicePixels="True" Margin="-4,6"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PocketListBoxItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bg" CornerRadius="6" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" Padding="2">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="#400078D4"/>
+                                <Setter TargetName="Bg" Property="BorderBrush" Value="#880078D4"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                    <Condition Property="IsSelected" Value="False"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="Bg" Property="Background" Value="#1A0078D4"/>
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PocketListBoxStyle" TargetType="ListBox">
+            <Setter Property="ItemTemplate" Value="{StaticResource GridTemplate}"/>
+            <Setter Property="ItemsPanel">
+                <Setter.Value>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left"/>
+                    </ItemsPanelTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding CurrentViewMode}" Value="List">
+                    <Setter Property="ItemTemplate" Value="{StaticResource ListTemplate}"/>
+                    <Setter Property="ItemsPanel">
+                        <Setter.Value>
+                            <ItemsPanelTemplate>
+                                <VirtualizingStackPanel Orientation="Vertical"/>
+                            </ItemsPanelTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
-    <!-- ══ Main card — Mica base surface ══ -->
+
     <Grid>
-        <Border x:Name="MainContainer" Margin="12"
-                Background="{DynamicResource MicaBase}"
-                BorderBrush="{DynamicResource StrokeCardDefault}" BorderThickness="1"
-                CornerRadius="12"
-                RenderTransformOrigin="0.5,0.5"
-                AllowDrop="True" Drop="Window_Drop"
-                DragEnter="Window_DragEnter"
-                DragLeave="Window_DragLeave"
-                PreviewMouseLeftButtonDown="Window_PreviewMouseLeftButtonDown"
-                PreviewMouseLeftButtonUp="Window_PreviewMouseLeftButtonUp"
-                MouseMove="Window_MouseMove">
+
+        <Border x:Name="MainContainer" Margin="12" Background="{DynamicResource MicaBase}" BorderBrush="{DynamicResource StrokeCardDefault}" BorderThickness="1" CornerRadius="12"
+                RenderTransformOrigin="0.5,0.5" AllowDrop="True" Drop="Window_Drop" DragEnter="Window_DragEnter" DragLeave="Window_DragLeave"
+                PreviewMouseLeftButtonDown="Window_PreviewMouseLeftButtonDown" PreviewMouseLeftButtonUp="Window_PreviewMouseLeftButtonUp" MouseMove="Window_MouseMove">
             <Border.Effect>
-                <DropShadowEffect BlurRadius="24" Color="#000000" Opacity="0.12"
-                              Direction="270" ShadowDepth="4"/>
+                <DropShadowEffect BlurRadius="24" Color="#000000" Opacity="0.12" Direction="270" ShadowDepth="4"/>
             </Border.Effect>
-        
+
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="36"/>
@@ -97,198 +184,81 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- ══ Title bar ══ -->
-                <Grid Grid.Row="0" x:Name="TopBar" Background="Transparent"
-                  MouseLeftButtonDown="TopBar_MouseLeftButtonDown">
+                <Grid Grid.Row="0" x:Name="TopBar" Background="Transparent" MouseLeftButtonDown="TopBar_MouseLeftButtonDown">
 
-                    <Rectangle x:Name="DragHandle" Width="32" Height="4" RadiusX="2" RadiusY="2"
-           Fill="{DynamicResource TextSecondary}" Opacity="0.5" 
-           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <Rectangle x:Name="DragHandle" Width="32" Height="4" RadiusX="2" RadiusY="2" Fill="{DynamicResource TextSecondary}" Opacity="0.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
                     <Grid HorizontalAlignment="Left" VerticalAlignment="Center" Margin="6,0,0,0" Width="24" Height="24">
-
                         <Border CornerRadius="12" Background="{DynamicResource IconHaloBackground}" />
-
-                        <TextBlock x:Name="CloseButton" Text="✕" FontSize="11" FontWeight="Bold"
-                               Foreground="{DynamicResource TextSecondary}"
-                               HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-                               TextAlignment="Center" Padding="0,4,0,0"
-                               Cursor="Hand" Background="Transparent"
-                               MouseLeftButtonDown="CloseButton_Click"/>
+                        <TextBlock x:Name="CloseButton" Text="✕" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                   TextAlignment="Center" Padding="0,4,0,0" Cursor="Hand" Background="Transparent" MouseLeftButtonDown="CloseButton_Click"/>
                     </Grid>
 
-                    <Button x:Name="MoreButton" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,6,0" Width="24" Height="24" Cursor="Hand" Click="MoreButton_Click">
-
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Grid Background="Transparent">
-                                    <Border CornerRadius="12" Background="{DynamicResource IconHaloBackground}" />
-
-                                    <Viewbox Width="14" Height="14" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,1,0,0">
-                                        <Canvas Width="24" Height="24">
-                                            <Path Fill="{DynamicResource TextSecondary}"
-                                              Data="M5,10 a2,2 0 1,1 0,4 a2,2 0 1,1 0,-4 z M12,10 a2,2 0 1,1 0,4 a2,2 0 1,1 0,-4 z M19,10 a2,2 0 1,1 0,4 a2,2 0 1,1 0,-4 z"/>
-                                        </Canvas>
-                                    </Viewbox>
-                                </Grid>
-                            </ControlTemplate>
-                        </Button.Template>
-
+                    <Button x:Name="MoreButton" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,6,0" Width="24" Height="24" Cursor="Hand" 
+                            Click="MoreButton_Click" Template="{StaticResource MoreButtonTemplate}">
                         <Button.ContextMenu>
-                            <ContextMenu FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13" Foreground="{DynamicResource TextPrimary}">
-
+                            <ContextMenu Style="{StaticResource PocketContextMenuStyle}" FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13" Foreground="{DynamicResource TextPrimary}">
                                 <ContextMenu.Resources>
-                                    <Style TargetType="ContextMenu">
-                                        <Setter Property="OverridesDefaultStyle" Value="True"/>
-                                        <Setter Property="Template">
-                                            <Setter.Value>
-                                                <ControlTemplate TargetType="ContextMenu">
-                                                    <Border Background="{DynamicResource LayerDefault}" 
-                        BorderBrush="{DynamicResource StrokeCardDefault}" 
-                        BorderThickness="1" CornerRadius="8" Padding="0,4">
-                                                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
-                                                    </Border>
-                                                </ControlTemplate>
-                                            </Setter.Value>
-                                        </Setter>
-                                    </Style>
-
-                                    <Style TargetType="MenuItem">
-                                        <Setter Property="OverridesDefaultStyle" Value="True"/>
-                                        <Setter Property="Padding" Value="12,6"/>
-                                        <Setter Property="Template">
-                                            <Setter.Value>
-                                                <ControlTemplate TargetType="MenuItem">
-                                                    <Border x:Name="BgBorder" Background="Transparent" CornerRadius="4" Margin="4,2">
-                                                        <ContentPresenter Content="{TemplateBinding Header}" 
-                                                                      Margin="{TemplateBinding Padding}"
-                                                                      HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                                                    </Border>
-                                                    <ControlTemplate.Triggers>
-                                                        <Trigger Property="IsHighlighted" Value="True">
-                                                            <Setter TargetName="BgBorder" Property="Background" Value="#0F000000"/>
-                                                        </Trigger>
-                                                    </ControlTemplate.Triggers>
-                                                </ControlTemplate>
-                                            </Setter.Value>
-                                        </Setter>
-                                    </Style>
-
-
+                                    <Style TargetType="MenuItem" BasedOn="{StaticResource PocketMenuItemStyle}"/>
                                 </ContextMenu.Resources>
-
                                 <MenuItem x:Name="Menu_DynamicOpen" Header="{DynamicResource Text_MenuOpenWith}" Click="Menu_DynamicOpen_Click" />
                                 <MenuItem Header="{DynamicResource Text_MenuShare}" Click="Menu_Share_Click" />
                                 <MenuItem Header="{DynamicResource Text_MenuCompressZip}" Click="Menu_CompressZip_Click" />
                                 <MenuItem Header="{DynamicResource Text_MenuClearItems}" Click="Menu_ClearItems_Click" />
                                 <MenuItem Style="{StaticResource FullWidthSeparator}" IsEnabled="False"/>
                                 <MenuItem Header="{DynamicResource Text_MenuSettings}" Click="Menu_Settings_Click" />
-
                             </ContextMenu>
                         </Button.ContextMenu>
                     </Button>
                 </Grid>
 
-                <!-- ══ Drop zone ══ -->
                 <Grid Grid.Row="1" Margin="12,0">
-                    <TextBlock x:Name="StatusText" Text="{DynamicResource Text_DropItemsHere}"
-                   FontSize="16" Foreground="{DynamicResource TextSecondary}"
-                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                   TextWrapping="Wrap" TextAlignment="Center"/>
-                    <!-- Dynamic stacked card preview — built in code-behind -->
-                    <Grid x:Name="FileIconContainer" Visibility="Collapsed"
-                      HorizontalAlignment="Center" VerticalAlignment="Center"
-                      Width="150" Height="120" UseLayoutRounding="True">
+                    <TextBlock x:Name="StatusText" Text="{DynamicResource Text_DropItemsHere}" FontSize="16" Foreground="{DynamicResource TextSecondary}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
+                    <Grid x:Name="FileIconContainer" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" Width="150" Height="120" UseLayoutRounding="True">
                         <Grid x:Name="StackContainer"/>
                     </Grid>
                 </Grid>
 
-                <!-- ══ Expand toggle button ══ -->
-                <StackPanel Grid.Row="2" HorizontalAlignment="Center"
-                        VerticalAlignment="Bottom" Margin="0,8,0,12">
-                    <ToggleButton x:Name="ExpandButton" Cursor="Hand">
-                        <ToggleButton.Template>
-                            <ControlTemplate TargetType="ToggleButton">
-                                <Border Background="{DynamicResource LayerDefault}"
-                                    BorderBrush="{DynamicResource StrokeControlDefault}"
-                                    BorderThickness="1" CornerRadius="6" Padding="14,5">
-                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                            </ControlTemplate>
-                        </ToggleButton.Template>
+                <StackPanel Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,8,0,12">
+                    <ToggleButton x:Name="ExpandButton" Cursor="Hand" Template="{StaticResource ExpandToggleTemplate}">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock x:Name="CountText" Text="{DynamicResource Text_0Items}"
-                               Foreground="{DynamicResource TextSecondary}"
-                               FontSize="13" Margin="0,0,8,0"/>
-                            <Path Data="M0,0 L4,4 L8,0"
-                              Stroke="{DynamicResource TextSecondary}"
-                              StrokeThickness="1.5" StrokeStartLineCap="Round"
-                              StrokeEndLineCap="Round" StrokeLineJoin="Round"
-                              VerticalAlignment="Center"/>
+                            <TextBlock x:Name="CountText" Text="{DynamicResource Text_0Items}" Foreground="{DynamicResource TextSecondary}" FontSize="13" Margin="0,0,8,0"/>
+                            <Path Data="M0,0 L4,4 L8,0" Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" VerticalAlignment="Center"/>
                         </StackPanel>
                     </ToggleButton>
 
-                    <!-- ══ Popup panel ══ -->
-                    <Popup IsOpen="{Binding IsChecked, ElementName=ExpandButton}"
-                        PlacementTarget="{Binding ElementName=MainContainer}" 
-                        Placement="Custom" AllowsTransparency="True"
-                        StaysOpen="False"
-                        CustomPopupPlacementCallback="Popup_PlacementCallback"
-                        Closed="Popup_Closed">
-                        <Border Width="515" Height="300"
-                            Background="{DynamicResource MicaBase}"
-                            BorderBrush="{DynamicResource StrokeCardDefault}"
-                            BorderThickness="1" CornerRadius="12" Margin="16"
-                            PreviewMouseLeftButtonDown="Window_PreviewMouseLeftButtonDown"
-                            PreviewMouseLeftButtonUp="Window_PreviewMouseLeftButtonUp"
-                            MouseMove="Window_MouseMove">
+                    <Popup IsOpen="{Binding IsChecked, ElementName=ExpandButton}" PlacementTarget="{Binding ElementName=MainContainer}" Placement="Custom" AllowsTransparency="True"
+                           StaysOpen="False" CustomPopupPlacementCallback="Popup_PlacementCallback" Closed="Popup_Closed">
+
+                        <Border Width="515" Height="300" Background="{DynamicResource MicaBase}" BorderBrush="{DynamicResource StrokeCardDefault}" BorderThickness="1" CornerRadius="12" Margin="16"
+                                PreviewMouseLeftButtonDown="Window_PreviewMouseLeftButtonDown" PreviewMouseLeftButtonUp="Window_PreviewMouseLeftButtonUp" MouseMove="Window_MouseMove">
                             <Border.Effect>
-                                <DropShadowEffect BlurRadius="28" Color="#000000" Opacity="0.14"
-                                              Direction="270" ShadowDepth="8"/>
+                                <DropShadowEffect BlurRadius="28" Color="#000000" Opacity="0.14" Direction="270" ShadowDepth="8"/>
                             </Border.Effect>
-                            <Grid TextElement.FontFamily="Segoe UI Variable Text, Segoe UI"
-                              TextOptions.TextFormattingMode="Display">
+
+                            <Grid TextElement.FontFamily="Segoe UI Variable Text, Segoe UI" TextOptions.TextFormattingMode="Display">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
 
-                                <!-- Popup header bar -->
-                                <Border Grid.Row="0"
-                                    BorderBrush="{DynamicResource StrokeCardDefault}"
-                                    BorderThickness="0,0,0,1">
+                                <Border Grid.Row="0" BorderBrush="{DynamicResource StrokeCardDefault}" BorderThickness="0,0,0,1">
                                     <Grid Margin="16,0">
+
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-
-                                            <!--<Viewbox Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,0,0">
-                                                <Canvas Width="24" Height="24">
-                                                    <Path Stroke="{DynamicResource TextSecondary}"
-                                                      StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                                      Data="M3,6 h18 M3,10 h18 M3,14 h18 M3,18 h18"/>
-                                                </Canvas>
-                                            </Viewbox>-->
-
                                             <CheckBox x:Name="SelectAllCheckBox" Content="{DynamicResource Text_SelectAll}" Margin="8,0,0,0" Padding="6,1,0,0"
-                                              Foreground="{DynamicResource TextPrimary}" FontSize="14" 
-                                              VerticalAlignment="Center" VerticalContentAlignment="Center" 
-                                              Cursor="Hand"
-                                              Checked="SelectAll_Checked" Unchecked="SelectAll_Unchecked"/>
+                                                      Foreground="{DynamicResource TextPrimary}" FontSize="14" VerticalAlignment="Center" VerticalContentAlignment="Center" 
+                                                      Cursor="Hand" Checked="SelectAll_Checked" Unchecked="SelectAll_Unchecked"/>
                                         </StackPanel>
 
-                                        <TextBlock x:Name="PopupCountText" Text="{DynamicResource Text_0Items}"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center"
-                                           Foreground="{DynamicResource TextPrimary}"
-                                           FontSize="14" />
+                                        <TextBlock x:Name="PopupCountText" Text="{DynamicResource Text_0Items}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource TextPrimary}" FontSize="14" />
 
-                                        <!-- Fluent segmented view toggle -->
-                                        <Border HorizontalAlignment="Right" VerticalAlignment="Center"
-                                            Background="{DynamicResource MicaBase}"
-                                            BorderBrush="{DynamicResource StrokeControlDefault}"
-                                            BorderThickness="1" CornerRadius="6" Padding="2">
+                                        <Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="{DynamicResource MicaBase}" BorderBrush="{DynamicResource StrokeControlDefault}" BorderThickness="1" CornerRadius="6" Padding="2">
                                             <StackPanel Orientation="Horizontal">
 
-                                                <Border Tag="List" MouseLeftButtonDown="ViewMode_Click"
-                                                    Cursor="Hand" CornerRadius="4" Padding="8,5" Width="34">
+                                                <Border Tag="List" MouseLeftButtonDown="ViewMode_Click" Cursor="Hand" CornerRadius="4" Padding="8,5" Width="34">
                                                     <Border.Style>
                                                         <Style TargetType="Border">
                                                             <Setter Property="Background" Value="Transparent"/>
@@ -301,8 +271,7 @@
                                                     </Border.Style>
                                                     <Viewbox Width="15" Height="15" HorizontalAlignment="Center">
                                                         <Canvas Width="24" Height="24">
-                                                            <Path StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                                              Data="M8,6 L21,6 M8,12 L21,12 M8,18 L21,18 M2.5,6 L3.5,6 M2.5,12 L3.5,12 M2.5,18 L3.5,18">
+                                                            <Path StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M8,6 L21,6 M8,12 L21,12 M8,18 L21,18 M2.5,6 L3.5,6 M2.5,12 L3.5,12 M2.5,18 L3.5,18">
                                                                 <Path.Style>
                                                                     <Style TargetType="Path">
                                                                         <Setter Property="Stroke" Value="{DynamicResource TextSecondary}"/>
@@ -318,8 +287,7 @@
                                                     </Viewbox>
                                                 </Border>
 
-                                                <Border Tag="Grid" MouseLeftButtonDown="ViewMode_Click"
-                                                    Cursor="Hand" CornerRadius="4" Padding="8,5" Width="34">
+                                                <Border Tag="Grid" MouseLeftButtonDown="ViewMode_Click" Cursor="Hand" CornerRadius="4" Padding="8,5" Width="34">
                                                     <Border.Style>
                                                         <Style TargetType="Border">
                                                             <Setter Property="Background" Value="Transparent"/>
@@ -332,9 +300,7 @@
                                                     </Border.Style>
                                                     <Viewbox Width="15" Height="15" HorizontalAlignment="Center">
                                                         <Canvas Width="24" Height="24">
-                                                            <Path StrokeThickness="2" StrokeStartLineCap="Round"
-                                                              StrokeEndLineCap="Round" StrokeLineJoin="Round"
-                                                              Data="M3,3 h7 v7 h-7 Z M14,3 h7 v7 h-7 Z M14,14 h7 v7 h-7 Z M3,14 h7 v7 h-7 Z">
+                                                            <Path StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="M3,3 h7 v7 h-7 Z M14,3 h7 v7 h-7 Z M14,14 h7 v7 h-7 Z M3,14 h7 v7 h-7 Z">
                                                                 <Path.Style>
                                                                     <Style TargetType="Path">
                                                                         <Setter Property="Stroke" Value="{DynamicResource TextSecondary}"/>
@@ -355,109 +321,15 @@
                                     </Grid>
                                 </Border>
 
-                                <!-- Item list — ListBox for selection support -->
-                                <ListBox x:Name="ItemsListBox" Grid.Row="1"
-                                     Margin="8,6,8,8" Padding="0"
-                                     ItemsSource="{Binding PocketedItems}"
-                                     SelectionMode="Multiple" 
-                                     Background="Transparent" BorderThickness="0"
-                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                     ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                     PreviewMouseMove="ItemsList_PreviewMouseMove"
-                                     SelectionChanged="ItemsListBox_SelectionChanged">
-
-                                    <!-- Fluent 2 selection style for each item -->
-                                    <ListBox.ItemContainerStyle>
-                                        <Style TargetType="ListBoxItem">
-                                            <Setter Property="Padding" Value="0"/>
-                                            <Setter Property="Margin" Value="4"/>
-                                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                            <Setter Property="Template">
-                                                <Setter.Value>
-                                                    <ControlTemplate TargetType="ListBoxItem">
-                                                        <Border x:Name="Bg" CornerRadius="6"
-                                                            Background="Transparent"
-                                                            BorderBrush="Transparent"
-                                                            BorderThickness="1" Padding="2">
-                                                            <ContentPresenter/>
-                                                        </Border>
-                                                        <ControlTemplate.Triggers>
-                                                            <Trigger Property="IsSelected" Value="True">
-                                                                <Setter TargetName="Bg" Property="Background" Value="#400078D4"/>
-                                                                <Setter TargetName="Bg" Property="BorderBrush" Value="#880078D4"/>
-                                                            </Trigger>
-                                                            <MultiTrigger>
-                                                                <MultiTrigger.Conditions>
-                                                                    <Condition Property="IsMouseOver" Value="True"/>
-                                                                    <Condition Property="IsSelected" Value="False"/>
-                                                                </MultiTrigger.Conditions>
-                                                                <Setter TargetName="Bg" Property="Background" Value="#1A0078D4"/>
-                                                            </MultiTrigger>
-                                                        </ControlTemplate.Triggers>
-                                                    </ControlTemplate>
-                                                </Setter.Value>
-                                            </Setter>
-                                        </Style>
-                                    </ListBox.ItemContainerStyle>
-
-                                    <ListBox.Style>
-                                        <Style TargetType="ListBox">
-                                            <Setter Property="ItemTemplate" Value="{StaticResource GridTemplate}"/>
-                                            <Setter Property="ItemsPanel">
-                                                <Setter.Value>
-                                                    <ItemsPanelTemplate>
-                                                        <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left"/>
-                                                    </ItemsPanelTemplate>
-                                                </Setter.Value>
-                                            </Setter>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding CurrentViewMode}" Value="List">
-                                                    <Setter Property="ItemTemplate" Value="{StaticResource ListTemplate}"/>
-                                                    <Setter Property="ItemsPanel">
-                                                        <Setter.Value>
-                                                            <ItemsPanelTemplate>
-                                                                <VirtualizingStackPanel Orientation="Vertical"/>
-                                                            </ItemsPanelTemplate>
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </ListBox.Style>
+                                <ListBox x:Name="ItemsListBox" Grid.Row="1" Margin="8,6,8,8" Padding="0" ItemsSource="{Binding PocketedItems}" SelectionMode="Multiple" 
+                                         Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                         PreviewMouseMove="ItemsList_PreviewMouseMove" SelectionChanged="ItemsListBox_SelectionChanged"
+                                         Style="{StaticResource PocketListBoxStyle}" ItemContainerStyle="{StaticResource PocketListBoxItemStyle}">
                                 </ListBox>
-                                <Button x:Name="DeleteSelectedButton" 
-                                        Grid.Row="2"
-                                        Click="DeleteSelected_Click" 
-                                        Visibility="Collapsed"
-                                        HorizontalAlignment="Right" 
-                                        VerticalAlignment="Bottom" 
-                                        Margin="0,4,32,12" 
-                                        Width="40" Height="40"
-                                        Background="{DynamicResource LayerAlt}"
-                                        BorderBrush="{DynamicResource StrokeControlDefault}"
-                                        BorderThickness="1"
-                                        Cursor="Hand">
-                                    <Button.Template>
-                                        <ControlTemplate TargetType="Button">
-                                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="20" x:Name="BtnBorder">
 
-                                                <Viewbox Width="18" Height="18" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="-1.5,0,1.5,0">
-                                                    <Path x:Name="TrashIcon"
-                                                          Data="M3 6H21 M19 6V20C19 21.1046 18.1046 22 17 22H7C5.89543 22 5 21.1046 5 20V6 M8 6V4C8 2.89543 8.89543 2 10 2H14C15.1046 2 16 2.89543 16 4V6 M10 11V17 M14 11V17" 
-                                                          Stroke="{DynamicResource TextPrimary}" StrokeThickness="2" 
-                                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent"/>
-                                                </Viewbox>
-
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="BtnBorder" Property="Background" Value="#1AD13438"/>
-                                                    <Setter TargetName="BtnBorder" Property="BorderBrush" Value="#D13438"/>
-                                                    <Setter TargetName="TrashIcon" Property="Stroke" Value="#D13438"/>
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Button.Template>
+                                <Button x:Name="DeleteSelectedButton" Grid.Row="2" Click="DeleteSelected_Click" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,4,32,12" 
+                                        Width="40" Height="40" Background="{DynamicResource LayerAlt}" BorderBrush="{DynamicResource StrokeControlDefault}" BorderThickness="1" Cursor="Hand"
+                                        Template="{StaticResource DeleteButtonTemplate}">
                                 </Button>
 
                             </Grid>
@@ -467,13 +339,7 @@
             </Grid>
         </Border>
 
-        <Border x:Name="DragGlowBorder" 
-            Margin="12" 
-            BorderBrush="{DynamicResource BrandAccent}" 
-            BorderThickness="6" 
-            CornerRadius="12" 
-            Visibility="Collapsed" 
-            IsHitTestVisible="False"/>
-        
+        <Border x:Name="DragGlowBorder" Margin="12" BorderBrush="{DynamicResource BrandAccent}" BorderThickness="6" CornerRadius="12" Visibility="Collapsed" IsHitTestVisible="False"/>
+
     </Grid>
 </Window>

@@ -24,34 +24,32 @@ using static PocketDrop.AppHelpers;
 
 namespace PocketDrop
 {
-    // --- NATIVE INTEROP FOR WINDOWS 11 SHARE UI ---
-    [ComImport]
-    [Guid("3A3DCD6C-3EAB-43DC-BCDE-45671CE800C8")]
-    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    public interface IDataTransferManagerInterop
-    {
-        IntPtr GetForWindow([In] IntPtr appWindow, [In] ref Guid riid);
-        void ShowShareUIForWindow(IntPtr appWindow);
-    }
-
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
-        // ══════════════════════════════════════════════════════
-        // P/INVOKE — Low-level global mouse hook
-        // ══════════════════════════════════════════════════════
+        // ================================================ //
+        // 1. NATIVE WINDOWS APIS (P/INVOKE)
+        // ================================================ //
+
+        // Add native interop for Windows Share UI
+        [ComImport]
+        [Guid("3A3DCD6C-3EAB-43DC-BCDE-45671CE800C8")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        public interface IDataTransferManagerInterop
+        {
+            IntPtr GetForWindow([In] IntPtr appWindow, [In] ref Guid riid);
+            void ShowShareUIForWindow(IntPtr appWindow);
+        }
+
+        // Low-level global mouse hook
         private const int WH_MOUSE_LL = 14;
         private const int WM_MOUSEMOVE = 0x0200;
         private const int WM_LBUTTONDOWN = 0x0201;
         private const int WM_LBUTTONUP = 0x0202;
-        private const int VK_LBUTTON = 0x01;
 
         private delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelMouseProc lpfn, IntPtr hMod, uint dwThreadId);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        private static extern bool UnhookWindowsHookEx(IntPtr hhk);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
@@ -67,27 +65,46 @@ namespace PocketDrop
             public IntPtr dwExtraInfo;
         }
 
+        // Native File Picker
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+        private static extern int SHOpenWithDialog(IntPtr hwndParent, ref OPENASINFO poainfo);
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        private struct OPENASINFO
+        {
+            public string pcszFile;
+            public string pcszClass;
+            public int oaUIAction;
+        }
+
+        // Native Window Focus API
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+
+        // ================================================ //
+        // 2. STATE & VARIABLES
+        // ================================================ //
+
+        // Mouse Tracking & Shake
         private static IntPtr _hookHandle = IntPtr.Zero;
-        private static LowLevelMouseProc _hookProc; // Keep reference — prevents GC
-
-        // ✨ ADD THIS LINE RIGHT HERE:
+        private static LowLevelMouseProc _hookProc;
         private static ShakeDetector _shakeDetector = new ShakeDetector();
-
-        public bool IsGhost { get; set; } = false;
-
-        // ══════════════════════════════════════════════════════
-        // SHAKE DETECTION PARAMETERS
-        // ══════════════════════════════════════════════════════
-        private const int MIN_SWING_PX = 40;   // min horizontal pixels per swing direction
-        private const int REQUIRED_SWINGS = 3;    // number of direction reversals needed
-        private const int SHAKE_WINDOW_MS = 1000; // all reversals must happen within this ms window
-
         private static bool _leftButtonHeld = false;
-        private static bool _hasSpawnedPocketThisDrag = false; // ✨ NEW: The Lockout Flag!
+        private static bool _hasSpawnedPocketThisDrag = false;
 
+        // Core Data
+        // Holds multiple items and updates the UI automatically
+        public ObservableCollection<PocketItem> PocketedItems { get; set; } = new ObservableCollection<PocketItem>();
+        public bool IsGhost { get; set; } = false;
+        private bool _isDraggingFromApp = false; // The safety flag to prevent self-drops
+        private Point? startPoint = null;
 
-        // ══════════════════════════════════════════════════════
-        // --- VIEW MODE LOGIC ---
+        // Share Lifecycle
+        private List<string> _filesToSharePaths;
+        private DataTransferManager _shareManager;
+
+        // View Mode Binding
         private string _currentViewMode = "Grid"; // Default to Grid
         public string CurrentViewMode
         {
@@ -102,24 +119,10 @@ namespace PocketDrop
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
-        private void ViewMode_Click(object sender, MouseButtonEventArgs e)
-        {
-            if (sender is Border border && border.Tag != null)
-            {
-                CurrentViewMode = border.Tag.ToString();
-            }
-        }
 
-        // --- NEW MEMORY: Holds multiple items and updates the UI automatically ---
-        public ObservableCollection<PocketItem> PocketedItems { get; set; } = new ObservableCollection<PocketItem>();
-
-        private Point? startPoint = null;
-        private Point? _listDragStart = null;
-        private List<PocketItem> _dragCandidates = null;
-
-        // NEW: The safety flag to prevent self-drops
-        private bool _isDraggingFromApp = false;
-
+        // ================================================ //
+        // 3. LIFECYCLE (STARTUP & SHUTDOWN)
+        // ================================================ //
         public MainWindow()
         {
             InitializeComponent();
@@ -129,7 +132,7 @@ namespace PocketDrop
             this.Opacity = 0;
             this.IsHitTestVisible = false;
 
-            // THE FIX: Only install the global hook ONCE for the entire application!
+            // Install global hook only once per application lifetime
             if (_hookHandle == IntPtr.Zero)
             {
                 _hookProc = HookCallback;
@@ -138,40 +141,51 @@ namespace PocketDrop
                     _hookHandle = SetWindowsHookEx(WH_MOUSE_LL, _hookProc, GetModuleHandle(mod.ModuleName), 0);
             }
 
-            // ✨ Clean up heavy temp files from previous sessions!
+            // Clean up heavy temp files from previous sessions!
             System.Threading.Tasks.Task.Run(() => CleanupOldShareZips());
         }
 
         protected override void OnClosed(EventArgs e)
         {
-            // THE FIX: We no longer uninstall the hook here! 
-            // The Master Listener stays alive until you right-click the tray and hit "Quit"
             base.OnClosed(e);
         }
 
-        // --- DRAG HOVER EFFECTS ---
+        // Add safe external kill switch to clear and close window
+        public void ForceClose()
+        {
+            IsGhost = true;
+
+            // Let HidePocketDrop handle all the cleanup and closing
+            bool isLastWindow = Application.Current.Windows.OfType<MainWindow>().Count() <= 1;
+            HidePocketDrop(!isLastWindow);
+        }
+
+
+        // ================================================ //
+        // 4. CORE DRAG & DROP LOGIC
+        // ================================================ //
+
+        // Drag hover effects
         private void Window_DragEnter(object sender, DragEventArgs e)
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop) || e.Data.GetDataPresent(DataFormats.Text))
             {
-                // ✨ Just turn the overlay on! No layout math required.
-                DragGlowBorder.Visibility = Visibility.Visible;
+                DragGlowBorder.Visibility = Visibility.Visible; // Activate overlay on drag enter
             }
         }
 
         private void Window_DragLeave(object sender, DragEventArgs e)
         {
-            // Turn it off when they drag away
-            DragGlowBorder.Visibility = Visibility.Collapsed;
+            DragGlowBorder.Visibility = Visibility.Collapsed; // Deactivate overlay on drag leave
         }
 
-        // --- CATCHING THE FILES (Dropping In) ---
+        // Handle file drop event
         private async void Window_Drop(object sender, DragEventArgs e)
         {
-            // ✨ Instantly turn off the glow AND reset the margin when the file drops!
+            // Reset glow and margin on file drop
             DragGlowBorder.Visibility = Visibility.Collapsed;
 
-            // SAFETY: If the user dropped the files back onto the app itself, cancel everything!
+            // Cancel drop if files dropped back onto the app
             if (_isDraggingFromApp)
             {
                 e.Effects = DragDropEffects.None;
@@ -179,7 +193,7 @@ namespace PocketDrop
                 return;
             }
 
-            // 1. HANDLE STANDARD FILES (.png, .pdf, .txt, etc.)
+            // 1. Handle standard file types (.png, .pdf, .txt, etc.)
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
                 string[] droppedFiles = (string[])e.Data.GetData(DataFormats.FileDrop);
@@ -188,13 +202,13 @@ namespace PocketDrop
                 {
                     foreach (string filePath in droppedFiles)
                     {
-                        // ✨ SCENARIO 1: If this EXACT file is already in the pocket, skip it!
+                        // Scenario 1: Skip file if exact path already exists in Pocket
                         if (AppHelpers.IsDuplicate(PocketedItems, filePath))
                         {
                             continue;
                         }
 
-                        // ✨ SCENARIO 3: Reject 0-byte files (corrupted, empty, or currently downloading)
+                        // Scenario 2: Reject 0-byte files (corrupted, empty, or currently downloading)
                         try
                         {
                             if (File.Exists(filePath))
@@ -212,62 +226,23 @@ namespace PocketDrop
                             continue; // If we can't even read the file size (strict lock), skip it safely!
                         }
 
-                        // ✨ SCENARIO 2: Auto-rename if the name is taken, but the path is different
+                        // Scenario 3: Auto-rename if the name is taken, but the path is different
                         string finalDisplayName = AppHelpers.GetSafeDisplayName(PocketedItems, filePath);
 
-                        // THE FIX: Push the heavy image downscaling to a background worker thread!
-                        System.Windows.Media.ImageSource fileIcon = await System.Threading.Tasks.Task.Run(() =>
-                        {
-                            try
-                            {
-                                string ext = Path.GetExtension(filePath).ToLower();
-                                string[] imageExts = { ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp" };
+                        System.Windows.Media.ImageSource fileIcon = await LoadFileIconAsync(filePath);
 
-                                if (Array.Exists(imageExts, x => x == ext))
-                                {
-                                    BitmapImage img = new BitmapImage();
-                                    img.BeginInit();
-                                    img.CacheOption = BitmapCacheOption.OnLoad; // CRITICAL for background loading
-                                    img.CreateOptions = BitmapCreateOptions.IgnoreColorProfile; // Bonus speed boost! Ignores heavy color correction profiles.
-                                    img.UriSource = new Uri(filePath);
-                                    img.DecodePixelWidth = 120;
-                                    img.EndInit();
-
-                                    // Freeze makes it read-only, allowing it to cross over to the UI thread!
-                                    img.Freeze();
-                                    return img;
-                                }
-                                else
-                                {
-                                    // Handle PDFs, text files, EXEs, folders, etc.
-                                    ShellObject shellObj = ShellObject.FromParsingName(filePath);
-
-                                    // Request the Large icon instead of ExtraLarge to completely avoid the 256px padding bug
-                                    var thumb = shellObj.Thumbnail.LargeBitmapSource;
-
-                                    thumb.Freeze();
-                                    return thumb;
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine($"Icon error: {ex.Message}");
-                                return null;
-                            }
-                        });
-
-                        // ✨ Create the item using the safe finalDisplayName
+                        // Create item using resolved display name
                         var newItem = new PocketItem { FileName = finalDisplayName, FilePath = filePath, Icon = fileIcon };
                         PocketedItems.Add(newItem);
 
-                        // ✨ INSTANT SYNC: Save it to the global list the millisecond it drops!
+                        // Sync dropped file to global list immediately on drop
                         if (!App.SessionHistory.Exists(x => x.FilePath == newItem.FilePath))
                         {
                             App.SessionHistory.Add(newItem);
                         }
                     }
 
-                    // Update UI after the items are loaded
+                    // Refresh UI after items load
                     StatusText.Visibility = Visibility.Collapsed;
                     FileIconContainer.Visibility = Visibility.Visible;
                     UpdateStackPreview();
@@ -279,7 +254,7 @@ namespace PocketDrop
                 }
             }
 
-            // 2. HANDLE DRAGGED URLS FROM WEB BROWSERS
+            // 2. Handle URL drops from web browsers
             else if (e.Data.GetDataPresent(DataFormats.Text))
             {
                 string droppedText = (string)e.Data.GetData(DataFormats.Text);
@@ -292,33 +267,32 @@ namespace PocketDrop
                     {
                         string domain = uriResult.Host.Replace("www.", "");
 
-                        // ✨ URL SCENARIO 2: If the user drops multiple links from the same domain, number them!
+                        // URL scenario 3: Number multiple dropped links from the same domain
                         string finalDomainName = AppHelpers.GetSafeDisplayName(PocketedItems, domain);
 
                         string tempFolder = Path.GetTempPath();
                         string fileName = $"{domain} Link_{DateTime.Now.Ticks}.url";
                         string filePath = Path.Combine(tempFolder, fileName);
 
-                        // Generate the physical shortcut file
+                        // Generate physical shortcut file on URL drop
                         File.WriteAllText(filePath, $"[InternetShortcut]\nURL={droppedText}");
 
                         ShellObject shellObj = ShellObject.FromParsingName(filePath);
 
-                        // Use LargeBitmapSource here too, and remove the cropper wrapper
                         var fileIcon = shellObj.Thumbnail.LargeBitmapSource;
                         fileIcon.Freeze();
 
-                        // ✨ Create the URL item using the numbered domain name
+                        // Create the URL item
                         var newUrlItem = new PocketItem { FileName = finalDomainName, FilePath = filePath, Icon = fileIcon };
                         PocketedItems.Add(newUrlItem);
 
-                        // ✨ INSTANT SYNC for URLs!
+                        // Sync dropped URL to global list immediately on drop
                         if (!App.SessionHistory.Exists(x => x.FilePath == newUrlItem.FilePath))
                         {
                             App.SessionHistory.Add(newUrlItem);
                         }
 
-                        // Update UI
+                        // Refresh UI after items load
                         StatusText.Visibility = Visibility.Collapsed;
                         FileIconContainer.Visibility = Visibility.Visible;
                         UpdateStackPreview();
@@ -336,41 +310,97 @@ namespace PocketDrop
             }
         }
 
-        // --- TRACKING THE CLICK (Preparing to drag a file out) ---
+        // Handle file paste from Windows clipboard
+        public async void PasteFromClipboard()
+        {
+            try
+            {
+                if (System.Windows.Clipboard.ContainsFileDropList())
+                {
+                    var files = System.Windows.Clipboard.GetFileDropList();
+                    string[] fileArray = new string[files.Count];
+                    files.CopyTo(fileArray, 0);
+
+                    // Loop through the clipboard files and process the same as drag-and-drop
+                    foreach (string filePath in fileArray)
+                    {
+                        string fileName = Path.GetFileName(filePath);
+
+                        System.Windows.Media.ImageSource fileIcon = await LoadFileIconAsync(filePath);
+
+                        // Create item, add to pocket, and sync to global list
+                        var newItem = new PocketItem { FileName = fileName, FilePath = filePath, Icon = fileIcon };
+                        PocketedItems.Add(newItem);
+
+                        // Sync pasted file to global list immediately on paste
+                        if (!App.SessionHistory.Exists(x => x.FilePath == newItem.FilePath))
+                        {
+                            App.SessionHistory.Add(newItem);
+                        }
+                    }
+
+                    // Refresh UI after paste load
+                    StatusText.Visibility = Visibility.Collapsed;
+                    FileIconContainer.Visibility = Visibility.Visible;
+                    UpdateStackPreview();
+
+                    UpdateItemCountDisplay(PocketedItems.Count);
+
+                    // Ping the window: Notify My Pockets window to refresh in real-time
+                    var openHistoryWindow = Application.Current.Windows.OfType<SavedPocketsWindow>().FirstOrDefault();
+                    if (openHistoryWindow != null)
+                    {
+                        Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            openHistoryWindow.RefreshHistory();
+                        }));
+                    }
+                }
+                else
+                {
+                    // Show warning when clipboard has no files
+                    string emptyDesc = (string)Application.Current.Resources["Text_ClipboardEmpty"];
+                    string emptyTitle = (string)Application.Current.Resources["Text_ClipboardEmptyTitle"];
+                    MessageBox.Show(emptyDesc, emptyTitle, MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Clipboard error: {ex.Message}");
+            }
+        }
+
+        // Track click to prepare file drag-out
         private void Window_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            // Ignore clicks on UI controls
+            // Ignore drag initiation on UI control clicks
             if (e.Source == CloseButton || e.Source == ExpandButton || e.Source == TopBar || e.Source == DragHandle)
                 return;
 
-            // Record the exact start point
-            startPoint = e.GetPosition(null);
+            startPoint = e.GetPosition(null); // Record the exact start point
         }
 
-        // --- THE MISSING PIECE: RESET ON RELEASE ---
+        // Reset drag state on mouse release
         private void Window_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            // THE FIX: As soon as you let go of the mouse, we "forget" the start point.
-            // This prevents the "stuck" cursor and accidental dragging.
-            startPoint = null;
+            startPoint = null; // Clear drag origin on mouse release to prevent stuck drag
         }
 
 
-        // --- RELEASING THE FILES (Dragging Out) ---
+        // Handle file drag-out on mouse release
         private void Window_MouseMove(object sender, MouseEventArgs e)
         {
-            // FIX: If the mouse isn't pressed, or we don't have a valid start point, 
-            // or the pocket is empty, QUIT immediately.
+            // Abort drag-out if mouse not pressed, no start point, or pocket empty
             if (e.LeftButton != MouseButtonState.Pressed || startPoint == null || PocketedItems.Count == 0)
             {
-                startPoint = null; // Extra safety reset
+                startPoint = null; // Add extra safety reset after drag-out
                 return;
             }
 
             Point mousePos = e.GetPosition(null);
             Vector diff = (Point)startPoint - mousePos;
 
-            // Only start if the mouse has moved significantly (Drag Threshold)
+            // Only start if the mouse has moved significantly (Drag threshold)
             if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
                 Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
             {
@@ -382,7 +412,7 @@ namespace PocketDrop
 
                 DataObject dragData = new DataObject(DataFormats.FileDrop, pathsToDrag);
 
-                // ✨ THE MAGIC FIX: Force Windows Explorer to explicitly Copy or Cut!
+                // Force Windows Explorer to copy or move on drag-out
                 // 1 = Copy (Leaves original file), 2 = Move (Deletes original file)
                 byte[] dropEffect = new byte[] { (byte)(App.CopyItemToDestination ? 1 : 2), 0, 0, 0 };
                 dragData.SetData("Preferred DropEffect", new System.IO.MemoryStream(dropEffect));
@@ -395,8 +425,7 @@ namespace PocketDrop
                 DragDropEffects result = DragDrop.DoDragDrop((DependencyObject)sender, dragData, allowedEffects);
                 _isDraggingFromApp = false;
 
-                // ✨ ALWAYS clear the pocket if the drop was successful, regardless of Copy or Move!
-                // ✨ ALWAYS clear the pocket if the drop was successful, regardless of Copy or Move!
+                // Always clear Pocket after successful drop
                 if (result != DragDropEffects.None)
                 {
                     foreach (var item in PocketedItems)
@@ -406,15 +435,15 @@ namespace PocketDrop
 
                     PocketedItems.Clear();
 
-                    // ✨ THE NEW FIX: Check if we should auto-close!
+                    // Check auto-close condition after drop
                     if (App.CloseWhenEmptied)
                     {
                         ExpandButton.IsChecked = false; // Ensure popup closes
-                        ForceClose(); // Uses your built-in safe close method!
+                        ForceClose();
                     }
                     else
                     {
-                        // Standard UI reset if they want it to stay open on screen
+                        // Reset UI when Pocket stays open after drop
                         StackContainer.Children.Clear();
                         ExpandButton.IsChecked = false;
                         UpdateItemCountDisplay(0);
@@ -425,11 +454,11 @@ namespace PocketDrop
                 }
             }
 
-            // ✨ PING THE WINDOW: Tell the Saved Pockets window to update in real-time!
+            // Ping the window: Notify My Pockets window to refresh in real-time
             var openHistoryWindow = Application.Current.Windows.OfType<SavedPocketsWindow>().FirstOrDefault();
             if (openHistoryWindow != null)
             {
-                // We use Dispatcher here just in case the background image-loading thread tries to trigger it
+                // Use Dispatcher to safely trigger UI update from background thread
                 Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                 {
                     openHistoryWindow.RefreshHistory();
@@ -437,9 +466,260 @@ namespace PocketDrop
             }
         }
 
-        // --- UPDATE STACK PREVIEW ---
-        // Rebuilds the card stack from scratch every time items change.
-        // Bottom cards are oldest; top card is always the latest dropped item.
+        private void ItemsList_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            // Only initiate drag when left mouse button is held
+            if (e.LeftButton != MouseButtonState.Pressed)
+                return;
+
+            // Just-In-Time check: Check for deleted files just before drag-out
+            if (CheckForMissingFiles()) return;
+
+            // Ignore drag if target is not a ListBoxItem
+            var hit = e.OriginalSource as DependencyObject;
+            while (hit != null && !(hit is ListBoxItem) && !(hit is ListBox))
+                hit = VisualTreeHelper.GetParent(hit);
+
+            if (!(hit is ListBoxItem lbi))
+                return; // Ignore drag on empty list space
+
+            var draggedItem = lbi.DataContext as PocketItem;
+            if (draggedItem == null)
+                return;
+
+            // Auto-select item on drag if not already selected
+            if (!ItemsListBox.SelectedItems.Contains(draggedItem))
+            {
+                ItemsListBox.SelectedItems.Add(draggedItem);
+            }
+
+            var selectedItems = ItemsListBox.SelectedItems.Cast<PocketItem>().ToList();
+            if (selectedItems.Count == 0) return;
+
+            // Gather file paths and prepare drag payload
+            string[] paths = selectedItems.Select(item => item.FilePath).ToArray();
+            DataObject dragData = new DataObject(DataFormats.FileDrop, paths);
+
+            byte[] dropEffect = new byte[] { (byte)(App.CopyItemToDestination ? 1 : 2), 0, 0, 0 };
+            dragData.SetData("Preferred DropEffect", new System.IO.MemoryStream(dropEffect));
+
+            _isDraggingFromApp = true;
+            DragDropEffects allowedEffects = App.CopyItemToDestination ? DragDropEffects.Copy : DragDropEffects.Move;
+
+            // Initiate drag-and-drop operation
+            DragDropEffects result = DragDrop.DoDragDrop(ItemsListBox, dragData, allowedEffects);
+
+            _isDraggingFromApp = false;
+
+            // Cleanup after drag-and-drop completes
+            if (result != DragDropEffects.None)
+            {
+                foreach (var item in selectedItems)
+                {
+                    CleanupTempFile(item.FilePath);
+                    PocketedItems.Remove(item);
+                }
+
+                if (PocketedItems.Count == 0)
+                {
+                    if (App.CloseWhenEmptied)
+                    {
+                        ExpandButton.IsChecked = false;
+                        ForceClose();
+                    }
+                    else
+                    {
+                        StatusText.Visibility = Visibility.Visible;
+                        FileIconContainer.Visibility = Visibility.Collapsed;
+                        StackContainer.Children.Clear();
+                        ExpandButton.IsChecked = false;
+                    }
+                }
+                else
+                {
+                    UpdateStackPreview();
+                }
+
+                UpdateItemCountDisplay(PocketedItems.Count);
+            }
+        }
+
+        // Dragging the window
+        private void TopBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // Prevent window drag when clicking the close button
+            if (e.OriginalSource == CloseButton || e.Source == MoreButton)
+                return;
+
+            // Tell Windows to take over and drag the physical app window
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                this.DragMove();
+            }
+        }
+
+
+        // ================================================ //
+        // 5. UI ANIMATIONS & RENDERING
+        // ================================================ //
+
+        // Show with animation
+        public void ShowPocketDrop(int rawCursorX, int rawCursorY)
+        {
+            if (this.IsHitTestVisible) return;
+
+            // Apply layout mode before UI size calculation
+            // 0 = Grid view, 1 = List view
+            this.CurrentViewMode = App.ItemsLayoutMode == 1 ? "List" : "Grid";
+
+            this.UpdateLayout();
+
+            // 1. Detect physical screen under the current mouse position
+            var screen = System.Windows.Forms.Screen.FromPoint(new System.Drawing.Point(rawCursorX, rawCursorY));
+            var rawWorkArea = screen.WorkingArea;
+
+            // Calculate Windows DPI display scaling
+            double dpiX = 1.0;
+            double dpiY = 1.0;
+            PresentationSource source = PresentationSource.FromVisual(this);
+            if (source != null && source.CompositionTarget != null)
+            {
+                dpiX = source.CompositionTarget.TransformToDevice.M11;
+                dpiY = source.CompositionTarget.TransformToDevice.M22;
+            }
+            else
+            {
+                // Add failsafe for window not yet fully loaded
+                using (System.Drawing.Graphics g = System.Drawing.Graphics.FromHwnd(IntPtr.Zero))
+                {
+                    dpiX = g.DpiX / 96.0;
+                    dpiY = g.DpiY / 96.0;
+                }
+            }
+
+            // 2. Convert physical pixels to WPF logical units
+            double workAreaLeft = rawWorkArea.Left / dpiX;
+            double workAreaTop = rawWorkArea.Top / dpiY;
+            double workAreaWidth = rawWorkArea.Width / dpiX;
+            double workAreaHeight = rawWorkArea.Height / dpiY;
+            double workAreaRight = workAreaLeft + workAreaWidth;
+            double workAreaBottom = workAreaTop + workAreaHeight;
+
+            double cursorX = rawCursorX / dpiX;
+            double cursorY = rawCursorY / dpiY;
+
+            // 3. Safely read window dimensions
+            double w = this.ActualWidth > 0 ? this.ActualWidth : (double.IsNaN(this.Width) ? 380 : this.Width);
+            double h = this.ActualHeight > 0 ? this.ActualHeight : (double.IsNaN(this.Height) ? 500 : this.Height);
+
+            // 4. Override placement based on user setting using decoupled math
+            Point finalPos = AppHelpers.CalculateWindowPosition(
+                App.PocketPlacement,
+                cursorX, cursorY, w, h,
+                workAreaLeft, workAreaTop, workAreaRight, workAreaBottom);
+
+            // 5. Apply final DPI-scaled window position
+            this.Left = finalPos.X;
+            this.Top = finalPos.Y;
+            this.IsHitTestVisible = true;
+
+            // Animations
+            // 1. Fade In
+            var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(150));
+
+            // 2. Bouncy Easing Function (Amplitude controls how much it overshoots and bounces back)
+            var bounceEase = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.4 };
+
+            // 3. Scale and Slide animations
+            var scaleAnim = new DoubleAnimation(0.85, 1, TimeSpan.FromMilliseconds(300)) { EasingFunction = bounceEase };
+            var slideAnim = new DoubleAnimation(30, 0, TimeSpan.FromMilliseconds(300)) { EasingFunction = bounceEase };
+
+            // 4. Combine the transforms
+            var transformGroup = new TransformGroup();
+            var scaleTransform = new ScaleTransform(0.85, 0.85);
+            var translateTransform = new TranslateTransform(0, 30);
+
+            transformGroup.Children.Add(scaleTransform);
+            transformGroup.Children.Add(translateTransform);
+
+            // 5. Apply scale transform to MainContainer from center origin
+            MainContainer.RenderTransformOrigin = new Point(0.5, 0.5);
+            MainContainer.RenderTransform = transformGroup;
+
+            // 6. Run all animations in parallel
+            scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
+            scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
+            translateTransform.BeginAnimation(TranslateTransform.YProperty, slideAnim);
+
+            this.BeginAnimation(OpacityProperty, null); // Clear old animation
+            this.BeginAnimation(OpacityProperty, fadeIn);
+
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() =>
+            {
+                this.Activate();
+            }));
+        }
+
+        // Hide with animation
+        private void HidePocketDrop(bool closeWindow = false)
+        {
+            // Disable window interaction immediately on close
+            this.IsHitTestVisible = false;
+
+            // 1. Fade Out
+            var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(150))
+            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn } };
+
+            // 2. Shrink and Drop animations
+            var scaleAnim = new DoubleAnimation(1, 0.85, TimeSpan.FromMilliseconds(150))
+            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn } };
+
+            var slideAnim = new DoubleAnimation(0, 30, TimeSpan.FromMilliseconds(150))
+            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn } };
+
+            // 3. Initialize transforms safely before animation
+            var transformGroup = new TransformGroup();
+            var scaleTransform = new ScaleTransform(1, 1);
+            var translateTransform = new TranslateTransform(0, 0);
+
+            transformGroup.Children.Add(scaleTransform);
+            transformGroup.Children.Add(translateTransform);
+
+            MainContainer.RenderTransformOrigin = new Point(0.5, 0.5);
+            MainContainer.RenderTransform = transformGroup;
+
+            // 4. Defer UI cleanup until close animation completes
+            fadeOut.Completed += (s, e) =>
+            {
+                PocketedItems.Clear();
+                StackContainer.Children.Clear();
+                UpdateItemCountDisplay(0);
+
+                if (PopupCountText != null) PopupCountText.Text = "0 Items";
+                if (SelectAllCheckBox != null) SelectAllCheckBox.IsChecked = false;
+
+                System.Threading.Tasks.Task.Run(() =>
+                {
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                    GC.Collect();
+                });
+
+                // Destroy window after hide animation completes
+                if (closeWindow)
+                {
+                    this.Close();
+                }
+            };
+
+            // 5. Run all animations in parallel
+            scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
+            scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
+            translateTransform.BeginAnimation(TranslateTransform.YProperty, slideAnim);
+            this.BeginAnimation(OpacityProperty, fadeOut);
+        }
+
+        // Update stack preview
         private void UpdateStackPreview()
         {
             StackContainer.Children.Clear();
@@ -447,9 +727,8 @@ namespace PocketDrop
             int count = PocketedItems.Count;
             if (count == 0) return;
 
-            // Rotation pattern — alternates sides, shrinks toward the top card.
+            // Define rotation pattern for stacked card preview
             // Index 0 = bottom-most (oldest), last index = top (latest).
-            // We cap visible cards at a reasonable spread; deeper cards reuse the last angle.
             double[] angles = { -11, 8, -7, 6, -5, 4, -4, 3, -3, 2, -2, 1, -1 };
             double[] offsetsX = { -7, 6, -5, 4, -4, 3, -3, 2, -2, 1, -1, 1, 0 };
             double[] offsetsY = { 5, 4, 4, 3, 3, 2, 2, 2, 1, 1, 1, 0, 0 };
@@ -495,7 +774,7 @@ namespace PocketDrop
                     }
                 };
 
-                // Add drop shadow only on the top card
+                // Add drop shadow to top card only in stack preview
                 if (isTop)
                 {
                     card.Effect = new System.Windows.Media.Effects.DropShadowEffect
@@ -512,105 +791,455 @@ namespace PocketDrop
             }
         }
 
-        private void ItemsList_PreviewMouseMove(object sender, MouseEventArgs e)
+
+        // ================================================ //
+        // 6. CONTEXT MENU & POPUP ACTIONS
+        // ================================================ //
+        private void ViewMode_Click(object sender, MouseButtonEventArgs e)
         {
-            // Only trigger drag if the Left mouse button is held down
-            if (e.LeftButton != MouseButtonState.Pressed)
-                return;
-
-            // ✨ JUST-IN-TIME CHECK: Did they delete files before dragging?
-            if (AppHelpers.RemoveDeadFiles(PocketedItems))
+            if (sender is Border border && border.Tag != null)
             {
-                string warningTitle = (string)Application.Current.Resources["Text_FilesMissingTitle"];
-                string warningDesc = (string)Application.Current.Resources["Text_FilesMissingDesc"];
-                MessageBox.Show(warningDesc, warningTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
+                CurrentViewMode = border.Tag.ToString();
             }
+        }
 
-            // We only care if they are dragging an actual ListBoxItem (a file), not the background
-            var hit = e.OriginalSource as DependencyObject;
-            while (hit != null && !(hit is ListBoxItem) && !(hit is ListBox))
-                hit = VisualTreeHelper.GetParent(hit);
+        // Select-all logic
+        private void SelectAll_Checked(object sender, RoutedEventArgs e)
+        {
+            if (ItemsListBox != null)
+                ItemsListBox.SelectAll();
+        }
 
-            if (!(hit is ListBoxItem lbi))
-                return; // They are dragging empty space, ignore it.
+        private void SelectAll_Unchecked(object sender, RoutedEventArgs e)
+        {
+            if (ItemsListBox != null)
+                ItemsListBox.UnselectAll();
+        }
 
-            var draggedItem = lbi.DataContext as PocketItem;
-            if (draggedItem == null)
-                return;
+        // Update header text on selection change
+        private void ItemsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            int selectedCount = ItemsListBox.SelectedItems.Count;
 
-            // If they drag an item that ISN'T selected yet, select it automatically for them!
-            if (!ItemsListBox.SelectedItems.Contains(draggedItem))
+            if (selectedCount > 0)
             {
-                ItemsListBox.SelectedItems.Add(draggedItem);
-            }
-
-            var selectedItems = ItemsListBox.SelectedItems.Cast<PocketItem>().ToList();
-            if (selectedItems.Count == 0) return;
-
-            // Gather paths and prepare the payload
-            string[] paths = selectedItems.Select(item => item.FilePath).ToArray();
-            DataObject dragData = new DataObject(DataFormats.FileDrop, paths);
-
-            byte[] dropEffect = new byte[] { (byte)(App.CopyItemToDestination ? 1 : 2), 0, 0, 0 };
-            dragData.SetData("Preferred DropEffect", new System.IO.MemoryStream(dropEffect));
-
-            _isDraggingFromApp = true;
-            DragDropEffects allowedEffects = App.CopyItemToDestination ? DragDropEffects.Copy : DragDropEffects.Move;
-
-            // START THE DRAG!
-            DragDropEffects result = DragDrop.DoDragDrop(ItemsListBox, dragData, allowedEffects);
-
-            _isDraggingFromApp = false;
-
-            // Cleanup after drop
-            if (result != DragDropEffects.None)
-            {
-                foreach (var item in selectedItems)
+                long totalBytes = 0;
+                foreach (PocketItem item in ItemsListBox.SelectedItems)
                 {
-                    CleanupTempFile(item.FilePath);
-                    PocketedItems.Remove(item);
+                    if (File.Exists(item.FilePath))
+                        totalBytes += new FileInfo(item.FilePath).Length;
                 }
 
-                if (PocketedItems.Count == 0)
+                string fileWord = selectedCount == 1
+                    ? (string)Application.Current.Resources["Text_FileSelected"]
+                    : (string)Application.Current.Resources["Text_FilesSelected"];
+
+                PopupCountText.Text = $"{selectedCount} {fileWord} ({AppHelpers.FormatBytes(totalBytes)})";
+            }
+            else
+            {
+                UpdateItemCountDisplay(PocketedItems.Count);
+            }
+
+            if (DeleteSelectedButton != null)
+            {
+                // Show delete button when at least one item is selected
+                DeleteSelectedButton.Visibility = ItemsListBox.SelectedItems.Count > 0
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+            }
+        }
+
+        private void DeleteSelected_Click(object sender, RoutedEventArgs e)
+        {
+            // Copy selected items before deletion to avoid enumeration errors
+            var selectedItems = ItemsListBox.SelectedItems.Cast<PocketItem>().ToList();
+
+            if (selectedItems.Count == 0) return;
+
+            foreach (var item in selectedItems)
+            {
+                PocketedItems.Remove(item);
+                CleanupTempFile(item.FilePath); // Delete if error
+            }
+
+            // Refresh background stack preview after popup closes
+            if (PocketedItems.Count == 0)
+            {
+                if (StackContainer != null) StackContainer.Children.Clear();
+            }
+            else
+            {
+                UpdateStackPreview();
+            }
+
+            // Update item counter dynamically
+            UpdateItemCountDisplay(PocketedItems.Count);
+
+            // Hide delete button when selection is cleared
+            DeleteSelectedButton.Visibility = Visibility.Collapsed;
+        }
+
+        // More Button dropdown menu
+        private void MoreButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (MoreButton.ContextMenu != null)
+            {
+                // 1. Count the files
+                int selectedCount = (ItemsListBox != null && ItemsListBox.SelectedItems.Count > 0)
+                    ? ItemsListBox.SelectedItems.Count
+                    : PocketedItems.Count;
+
+                // 2. Dynamically link to the translation resources!
+                if (selectedCount > 1)
                 {
-                    if (App.CloseWhenEmptied)
+                    Menu_DynamicOpen.SetResourceReference(MenuItem.HeaderProperty, "Text_MenuOpen");
+                }
+                else
+                {
+                    Menu_DynamicOpen.SetResourceReference(MenuItem.HeaderProperty, "Text_MenuOpenWith");
+                }
+
+                // 3. Align the menu directly under the 3-dots icon
+                MoreButton.ContextMenu.PlacementTarget = MoreButton;
+                MoreButton.ContextMenu.Placement = PlacementMode.Bottom;
+                MoreButton.ContextMenu.VerticalOffset = 8;
+
+                // 4. Open the menu
+                MoreButton.ContextMenu.IsOpen = true;
+            }
+        }
+
+        // Menu action: Dynamic open
+        private void Menu_DynamicOpen_Click(object sender, RoutedEventArgs e)
+        {
+
+            // JUST-IN-TIME check
+            if (CheckForMissingFiles()) return;
+
+            // 1. Gather the selected files (or all of them if none are selected)
+            var itemsToOpen = (ItemsListBox != null && ItemsListBox.SelectedItems.Count > 0)
+                ? ItemsListBox.SelectedItems.Cast<PocketItem>().ToList()
+                : PocketedItems.ToList();
+
+            if (itemsToOpen.Count == 0) return;
+
+            // 2. Scenario A: Differentiate folder and file handling for single selection
+            if (itemsToOpen.Count == 1)
+            {
+                string targetFilePath = itemsToOpen[0].FilePath;
+
+                // Check if selected item is a folder before opening
+                if (Directory.Exists(targetFilePath))
+                {
+                    try
                     {
-                        ExpandButton.IsChecked = false;
-                        ForceClose();
+                        Process.Start(new ProcessStartInfo
+                        {
+                            FileName = targetFilePath,
+                            UseShellExecute = true // Opens the folder in File Explorer
+                        });
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        StatusText.Visibility = Visibility.Visible;
-                        FileIconContainer.Visibility = Visibility.Collapsed;
-                        StackContainer.Children.Clear();
-                        ExpandButton.IsChecked = false;
+                        Console.WriteLine($"Could not open folder: {ex.Message}");
+                    }
+                }
+                // Show native open-with dialog for file selection
+                else if (!string.IsNullOrEmpty(targetFilePath) && File.Exists(targetFilePath))
+                {
+                    System.Threading.Tasks.Task.Run(() =>
+                    {
+                        try
+                        {
+                            OPENASINFO info = new OPENASINFO();
+                            info.pcszFile = targetFilePath;
+                            info.pcszClass = null;
+                            info.oaUIAction = 7;
+                            SHOpenWithDialog(IntPtr.Zero, ref info);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Could not open file picker: {ex.Message}");
+                        }
+                    });
+                }
+            }
+            // 3. Scenario B: Open all items when multiple are selected
+            else
+            {
+                foreach (var item in itemsToOpen)
+                {
+                    // Check both directory and file existence before openin
+                    if (Directory.Exists(item.FilePath) || File.Exists(item.FilePath))
+                    {
+                        try
+                        {
+                            // Use ShellExecute to open items like Explorer double-click
+                            Process.Start(new ProcessStartInfo
+                            {
+                                FileName = item.FilePath,
+                                UseShellExecute = true
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Could not open {item.FileName}: {ex.Message}");
+                        }
+                    }
+                }
+            }
+
+            // 4. Auto-close the pocket if the user enabled it in Settings
+            if (App.CloseWhenOpenWith)
+            {
+                if (ExpandButton != null) ExpandButton.IsChecked = false; // Collapse the popup menu
+                ForceClose(); // Animate window close and free memory
+            }
+        }
+
+        // Menu action: Share
+        private async void Menu_Share_Click(object sender, RoutedEventArgs e)
+        {
+            // JUST-IN-TIME check
+            if (CheckForMissingFiles()) return;
+
+            var itemsToShare = (ItemsListBox != null && ItemsListBox.SelectedItems.Count > 0)
+                ? ItemsListBox.SelectedItems.Cast<PocketItem>().ToList()
+                : PocketedItems.ToList();
+
+            if (itemsToShare.Count == 0) return;
+            if (ExpandButton != null) ExpandButton.IsChecked = false; // Collapse the popup menu
+
+            bool containsFolders = itemsToShare.Any(item => Directory.Exists(item.FilePath));
+
+            // 1. Handle folders and zipping first
+            if (containsFolders)
+            {
+                if (App.AutoCompressFoldersShare)
+                {
+                    try
+                    {
+                        // Show loading UI
+                        if (FileIconContainer != null) FileIconContainer.Visibility = Visibility.Collapsed;
+                        if (StatusText != null)
+                        {
+                            StatusText.Text = (string)Application.Current.Resources["Text_CompressingShare"];
+                            StatusText.Visibility = Visibility.Visible;
+                        }
+
+                        // Await ZIP completion before proceeding
+                        string tempZipPath = await CreateTempZipFromItemsAsync(itemsToShare);
+
+                        // Set the payload to the new zip file
+                        _filesToSharePaths = new List<string> { tempZipPath };
+                    }
+                    catch (Exception ex)
+                    {
+                        string errorDesc = (string)Application.Current.Resources["Text_ShareCompressErrorDesc"];
+                        string errorTitle = (string)Application.Current.Resources["Text_ShareCompressErrorTitle"];
+                        string errorPrefix = (string)Application.Current.Resources["Text_ErrorPrefix"];
+
+                        MessageBox.Show($"{errorDesc}\n\n{errorPrefix} {ex.Message}", errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+                    finally
+                    {
+                        // Clean up UI
+                        if (StatusText != null) StatusText.Visibility = Visibility.Collapsed;
+                        if (FileIconContainer != null) FileIconContainer.Visibility = Visibility.Visible;
                     }
                 }
                 else
                 {
-                    UpdateStackPreview();
+                    string warningDesc = (string)Application.Current.Resources["Text_ShareFolderErrorDesc"];
+                    string warningTitle = (string)Application.Current.Resources["Text_ShareFolderErrorTitle"];
+                    MessageBox.Show(warningDesc, warningTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
                 }
-
-                UpdateItemCountDisplay(PocketedItems.Count);
             }
-        }
-
-        // --- DRAGGING THE WINDOW ---
-        private void TopBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            // Prevent the window from dragging if they actually clicked the 'X' button
-            if (e.OriginalSource == CloseButton || e.Source == MoreButton)
-                return;
-
-            // Tell Windows to take over and drag the physical app window!
-            if (e.LeftButton == MouseButtonState.Pressed)
+            else
             {
-                this.DragMove();
+                // Use standard file paths when no folders are present
+                _filesToSharePaths = itemsToShare.Select(item => item.FilePath).ToList();
+            }
+
+            // 2. Trigger the share UI
+            try
+            {
+                IntPtr hwnd = new WindowInteropHelper(this).Handle;
+                var factory = WinRT.ActivationFactory.Get("Windows.ApplicationModel.DataTransfer.DataTransferManager");
+                var interop = (IDataTransferManagerInterop)Marshal.GetObjectForIUnknown(factory.ThisPtr);
+
+                Guid guid = Guid.Parse("a5caee9b-8708-49d1-8d36-67d25a8da00c");
+                IntPtr ptr = interop.GetForWindow(hwnd, ref guid);
+                _shareManager = WinRT.MarshalInterface<DataTransferManager>.FromAbi(ptr);
+
+                // Hook the event and show the UI
+                _shareManager.DataRequested -= ShareManager_DataRequested;
+                _shareManager.DataRequested += ShareManager_DataRequested;
+                interop.ShowShareUIForWindow(hwnd);
+
+                // Ensure ZIP finishes and share UI opens before closing pocket
+                if (App.CloseWhenShare)
+                {
+                    ForceClose(); // Safely animate window close and free memory
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Share error: {ex.Message}");
             }
         }
 
-        // --- SMART POPUP PLACEMENT ---
+        // Menu action: Compress to ZIP
+        private async void Menu_CompressZip_Click(object sender, RoutedEventArgs e)
+        {
+            // JUST-IN-TIME check
+            if (CheckForMissingFiles()) return;
+
+            // 1. Compress selected items or all items if none selected
+            var itemsToCompress = (ItemsListBox != null && ItemsListBox.SelectedItems.Count > 0)
+                ? ItemsListBox.SelectedItems.Cast<PocketItem>().ToList()
+                : PocketedItems.ToList();
+
+            if (itemsToCompress.Count == 0) return;
+
+            // 2. Prompt user to choose ZIP save location
+            Microsoft.Win32.SaveFileDialog saveDialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = (string)Application.Current.Resources["Text_SaveZipTitle"],
+                FileName = (string)Application.Current.Resources["Text_SaveZipFileName"],
+                DefaultExt = ".zip",
+                Filter = (string)Application.Current.Resources["Text_SaveZipFilter"]
+            };
+
+            if (saveDialog.ShowDialog() == true)
+            {
+                string zipPath = saveDialog.FileName;
+
+                // 3. Compress in the background
+                await System.Threading.Tasks.Task.Run(() =>
+                {
+                    try
+                    {
+                        // Delete existing ZIP before creating new one
+                        if (File.Exists(zipPath)) File.Delete(zipPath);
+
+                        using (FileStream zipToOpen = new FileStream(zipPath, FileMode.Create))
+                        using (ZipArchive archive = new ZipArchive(zipToOpen, ZipArchiveMode.Create))
+                        {
+                            foreach (var item in itemsToCompress)
+                            {
+                                if (File.Exists(item.FilePath))
+                                {
+                                    // Add each physical file to the ZIP payload
+                                    archive.CreateEntryFromFile(item.FilePath, item.FileName);
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Could not create ZIP: {ex.Message}");
+                    }
+                });
+
+                // 4. Search existing Windows Explorer tabs
+                try
+                {
+                    Type shellType = Type.GetTypeFromProgID("Shell.Application");
+                    dynamic shell = Activator.CreateInstance(shellType);
+                    bool windowFound = false;
+
+                    // Convert file path to URI format for Explorer tab navigation
+                    string targetUri = new Uri(Path.GetDirectoryName(zipPath)).AbsoluteUri;
+
+                    // Check all open Explorer windows and tabs
+                    foreach (dynamic window in shell.Windows())
+                    {
+                        if (window != null && window.LocationURL != null)
+                        {
+                            string loc = window.LocationURL;
+                            if (loc.Equals(targetUri, StringComparison.OrdinalIgnoreCase))
+                            {
+                                windowFound = true;
+
+                                // Grab the file inside the folder view
+                                dynamic folderView = window.Document;
+                                dynamic fileToSelect = folderView.Folder.ParseName(Path.GetFileName(zipPath));
+
+                                if (fileToSelect != null)
+                                {
+                                    // Selection Flags: 1 (Select) + 4 (Ensure Visible) + 8 (Focus) = 13
+                                    folderView.SelectItem(fileToSelect, 13);
+                                }
+
+                                // Force the existing Explorer window to pop to the front of the screen
+                                IntPtr hwnd = (IntPtr)window.HWND;
+                                SetForegroundWindow(hwnd);
+                                break;
+                            }
+                        }
+                    }
+
+                    // If no existing tab had that folder open, safely spawn a new one
+                    if (!windowFound)
+                    {
+                        System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{zipPath}\"");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Highlight error: {ex.Message}");
+                    // Safe fallback just in case the COM object fails
+                    System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{zipPath}\"");
+                }
+            }
+            // Close the pocket if the user enabled the Settings
+            if (App.CloseWhenCompress)
+            {
+                if (ExpandButton != null) ExpandButton.IsChecked = false; // Collapse the popup menu
+                ForceClose(); // Safely animate window close and free memory
+            }
+        }
+
+        // Menu action: Clear all
+        private void Menu_ClearItems_Click(object sender, RoutedEventArgs e)
+        {
+            // Clean up temp files before clearing
+            foreach (var item in PocketedItems)
+            {
+                CleanupTempFile(item.FilePath);
+            }
+
+            PocketedItems.Clear();
+            StackContainer.Children.Clear();
+            UpdateItemCountDisplay(0);
+
+            if (SelectAllCheckBox != null)
+                SelectAllCheckBox.IsChecked = false;
+        }
+
+        // Menu action: Settings
+        private void Menu_Settings_Click(object sender, RoutedEventArgs e)
+        {
+            // Prevent duplicate settings window from opening
+            var existingSettings = System.Windows.Application.Current.Windows.OfType<SettingsWindow>().FirstOrDefault();
+
+            if (existingSettings != null)
+            {
+                existingSettings.Activate(); // Bring it to the front
+            }
+            else
+            {
+                var settingsWindow = new SettingsWindow();
+                settingsWindow.Show();
+                settingsWindow.Activate();
+            }
+        }
+
+        // Smart popup placement
         private CustomPopupPlacement[] Popup_PlacementCallback(Size popupSize, Size targetSize, Point offset)
         {
             // 1. Perfectly center X relative to the MainContainer
@@ -621,8 +1250,7 @@ namespace PocketDrop
             double yBelow = targetSize.Height + 0;
 
             // 3. Plan B: Spawn ABOVE the app
-            // Bumping this up to 40 fully clears the invisible 16px margin 
-            // and the heavy downward drop shadow, matching the top visual gap.
+            // Increase bottom margin to clear invisible border and drop shadow
             double yAbove = -popupSize.Height - 40;
 
             return new[]
@@ -632,17 +1260,17 @@ namespace PocketDrop
             };
         }
 
-        // --- CLEANUP WHEN POPUP CLOSES ---
+        // Cleanup when popup closes
         private void Popup_Closed(object sender, EventArgs e)
         {
             // 1. Unselect all files so they don't stay highlighted
             ItemsListBox.UnselectAll();
 
-            // 2. Ensure the toggle button visually unchecks if you closed the popup by clicking on the desktop
+            // 2. Uncheck toggle button when popup closed by clicking outside
             ExpandButton.IsChecked = false;
         }
 
-        // --- CLOSING THE WINDOW — clears items and hides ---
+        // Closing the window — clears items and hides
         private void CloseButton_Click(object sender, MouseButtonEventArgs e)
         {
             // 1. Log all current items to the Global History
@@ -654,21 +1282,24 @@ namespace PocketDrop
                 }
             }
 
-            // 2. Ping the Saved Pockets window to update in real-time!
+            // 2. Ping the My Pockets window to update in real-time
             var openHistoryWindow = Application.Current.Windows.OfType<SavedPocketsWindow>().FirstOrDefault();
             if (openHistoryWindow != null)
             {
                 openHistoryWindow.RefreshHistory();
             }
 
-            // 3. ✨ THE FIX: Play the animation, then let it close itself!
+            // 3. Play the animation, then let it close itself
             bool isLastWindow = Application.Current.Windows.OfType<MainWindow>().Count() <= 1;
             HidePocketDrop(!isLastWindow);
         }
 
-        // ══════════════════════════════════════════════════════
-        // GLOBAL MOUSE HOOK CALLBACK
-        // ══════════════════════════════════════════════════════
+
+        // ================================================ //
+        // 7. UTILITY HELPERS
+        // ================================================ //
+
+        // Global mouse hook callback
         private static IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
         {
             if (nCode >= 0)
@@ -691,11 +1322,11 @@ namespace PocketDrop
                     if (!App.EnableMouseShake) goto done;
                     if (App.DisableInGameMode && AppHelpers.IsGameModeActive()) goto done;
                     if (AppHelpers.IsForegroundAppExcluded()) goto done;
-                    if (_hasSpawnedPocketThisDrag) goto done; // Don't spawn duplicates!
+                    if (_hasSpawnedPocketThisDrag) goto done; // Don't spawn duplicates
 
-                    // 2. Feed the raw coordinates to our new decoupled brain
+                    // 2. Pass raw coordinates to decoupled placement logic
                     bool isShaking = _shakeDetector.CheckForShake(
-                        currentMouseX: hookStruct.pt.X,  // ✨ Fixed: Capital X
+                        currentMouseX: hookStruct.pt.X,
                         currentTimestampMs: Environment.TickCount64,
                         minDistancePx: App.ShakeMinimumDistance,
                         maxTimeMs: 1000,
@@ -705,9 +1336,8 @@ namespace PocketDrop
                     // 3. If the math detects a shake, spawn the UI
                     if (isShaking)
                     {
-                        _hasSpawnedPocketThisDrag = true; // Lock it down until they release the mouse
+                        _hasSpawnedPocketThisDrag = true; // Lock it down until the users release the mouse
 
-                        // ✨ Fixed: Using your exact Dispatcher logic to spawn the pocket safely!
                         Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)(() =>
                         {
                             var hiddenPocket = Application.Current.Windows.OfType<MainWindow>().FirstOrDefault(w => !w.IsHitTestVisible);
@@ -727,586 +1357,19 @@ namespace PocketDrop
                 }
             }
         done:
-            // ✨ Fixed: Using your actual variable name _hookHandle
             return CallNextHookEx(_hookHandle, nCode, wParam, lParam);
         }
 
-        // ══════════════════════════════════════════════════════
-        // SHOW / HIDE WITH ANIMATION
-        // ══════════════════════════════════════════════════════
-        public void ShowPocketDrop(int rawCursorX, int rawCursorY)
-        {
-            if (this.IsHitTestVisible) return;
-
-            // ✨ THE NEW FIX: Apply the user's preferred layout mode before the UI calculates its size!
-            // 0 = Grid view, 1 = List view
-            this.CurrentViewMode = App.ItemsLayoutMode == 1 ? "List" : "Grid";
-
-            this.UpdateLayout();
-
-            // 1. Get the raw physical screen the mouse is currently on
-            var screen = System.Windows.Forms.Screen.FromPoint(new System.Drawing.Point(rawCursorX, rawCursorY));
-            var rawWorkArea = screen.WorkingArea;
-
-            // ✨ THE NEW FIX: Calculate the exact Windows DPI Display Scaling!
-            double dpiX = 1.0;
-            double dpiY = 1.0;
-            PresentationSource source = PresentationSource.FromVisual(this);
-            if (source != null && source.CompositionTarget != null)
-            {
-                dpiX = source.CompositionTarget.TransformToDevice.M11;
-                dpiY = source.CompositionTarget.TransformToDevice.M22;
-            }
-            else
-            {
-                // Failsafe if the window is still waking up
-                using (System.Drawing.Graphics g = System.Drawing.Graphics.FromHwnd(IntPtr.Zero))
-                {
-                    dpiX = g.DpiX / 96.0;
-                    dpiY = g.DpiY / 96.0;
-                }
-            }
-
-            // 2. Convert raw physical pixels into WPF's custom DPI scale
-            double workAreaLeft = rawWorkArea.Left / dpiX;
-            double workAreaTop = rawWorkArea.Top / dpiY;
-            double workAreaWidth = rawWorkArea.Width / dpiX;
-            double workAreaHeight = rawWorkArea.Height / dpiY;
-            double workAreaRight = workAreaLeft + workAreaWidth;
-            double workAreaBottom = workAreaTop + workAreaHeight;
-
-            double cursorX = rawCursorX / dpiX;
-            double cursorY = rawCursorY / dpiY;
-
-            // 3. Safely grab the window size
-            double w = this.ActualWidth > 0 ? this.ActualWidth : (double.IsNaN(this.Width) ? 380 : this.Width);
-            double h = this.ActualHeight > 0 ? this.ActualHeight : (double.IsNaN(this.Height) ? 500 : this.Height);
-
-            // 4 & 5. Override based on the user's setting (Using decoupled math!)
-            Point finalPos = AppHelpers.CalculateWindowPosition(
-                App.PocketPlacement,
-                cursorX, cursorY, w, h,
-                workAreaLeft, workAreaTop, workAreaRight, workAreaBottom);
-
-            // 6. Apply the final, perfectly scaled position!
-            this.Left = finalPos.X;
-            this.Top = finalPos.Y;
-            this.IsHitTestVisible = true;
-
-            // --- ANIMATIONS ---
-            // 1. The Fade In
-            var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(150));
-
-            // 2. The Bouncy Easing Function (Amplitude controls how much it overshoots and bounces back)
-            var bounceEase = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.4 };
-
-            // 3. The Scale and Slide animations
-            var scaleAnim = new DoubleAnimation(0.85, 1, TimeSpan.FromMilliseconds(300)) { EasingFunction = bounceEase };
-            var slideAnim = new DoubleAnimation(30, 0, TimeSpan.FromMilliseconds(300)) { EasingFunction = bounceEase };
-
-            // 4. Combine the Transforms
-            var transformGroup = new TransformGroup();
-            var scaleTransform = new ScaleTransform(0.85, 0.85);
-            var translateTransform = new TranslateTransform(0, 30);
-
-            transformGroup.Children.Add(scaleTransform);
-            transformGroup.Children.Add(translateTransform);
-
-            // 5. Apply it to the MainContainer (Ensure it scales from the direct center)
-            MainContainer.RenderTransformOrigin = new Point(0.5, 0.5);
-            MainContainer.RenderTransform = transformGroup;
-
-            // 6. Fire them all at once!
-            scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
-            scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
-            translateTransform.BeginAnimation(TranslateTransform.YProperty, slideAnim);
-
-            this.BeginAnimation(OpacityProperty, null); // Clear old animation
-            this.BeginAnimation(OpacityProperty, fadeIn);
-
-            System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() =>
-            {
-                this.Activate();
-            }));
-        }
-
-        // ══════════════════════════════════════════════════════
-        // HIDE WITH ANIMATION & BACKGROUND CLEANUP
-        // ══════════════════════════════════════════════════════
-        private void HidePocketDrop(bool closeWindow = false)
-        {
-            // Lock the window immediately so the user can't interact while it closes
-            this.IsHitTestVisible = false;
-
-            // 1. The Fade Out
-            var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(150))
-            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn } };
-
-            // 2. The Shrink and Drop animations
-            var scaleAnim = new DoubleAnimation(1, 0.85, TimeSpan.FromMilliseconds(150))
-            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn } };
-
-            var slideAnim = new DoubleAnimation(0, 30, TimeSpan.FromMilliseconds(150))
-            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn } };
-
-            // 3. Set up the transforms safely
-            var transformGroup = new TransformGroup();
-            var scaleTransform = new ScaleTransform(1, 1);
-            var translateTransform = new TranslateTransform(0, 0);
-
-            transformGroup.Children.Add(scaleTransform);
-            transformGroup.Children.Add(translateTransform);
-
-            MainContainer.RenderTransformOrigin = new Point(0.5, 0.5);
-            MainContainer.RenderTransform = transformGroup;
-
-            // 4. ✨ THE FIX: Clean up the UI *only after* the animation completely finishes!
-            fadeOut.Completed += (s, e) =>
-            {
-                PocketedItems.Clear();
-                StackContainer.Children.Clear();
-                UpdateItemCountDisplay(0);
-
-                if (PopupCountText != null) PopupCountText.Text = "0 Items";
-                if (SelectAllCheckBox != null) SelectAllCheckBox.IsChecked = false;
-
-                System.Threading.Tasks.Task.Run(() =>
-                {
-                    GC.Collect();
-                    GC.WaitForPendingFinalizers();
-                    GC.Collect();
-                });
-
-                // ✨ THE FIX: Destroy the window now that it's invisible!
-                if (closeWindow)
-                {
-                    this.Close();
-                }
-            };
-
-            // 5. Fire them all at once!
-            scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
-            scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
-            translateTransform.BeginAnimation(TranslateTransform.YProperty, slideAnim);
-            this.BeginAnimation(OpacityProperty, fadeOut);
-        }
-
-        // --- SELECT ALL LOGIC ---
-        private void SelectAll_Checked(object sender, RoutedEventArgs e)
-        {
-            if (ItemsListBox != null)
-                ItemsListBox.SelectAll();
-        }
-
-        private void SelectAll_Unchecked(object sender, RoutedEventArgs e)
-        {
-            if (ItemsListBox != null)
-                ItemsListBox.UnselectAll();
-        }
-
-        // --- SELECTION CHANGED LOGIC (Updates Header Text) ---
-        private void ItemsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            int selectedCount = ItemsListBox.SelectedItems.Count;
-
-            if (selectedCount > 0)
-            {
-                long totalBytes = 0;
-                foreach (PocketItem item in ItemsListBox.SelectedItems)
-                {
-                    if (File.Exists(item.FilePath))
-                        totalBytes += new FileInfo(item.FilePath).Length;
-                }
-
-                // ✨ Use the dictionary to translate "file selected" vs "files selected"
-                string fileWord = selectedCount == 1
-                    ? (string)Application.Current.Resources["Text_FileSelected"]
-                    : (string)Application.Current.Resources["Text_FilesSelected"];
-
-                PopupCountText.Text = $"{selectedCount} {fileWord} ({AppHelpers.FormatBytes(totalBytes)})";
-            }
-            else
-            {
-                UpdateItemCountDisplay(PocketedItems.Count);
-            }
-
-            if (DeleteSelectedButton != null)
-            {
-                // Show the delete button if at least 1 item is selected
-                DeleteSelectedButton.Visibility = ItemsListBox.SelectedItems.Count > 0
-                    ? Visibility.Visible
-                    : Visibility.Collapsed;
-            }
-        }
-
-        private void DeleteSelected_Click(object sender, RoutedEventArgs e)
-        {
-            // Grab a safe copy of the selected items to avoid enumeration errors while deleting
-            var selectedItems = ItemsListBox.SelectedItems.Cast<PocketItem>().ToList();
-
-            if (selectedItems.Count == 0) return;
-
-            foreach (var item in selectedItems)
-            {
-                // Optional: If you want to delete temp files associated with this item, call CleanupTempFile(item.FilePath) here
-                PocketedItems.Remove(item);
-            }
-
-            // Refresh the background UI preview stack if the popup is closed later
-            if (PocketedItems.Count == 0)
-            {
-                if (StackContainer != null) StackContainer.Children.Clear();
-            }
-            else
-            {
-                UpdateStackPreview();
-            }
-
-            // Update the counter numbers dynamically
-            UpdateItemCountDisplay(PocketedItems.Count);
-
-            // Hide the button again now that the selection is cleared
-            DeleteSelectedButton.Visibility = Visibility.Collapsed;
-        }
-
-        // --- MORE BUTTON DROPDOWN MENU ---
-        private void MoreButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (MoreButton.ContextMenu != null)
-            {
-                // 1. Count the files
-                int selectedCount = (ItemsListBox != null && ItemsListBox.SelectedItems.Count > 0)
-                    ? ItemsListBox.SelectedItems.Count
-                    : PocketedItems.Count;
-
-                // 2. ✨ THE FIX: Dynamically link to the translation resources!
-                if (selectedCount > 1)
-                {
-                    Menu_DynamicOpen.SetResourceReference(MenuItem.HeaderProperty, "Text_MenuOpen");
-                }
-                else
-                {
-                    Menu_DynamicOpen.SetResourceReference(MenuItem.HeaderProperty, "Text_MenuOpenWith");
-                }
-
-                // 3. Align the menu directly under the 3-dots icon
-                MoreButton.ContextMenu.PlacementTarget = MoreButton;
-                MoreButton.ContextMenu.Placement = PlacementMode.Bottom;
-                MoreButton.ContextMenu.VerticalOffset = 4;
-
-                // 4. Open it!
-                MoreButton.ContextMenu.IsOpen = true;
-            }
-        }
-
-        // --- MENU ACTION: Smart Open (Switches based on count) ---
-        private void Menu_DynamicOpen_Click(object sender, RoutedEventArgs e)
-        {
-
-            // ✨ JUST-IN-TIME CHECK
-            if (AppHelpers.RemoveDeadFiles(PocketedItems))
-            {
-                string warningTitle = (string)Application.Current.Resources["Text_FilesMissingTitle"];
-                string warningDesc = (string)Application.Current.Resources["Text_FilesMissingDesc"];
-                MessageBox.Show(warningDesc, warningTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            // 1. Gather the selected files (or all of them if none are selected)
-            var itemsToOpen = (ItemsListBox != null && ItemsListBox.SelectedItems.Count > 0)
-                ? ItemsListBox.SelectedItems.Cast<PocketItem>().ToList()
-                : PocketedItems.ToList();
-
-            if (itemsToOpen.Count == 0) return;
-
-            // 2. SCENARIO A: Only 1 item -> Handle Folders differently than Files
-            if (itemsToOpen.Count == 1)
-            {
-                string targetFilePath = itemsToOpen[0].FilePath;
-
-                // NEW: Check if it is a Folder first!
-                if (Directory.Exists(targetFilePath))
-                {
-                    try
-                    {
-                        Process.Start(new ProcessStartInfo
-                        {
-                            FileName = targetFilePath,
-                            UseShellExecute = true // Opens the folder in File Explorer
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Could not open folder: {ex.Message}");
-                    }
-                }
-                // It's a file, show the native "How do you want to open this?" dialog
-                else if (!string.IsNullOrEmpty(targetFilePath) && File.Exists(targetFilePath))
-                {
-                    System.Threading.Tasks.Task.Run(() =>
-                    {
-                        try
-                        {
-                            OPENASINFO info = new OPENASINFO();
-                            info.pcszFile = targetFilePath;
-                            info.pcszClass = null;
-                            info.oaUIAction = 7;
-                            SHOpenWithDialog(IntPtr.Zero, ref info);
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Could not open file picker: {ex.Message}");
-                        }
-                    });
-                }
-            }
-            // 3. SCENARIO B: Multiple items -> Open them all!
-            else
-            {
-                foreach (var item in itemsToOpen)
-                {
-                    // NEW: Check for Directory.Exists OR File.Exists
-                    if (Directory.Exists(item.FilePath) || File.Exists(item.FilePath))
-                    {
-                        try
-                        {
-                            // UseShellExecute acts exactly like double-clicking the file/folder in Windows Explorer
-                            Process.Start(new ProcessStartInfo
-                            {
-                                FileName = item.FilePath,
-                                UseShellExecute = true
-                            });
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Could not open {item.FileName}: {ex.Message}");
-                        }
-                    }
-                }
-            }
-
-            // 4. ✨ THE NEW FEATURE: Auto-close the pocket if the user enabled it in Settings
-            if (App.CloseWhenOpenWith)
-            {
-                if (ExpandButton != null) ExpandButton.IsChecked = false; // Collapse the popup menu visually
-                ForceClose(); // Safely animate the window away and clean up memory!
-            }
-        }
-
-        // --- MENU ACTION: Clear All ---
-        private void Menu_ClearItems_Click(object sender, RoutedEventArgs e)
-        {
-            // NEW: Clean up temp files before clearing
-            foreach (var item in PocketedItems)
-            {
-                CleanupTempFile(item.FilePath);
-            }
-
-            PocketedItems.Clear();
-            StackContainer.Children.Clear();
-            UpdateItemCountDisplay(0);
-
-            if (SelectAllCheckBox != null)
-                SelectAllCheckBox.IsChecked = false;
-        }
-
-        // --- MENU ACTION: Settings ---
-        private void Menu_Settings_Click(object sender, RoutedEventArgs e)
-        {
-            // Check if the settings window is already open so we don't spawn duplicates!
-            var existingSettings = System.Windows.Application.Current.Windows.OfType<SettingsWindow>().FirstOrDefault();
-
-            if (existingSettings != null)
-            {
-                existingSettings.Activate(); // Bring it to the front
-            }
-            else
-            {
-                var settingsWindow = new SettingsWindow();
-                settingsWindow.Show();
-                settingsWindow.Activate();
-            }
-        }
-
-        // --- NATIVE WINDOWS APP PICKER API ---
-        [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
-        private static extern int SHOpenWithDialog(IntPtr hwndParent, ref OPENASINFO poainfo);
-
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        private struct OPENASINFO
-        {
-            public string pcszFile;
-            public string pcszClass;
-            public int oaUIAction;
-        }
-
-        // --- MENU ACTION: Open With ---
-        private void Menu_OpenWith_Click(object sender, RoutedEventArgs e)
-        {
-
-            // ✨ JUST-IN-TIME CHECK
-            if (AppHelpers.RemoveDeadFiles(PocketedItems))
-            {
-                string warningTitle = (string)Application.Current.Resources["Text_FilesMissingTitle"];
-                string warningDesc = (string)Application.Current.Resources["Text_FilesMissingDesc"];
-                MessageBox.Show(warningDesc, warningTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            // 1. Determine which file to open 
-            string targetFilePath = null;
-
-            if (ItemsListBox != null && ItemsListBox.SelectedItems.Count > 0)
-            {
-                targetFilePath = ((PocketItem)ItemsListBox.SelectedItems[0]).FilePath;
-            }
-            else if (PocketedItems.Count > 0)
-            {
-                targetFilePath = PocketedItems[0].FilePath;
-            }
-
-            // 2. Trigger the native Windows app picker dialog
-            if (!string.IsNullOrEmpty(targetFilePath) && File.Exists(targetFilePath))
-            {
-                // THE FIX: Push the heavy Windows Shell call to a background thread!
-                System.Threading.Tasks.Task.Run(() =>
-                {
-                    try
-                    {
-                        OPENASINFO info = new OPENASINFO();
-                        info.pcszFile = targetFilePath;
-                        info.pcszClass = null;
-                        info.oaUIAction = 7;
-
-                        // This now runs in the background, freeing up your UI instantly
-                        SHOpenWithDialog(IntPtr.Zero, ref info);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Could not open file picker: {ex.Message}");
-                    }
-                });
-            }
-        }
-
-        // Class-level variables to handle the share lifecycle
-        private List<string> _filesToSharePaths;
-        private DataTransferManager _shareManager;
-        private List<PocketItem> _pendingShareItems;
-
-        // --- MENU ACTION: Share ---
-        private async void Menu_Share_Click(object sender, RoutedEventArgs e)
-        {
-            // ✨ JUST-IN-TIME CHECK
-            if (AppHelpers.RemoveDeadFiles(PocketedItems))
-            {
-                string warningTitle = (string)Application.Current.Resources["Text_FilesMissingTitle"];
-                string warningDesc = (string)Application.Current.Resources["Text_FilesMissingDesc"];
-                MessageBox.Show(warningDesc, warningTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            var itemsToShare = (ItemsListBox != null && ItemsListBox.SelectedItems.Count > 0)
-                ? ItemsListBox.SelectedItems.Cast<PocketItem>().ToList()
-                : PocketedItems.ToList();
-
-            if (itemsToShare.Count == 0) return;
-            if (ExpandButton != null) ExpandButton.IsChecked = false; // Collapse the popup menu
-
-            bool containsFolders = itemsToShare.Any(item => Directory.Exists(item.FilePath));
-
-            // --- 1. HANDLE FOLDERS & ZIPPING FIRST ---
-            if (containsFolders)
-            {
-                if (App.AutoCompressFoldersShare)
-                {
-                    try
-                    {
-                        // Show loading UI
-                        if (FileIconContainer != null) FileIconContainer.Visibility = Visibility.Collapsed;
-                        if (StatusText != null)
-                        {
-                            StatusText.Text = (string)Application.Current.Resources["Text_CompressingShare"];
-                            StatusText.Visibility = Visibility.Visible;
-                        }
-
-                        // ZIP FIRST! Wait for it to finish completely.
-                        string tempZipPath = await CreateTempZipFromItemsAsync(itemsToShare);
-
-                        // Set the payload to our shiny new single zip file
-                        _filesToSharePaths = new List<string> { tempZipPath };
-                    }
-                    catch (Exception ex)
-                    {
-                        string errorDesc = (string)Application.Current.Resources["Text_ShareCompressErrorDesc"];
-                        string errorTitle = (string)Application.Current.Resources["Text_ShareCompressErrorTitle"];
-                        string errorPrefix = (string)Application.Current.Resources["Text_ErrorPrefix"];
-
-                        MessageBox.Show($"{errorDesc}\n\n{errorPrefix} {ex.Message}", errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
-                        return;
-                    }
-                    finally
-                    {
-                        // Clean up UI instantly
-                        if (StatusText != null) StatusText.Visibility = Visibility.Collapsed;
-                        if (FileIconContainer != null) FileIconContainer.Visibility = Visibility.Visible;
-                    }
-                }
-                else
-                {
-                    string warningDesc = (string)Application.Current.Resources["Text_ShareFolderErrorDesc"];
-                    string warningTitle = (string)Application.Current.Resources["Text_ShareFolderErrorTitle"];
-                    MessageBox.Show(warningDesc, warningTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-            }
-            else
-            {
-                // No folders? Just grab the standard file paths
-                _filesToSharePaths = itemsToShare.Select(item => item.FilePath).ToList();
-            }
-
-            // --- 2. NOW TRIGGER THE SHARE UI ---
-            // The files are 100% ready, so Windows has nothing to wait for!
-            try
-            {
-                IntPtr hwnd = new WindowInteropHelper(this).Handle;
-                var factory = WinRT.ActivationFactory.Get("Windows.ApplicationModel.DataTransfer.DataTransferManager");
-                var interop = (IDataTransferManagerInterop)Marshal.GetObjectForIUnknown(factory.ThisPtr);
-
-                Guid guid = Guid.Parse("a5caee9b-8708-49d1-8d36-67d25a8da00c");
-                IntPtr ptr = interop.GetForWindow(hwnd, ref guid);
-                _shareManager = WinRT.MarshalInterface<DataTransferManager>.FromAbi(ptr);
-
-                // Hook the event and show the UI
-                _shareManager.DataRequested -= ShareManager_DataRequested;
-                _shareManager.DataRequested += ShareManager_DataRequested;
-                interop.ShowShareUIForWindow(hwnd);
-
-                // ✨ THE FIX: Move the Auto-Close logic here to the very end!
-                // This ensures the zip finishes, the share UI pops up, AND THEN the pocket closes.
-                if (App.CloseWhenShare)
-                {
-                    ForceClose(); // Safely animates the window away and cleans up memory!
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Share error: {ex.Message}");
-            }
-        }
-
-        // --- BUILDING THE SHARE PAYLOAD ---
+        // Building the share payload
         private async void ShareManager_DataRequested(DataTransferManager sender, DataRequestedEventArgs args)
         {
-            // A micro-deferral just to allow the async WinRT Storage API to fetch the files
+            // Add micro-deferral to allow WinRT Storage API to resolve files
             DataRequestDeferral deferral = args.Request.GetDeferral();
 
             try
             {
                 if (_filesToSharePaths == null || _filesToSharePaths.Count == 0) return;
 
-                // ✨ THE FIX: Swapped _pendingShareItems for _filesToSharePaths
                 string singleTitle = (string)Application.Current.Resources["Text_ShareTitleSingle"];
                 string multiTitleTemplate = (string)Application.Current.Resources["Text_ShareTitleMultiple"];
 
@@ -1314,7 +1377,7 @@ namespace PocketDrop
                     ? singleTitle
                     : string.Format(multiTitleTemplate, _filesToSharePaths.Count);
 
-                // Quickly map the string paths to Windows Storage Files
+                // Map file paths to Windows Storage File objects
                 List<IStorageItem> storageItems = new List<IStorageItem>();
                 foreach (string path in _filesToSharePaths)
                 {
@@ -1342,7 +1405,7 @@ namespace PocketDrop
             }
             finally
             {
-                // Unhook to prevent ghost fires, and complete the deferral immediately
+                // Unhook event and complete deferral to prevent ghost fires
                 if (_shareManager != null)
                 {
                     _shareManager.DataRequested -= ShareManager_DataRequested;
@@ -1351,53 +1414,19 @@ namespace PocketDrop
             }
         }
 
-        // --- HELPER: Silently compress mixed items into a temp ZIP ---
-        private async System.Threading.Tasks.Task<string> CreateTempZipFromItemsAsync(List<PocketItem> items)
-        {
-            // Create a unique zip file in the Windows Temp directory
-            string zipName = $"PocketDrop_Share_{DateTime.Now:yyyyMMdd_HHmmss}.zip";
-            string zipPath = Path.Combine(Path.GetTempPath(), zipName);
-
-            // Run the heavy compression on a background thread to keep the UI perfectly smooth!
-            await System.Threading.Tasks.Task.Run(() =>
-            {
-                using (var archive = System.IO.Compression.ZipFile.Open(zipPath, System.IO.Compression.ZipArchiveMode.Create))
-                {
-                    foreach (var item in items)
-                    {
-                        if (Directory.Exists(item.FilePath))
-                        {
-                            // It's a folder: Add the folder recursively
-                            // ✨ THE FIX: We pass item.FileName instead of Path.GetFileName(item.FilePath)
-                            AddDirectoryToZip(archive, item.FilePath, item.FileName);
-                        }
-                        else if (File.Exists(item.FilePath))
-                        {
-                            // It's a standard file: Add it to the root of the zip
-                            // ✨ THE FIX: We use item.FileName to ensure there are no collisions!
-                            archive.CreateEntryFromFile(item.FilePath, item.FileName);
-                        }
-                    }
-                }
-            });
-
-            return zipPath;
-        }
-
-        // --- HELPER: Clean up leftover ZIPs from previous share sessions ---
+        // Clean up leftover ZIPs from previous share sessions
         private void CleanupOldShareZips()
         {
             try
             {
                 string tempPath = Path.GetTempPath();
 
-                // Find all our custom ZIP files in the temp folder
+                // Find all custom ZIP files in the temp folder
                 string[] oldZips = Directory.GetFiles(tempPath, "PocketDrop_Share_*.zip");
 
                 foreach (string zip in oldZips)
                 {
-                    // Extra safety: Only delete ZIPs older than 1 hour 
-                    // to ensure we don't delete something the user is actively sharing!
+                    // Only delete temp ZIPs older than one hour to avoid deleting active shares
                     FileInfo fi = new FileInfo(zip);
                     if (fi.CreationTime < DateTime.Now.AddHours(-1))
                     {
@@ -1407,11 +1436,11 @@ namespace PocketDrop
             }
             catch
             {
-                // Silently ignore any locked files. We will catch them on the next launch! 
+                // Silently ignore any locked files.
             }
         }
 
-        // --- HELPER: Recursively add folder contents to the ZIP ---
+        // Recursively add folder contents to the ZIP
         private void AddDirectoryToZip(System.IO.Compression.ZipArchive archive, string sourceDir, string entryRootName)
         {
             string[] files = Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories);
@@ -1425,150 +1454,45 @@ namespace PocketDrop
             }
         }
 
-        // --- NATIVE EXPLORER HIGHLIGHT API ---
-        [DllImport("shell32.dll", ExactSpelling = true)]
-        private static extern void ILFree(IntPtr pidlList);
-
-        [DllImport("shell32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
-        private static extern IntPtr ILCreateFromPathW(string pszPath);
-
-        // ✨ NEW: Extracts the relative file pointer from an absolute path
-        [DllImport("shell32.dll", ExactSpelling = true)]
-        private static extern IntPtr ILFindLastID(IntPtr pidl);
-
-        [DllImport("shell32.dll", ExactSpelling = true)]
-        private static extern int SHOpenFolderAndSelectItems(IntPtr pidlFolder, uint cidl, [MarshalAs(UnmanagedType.LPArray)] IntPtr[] apidl, uint dwFlags);
-
-        // --- NATIVE WINDOW FOCUS API ---
-        [DllImport("user32.dll")]
-        private static extern bool SetForegroundWindow(IntPtr hWnd);
-
-        // --- MENU ACTION: Compress to ZIP ---
-        private async void Menu_CompressZip_Click(object sender, RoutedEventArgs e)
+        // Silently compress mixed items into a temp ZIP
+        private async System.Threading.Tasks.Task<string> CreateTempZipFromItemsAsync(List<PocketItem> items)
         {
-            // ✨ JUST-IN-TIME CHECK
-            if (AppHelpers.RemoveDeadFiles(PocketedItems))
+            // Create a unique zip file in the Windows Temp directory
+            string zipName = $"PocketDrop_Share_{DateTime.Now:yyyyMMdd_HHmmss}.zip";
+            string zipPath = Path.Combine(Path.GetTempPath(), zipName);
+
+            // Run the heavy compression on a background thread
+            await System.Threading.Tasks.Task.Run(() =>
             {
-                string warningTitle = (string)Application.Current.Resources["Text_FilesMissingTitle"];
-                string warningDesc = (string)Application.Current.Resources["Text_FilesMissingDesc"];
-                MessageBox.Show(warningDesc, warningTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            // 1. Determine what to compress (Selected items, or ALL items if none are selected)
-            var itemsToCompress = (ItemsListBox != null && ItemsListBox.SelectedItems.Count > 0)
-                ? ItemsListBox.SelectedItems.Cast<PocketItem>().ToList()
-                : PocketedItems.ToList();
-
-            if (itemsToCompress.Count == 0) return;
-
-            // 2. Ask the user where they want to save the new ZIP archive
-            Microsoft.Win32.SaveFileDialog saveDialog = new Microsoft.Win32.SaveFileDialog
-            {
-                Title = (string)Application.Current.Resources["Text_SaveZipTitle"],
-                FileName = (string)Application.Current.Resources["Text_SaveZipFileName"],
-                DefaultExt = ".zip",
-                Filter = (string)Application.Current.Resources["Text_SaveZipFilter"]
-            };
-
-            if (saveDialog.ShowDialog() == true)
-            {
-                string zipPath = saveDialog.FileName;
-
-                // 3. Compress in the background so the UI doesn't stutter!
-                await System.Threading.Tasks.Task.Run(() =>
+                using (var archive = System.IO.Compression.ZipFile.Open(zipPath, System.IO.Compression.ZipArchiveMode.Create))
                 {
-                    try
+                    foreach (var item in items)
                     {
-                        // Delete the file if it already exists so we can cleanly overwrite it
-                        if (File.Exists(zipPath)) File.Delete(zipPath);
-
-                        using (FileStream zipToOpen = new FileStream(zipPath, FileMode.Create))
-                        using (ZipArchive archive = new ZipArchive(zipToOpen, ZipArchiveMode.Create))
+                        if (Directory.Exists(item.FilePath))
                         {
-                            foreach (var item in itemsToCompress)
-                            {
-                                if (File.Exists(item.FilePath))
-                                {
-                                    // Add each physical file to the ZIP payload
-                                    archive.CreateEntryFromFile(item.FilePath, item.FileName);
-                                }
-                            }
+                            // Folder: Add the folder recursively
+                            AddDirectoryToZip(archive, item.FilePath, item.FileName);
+                        }
+                        else if (File.Exists(item.FilePath))
+                        {
+                            // Standard file: Add it to the root of the zip
+                            archive.CreateEntryFromFile(item.FilePath, item.FileName);
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Could not create ZIP: {ex.Message}");
-                    }
-                });
-
-                // 4. THE ULTIMATE FIX: Search existing Windows 11 Explorer Tabs!
-                try
-                {
-                    Type shellType = Type.GetTypeFromProgID("Shell.Application");
-                    dynamic shell = Activator.CreateInstance(shellType);
-                    bool windowFound = false;
-
-                    // Convert our standard path (C:\...) to a URI format (file:///C:/...) which Explorer tabs use internally
-                    string targetUri = new Uri(Path.GetDirectoryName(zipPath)).AbsoluteUri;
-
-                    // Check every single currently open Explorer window and tab
-                    foreach (dynamic window in shell.Windows())
-                    {
-                        if (window != null && window.LocationURL != null)
-                        {
-                            string loc = window.LocationURL;
-                            if (loc.Equals(targetUri, StringComparison.OrdinalIgnoreCase))
-                            {
-                                windowFound = true;
-
-                                // Grab the file inside the folder view
-                                dynamic folderView = window.Document;
-                                dynamic fileToSelect = folderView.Folder.ParseName(Path.GetFileName(zipPath));
-
-                                if (fileToSelect != null)
-                                {
-                                    // Selection Flags: 1 (Select) + 4 (Ensure Visible) + 8 (Focus) = 13
-                                    folderView.SelectItem(fileToSelect, 13);
-                                }
-
-                                // Force the existing Explorer window to pop to the front of your screen!
-                                IntPtr hwnd = (IntPtr)window.HWND;
-                                SetForegroundWindow(hwnd);
-                                break;
-                            }
-                        }
-                    }
-
-                    // If no existing tab had that folder open, safely spawn a new one
-                    if (!windowFound)
-                    {
-                        System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{zipPath}\"");
-                    }
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Highlight error: {ex.Message}");
-                    // Safe fallback just in case the COM object fails
-                    System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{zipPath}\"");
-                }
-            }
-            // ✨ THE NEW LOGIC: Close the pocket if the user enabled it!
-            if (App.CloseWhenCompress)
-            {
-                if (ExpandButton != null) ExpandButton.IsChecked = false; // Collapse the popup menu visually
-                ForceClose(); // Safely animate the window away and clean up memory!
-            }
+            });
+
+            return zipPath;
         }
 
-        // --- HELPER: Safely delete temporary files ---
+        // Safely delete temporary files
         private void CleanupTempFile(string filePath)
         {
             try
             {
                 if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
                 {
-                    // SAFETY CHECK: Only delete the file if it lives in the Temp folder!
+                    // Only delete the file if path is within temp folder
                     string tempFolder = Path.GetTempPath();
                     if (filePath.StartsWith(tempFolder, StringComparison.OrdinalIgnoreCase))
                     {
@@ -1582,118 +1506,15 @@ namespace PocketDrop
             }
         }
 
-        // --- NEW: Handle pasting files directly from the Windows Clipboard ---
-        public async void PasteFromClipboard()
-        {
-            try
-            {
-                if (System.Windows.Clipboard.ContainsFileDropList())
-                {
-                    var files = System.Windows.Clipboard.GetFileDropList();
-                    string[] fileArray = new string[files.Count];
-                    files.CopyTo(fileArray, 0);
-
-                    // Loop through the clipboard files and process them exactly like a drag-and-drop!
-                    foreach (string filePath in fileArray)
-                    {
-                        string fileName = Path.GetFileName(filePath);
-
-                        System.Windows.Media.ImageSource fileIcon = await System.Threading.Tasks.Task.Run(() =>
-                        {
-                            try
-                            {
-                                string ext = Path.GetExtension(filePath).ToLower();
-                                string[] imageExts = { ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp" };
-
-                                if (Array.Exists(imageExts, x => x == ext))
-                                {
-                                    System.Windows.Media.Imaging.BitmapImage img = new System.Windows.Media.Imaging.BitmapImage();
-                                    img.BeginInit();
-                                    img.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
-                                    img.CreateOptions = System.Windows.Media.Imaging.BitmapCreateOptions.IgnoreColorProfile;
-                                    img.UriSource = new Uri(filePath);
-                                    img.DecodePixelWidth = 120;
-                                    img.EndInit();
-                                    img.Freeze();
-                                    return img;
-                                }
-                                else
-                                {
-                                    // Handle PDFs, text files, EXEs, etc. using the bug-free Large icon
-                                    Microsoft.WindowsAPICodePack.Shell.ShellObject shellObj = Microsoft.WindowsAPICodePack.Shell.ShellObject.FromParsingName(filePath);
-                                    var thumb = shellObj.Thumbnail.LargeBitmapSource;
-                                    thumb.Freeze();
-                                    return thumb;
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine($"Icon error: {ex.Message}");
-                                return null;
-                            }
-                        });
-
-                        // ✨ THE FIX: Create the item, add it to the pocket, AND save it globally
-                        var newItem = new PocketItem { FileName = fileName, FilePath = filePath, Icon = fileIcon };
-                        PocketedItems.Add(newItem);
-
-                        // ✨ INSTANT SYNC: Save it to the global list the millisecond it pastes!
-                        if (!App.SessionHistory.Exists(x => x.FilePath == newItem.FilePath))
-                        {
-                            App.SessionHistory.Add(newItem);
-                        }
-                    }
-
-                    // Update UI after the items are loaded
-                    StatusText.Visibility = Visibility.Collapsed;
-                    FileIconContainer.Visibility = Visibility.Visible;
-                    UpdateStackPreview();
-
-                    UpdateItemCountDisplay(PocketedItems.Count);
-
-                    // ✨ PING THE WINDOW: Tell the Saved Pockets window to update in real-time!
-                    var openHistoryWindow = Application.Current.Windows.OfType<SavedPocketsWindow>().FirstOrDefault();
-                    if (openHistoryWindow != null)
-                    {
-                        Application.Current.Dispatcher.BeginInvoke(new Action(() =>
-                        {
-                            openHistoryWindow.RefreshHistory();
-                        }));
-                    }
-                }
-                else
-                {
-                    // Optional: Show a localized warning if the clipboard doesn't have files
-                    string emptyDesc = (string)Application.Current.Resources["Text_ClipboardEmpty"];
-                    string emptyTitle = (string)Application.Current.Resources["Text_ClipboardEmptyTitle"];
-                    MessageBox.Show(emptyDesc, emptyTitle, MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Clipboard error: {ex.Message}");
-            }
-        }
-
-        // --- SAFE KILL SWITCH: Clears and closes the window from the outside ---
-        public void ForceClose()
-        {
-            IsGhost = true;
-
-            // ✨ THE FIX: Let HidePocketDrop handle all the cleanup and closing!
-            bool isLastWindow = Application.Current.Windows.OfType<MainWindow>().Count() <= 1;
-            HidePocketDrop(!isLastWindow);
-        }
-
-        // --- NEW: Syncs the pocket UI with the global history ---
+        // Syncs the Pocket UI with the global history
         public void RefreshPocketUI()
         {
-            // 1. Find items in this pocket that no longer exist in the global history
+            // 1. Find items in this Pocket that no longer exist in the global history
             var itemsToRemove = PocketedItems.Where(p => !App.SessionHistory.Exists(h => h.FilePath == p.FilePath)).ToList();
 
-            if (itemsToRemove.Count == 0) return; // Nothing to sync!
+            if (itemsToRemove.Count == 0) return; // Nothing to sync
 
-            // 2. Remove the deleted files from this pocket's local memory
+            // 2. Remove the deleted files from this Pocket's local memory
             foreach (var item in itemsToRemove)
             {
                 PocketedItems.Remove(item);
@@ -1719,13 +1540,13 @@ namespace PocketDrop
             }
             else
             {
-                // If there are still files left, just redraw the card stack!
+                // If there are still files left, just redraw the card stack
                 UpdateStackPreview();
                 UpdateItemCountDisplay(PocketedItems.Count);
             }
         }
 
-        // --- HELPER: Updates text and translates dynamically ---
+        // Updates text and translates dynamically
         private void UpdateItemCountDisplay(int count)
         {
             string translatedItemWord = count == 1
@@ -1744,6 +1565,56 @@ namespace PocketDrop
                 FileIconContainer.Visibility = Visibility.Collapsed;
             }
         }
+
+        // Just-In-Time check for missing files before actions
+        private bool CheckForMissingFiles()
+        {
+            if (AppHelpers.RemoveDeadFiles(PocketedItems))
+            {
+                string warningTitle = (string)Application.Current.Resources["Text_FilesMissingTitle"];
+                string warningDesc = (string)Application.Current.Resources["Text_FilesMissingDesc"];
+                MessageBox.Show(warningDesc, warningTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+                return true;
+            }
+            return false;
+        }
+
+        private async System.Threading.Tasks.Task<System.Windows.Media.ImageSource> LoadFileIconAsync(string filePath)
+        {
+            return await System.Threading.Tasks.Task.Run(() =>
+            {
+                try
+                {
+                    string ext = Path.GetExtension(filePath).ToLower();
+                    string[] imageExts = { ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp" };
+
+                    if (Array.Exists(imageExts, x => x == ext))
+                    {
+                        BitmapImage img = new BitmapImage();
+                        img.BeginInit();
+                        img.CacheOption = BitmapCacheOption.OnLoad;
+                        img.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+                        img.UriSource = new Uri(filePath);
+                        img.DecodePixelWidth = 120;
+                        img.EndInit();
+                        img.Freeze();
+                        return (System.Windows.Media.ImageSource)img;
+                    }
+                    else
+                    {
+                        ShellObject shellObj = ShellObject.FromParsingName(filePath);
+                        var thumb = shellObj.Thumbnail.LargeBitmapSource;
+                        thumb.Freeze();
+                        return (System.Windows.Media.ImageSource)thumb;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Icon error: {ex.Message}");
+                    return null;
+                }
+            });
+        }
     }
 
     // --- The blueprint for a dropped item ---
@@ -1752,7 +1623,6 @@ namespace PocketDrop
         public string FileName { get; set; }
         public string FilePath { get; set; }
         public System.Windows.Media.ImageSource Icon { get; set; }
-
         public bool IsPinned { get; set; }
     }
 }
