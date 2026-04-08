@@ -188,16 +188,30 @@
     <sys:String x:Key="Text_UpdateCheckFailedTitle">Update Check Failed</sys:String>
     <sys:String x:Key="Text_UpdateCheckFailedMsg">Could not connect to the update server. Please check your internet connection and try again.</sys:String>
 
-    <sys:String x:Key="Text_Copyright">Developed by Naofunyan. © 2026&#x0a;Phát hành theo giấy phép GNU GPLv3.</sys:String>
+    <sys:String x:Key="Text_Copyright">Developed by Naofunyan. © 2026&#x0a;Licensed under the GNU GPLv3.</sys:String>
     
-    <sys:String x:Key="Text_PrivacyPolicy">Privacy policy</sys:String>
-    <sys:String x:Key="Text_PrivacyP1">PocketDrop does not collect, store or share your personal information or data. The app only locally accesses user data such as files and folders from the local device, content from the clipboard, and device information in order to make the app function properly. This data is not transmitted, collected, or shared with any third parties.</sys:String>
-    <sys:String x:Key="Text_PrivacyP2">PocketDrop collects anonymous information about crashes and hangs. The information we collect is non-identifiable and does not include any personal data. We do not share collected information with any third parties.</sys:String>
-    <sys:String x:Key="Text_PrivacyP3">We may modify or update this privacy policy from time to time. When we change this policy, we will inform you of such changes by updating the &quot;Effective date&quot; notice. Users should review this privacy policy periodically.</sys:String>
-    <sys:String x:Key="Text_PrivacyDate">Effective date: March 25, 2026</sys:String>
+    <sys:String x:Key="Text_PrivacyPolicy">Privacy Policy</sys:String>
+    <sys:String x:Key="Text_PrivacyP1">PocketDrop is an Open Source app. This app is provided at no cost and is intended for use "as is".</sys:String>
+    <sys:String x:Key="Text_PrivacyP2">PocketDrop does not collect, store, or share your personal information or data. The app accesses certain local data - including files and folders on your device, clipboard contents, and basic device information - solely to provide its core functionality. This data never leaves your device and is not transmitted to, collected by, or shared with any third parties. The only routine network activity the app performs is a standard ping to GitHub to check for new version releases.</sys:String>
+    <sys:String x:Key="Text_PrivacyP3">PocketDrop collects anonymous crash and hang reports to improve app stability. This data is non-identifiable and contains no personal information, and is never shared with third parties.</sys:String>
+    <sys:String x:Key="Text_PrivacyP4">This Privacy Policy may be updated from time to time. You are advised to review this page periodically for any changes.</sys:String>
+    <sys:String x:Key="Text_PrivacyDate">Last updated: April 08, 2026</sys:String>
     
-    <sys:String x:Key="Text_ThirdParty">Third party licenses</sys:String>
+    <sys:String x:Key="Text_ThirdParty">Third-Party Licenses</sys:String>
     <sys:String x:Key="Text_LicenseIntro">PocketDrop is made possible by the following open-source software and assets:</sys:String>
+    
+    <sys:String x:Key="Text_LicenseFeatherIcons">Feather Icons</sys:String>
+    <sys:String x:Key="Text_LicenseFeatherIconsDesc">Copyright (c) 2013-2023 Cole Bemis&#x0a;Licensed under the MIT License.</sys:String>
+
+    <sys:String x:Key="Text_LicenseWindowsApi">Windows API Code Pack</sys:String>
+    <sys:String x:Key="Text_LicenseCSWinRT">CSWinRT (C# / WinRT)</sys:String>
+    <sys:String x:Key="Text_LicenseMicrosoftDesc">Copyright (c) Microsoft Corporation&#x0a;Licensed under the MIT License.</sys:String>
+
+    <sys:String x:Key="Text_LicenseSentry">Sentry .NET SDK</sys:String>
+    <sys:String x:Key="Text_LicenseSentryDesc">Copyright (c) 2008-2024 Functional Software, Inc. dba Sentry&#x0a;Licensed under the MIT License.</sys:String>
+
+    <sys:String x:Key="Text_LicenseMITTitle">The MIT License (MIT)</sys:String>
+    <sys:String x:Key="Text_LicenseMITBody">Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the &quot;Software&quot;), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:&#x0a;&#x0a;The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.&#x0a;&#x0a;THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</sys:String>
     
     <sys:String x:Key="Text_RateReview">Rate and review on the Microsoft Store</sys:String>
     
