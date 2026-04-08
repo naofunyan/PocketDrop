@@ -1,4 +1,12 @@
-﻿using Microsoft.WindowsAPICodePack.Shell;
+﻿// PocketDrop
+// Copyright (C) 2026 Naofunyan
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// any later version.
+
+using Microsoft.WindowsAPICodePack.Shell;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;

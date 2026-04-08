@@ -188,7 +188,7 @@
     <sys:String x:Key="Text_UpdateCheckFailedTitle">Lỗi kiểm tra cập nhật</sys:String>
     <sys:String x:Key="Text_UpdateCheckFailedMsg">Lỗi kết nối máy chủ. Vui lòng kiểm tra kết nối mạng của bạn và thử lại.</sys:String>
 
-    <sys:String x:Key="Text_Copyright">Phát triển bởi Naofunyan. © 2026 Bảo lưu mọi quyền.</sys:String>
+    <sys:String x:Key="Text_Copyright">Phát triển bởi Naofunyan. © 2026&#x0a;Được cấp phép theo GNU GPLv3.</sys:String>
 
     <sys:String x:Key="Text_PrivacyPolicy">Chính sách bảo mật</sys:String>
     <sys:String x:Key="Text_PrivacyP1">PocketDrop không thu thập, lưu trữ hay chia sẻ thông tin hoặc dữ liệu cá nhân của bạn. Ứng dụng chỉ truy cập cục bộ vào dữ liệu người dùng như tệp và thư mục từ thiết bị, nội dung từ clipboard và thông tin thiết bị để đảm bảo ứng dụng hoạt động bình thường. Dữ liệu này không bị truyền đi, thu thập hoặc chia sẻ với bất kỳ bên thứ ba nào.</sys:String>

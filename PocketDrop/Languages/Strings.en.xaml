@@ -188,7 +188,7 @@
     <sys:String x:Key="Text_UpdateCheckFailedTitle">Update Check Failed</sys:String>
     <sys:String x:Key="Text_UpdateCheckFailedMsg">Could not connect to the update server. Please check your internet connection and try again.</sys:String>
 
-    <sys:String x:Key="Text_Copyright">Developed by Naofunyan. © 2026 All rights reserved.</sys:String>
+    <sys:String x:Key="Text_Copyright">Developed by Naofunyan. © 2026&#x0a;Phát hành theo giấy phép GNU GPLv3.</sys:String>
     
     <sys:String x:Key="Text_PrivacyPolicy">Privacy policy</sys:String>
     <sys:String x:Key="Text_PrivacyP1">PocketDrop does not collect, store or share your personal information or data. The app only locally accesses user data such as files and folders from the local device, content from the clipboard, and device information in order to make the app function properly. This data is not transmitted, collected, or shared with any third parties.</sys:String>
