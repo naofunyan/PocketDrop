@@ -127,6 +127,9 @@ namespace PocketDrop
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
+        // Thread-safe Icon Cache to stop memory leaks during mass file drops
+        private static System.Collections.Concurrent.ConcurrentDictionary<string, System.Windows.Media.ImageSource> _iconCache = new System.Collections.Concurrent.ConcurrentDictionary<string, System.Windows.Media.ImageSource>(StringComparer.OrdinalIgnoreCase);
+
 
         // ================================================ //
         // 3. LIFECYCLE (STARTUP & SHUTDOWN)
@@ -1589,14 +1592,34 @@ namespace PocketDrop
 
         private async System.Threading.Tasks.Task<System.Windows.Media.ImageSource> LoadFileIconAsync(string filePath)
         {
+            string ext = Path.GetExtension(filePath).ToLower();
+            string[] imageExts = { ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp" };
+            string[] uniqueIconExts = { ".exe", ".ico", ".lnk", ".pdf",
+                                        ".mp4", ".avi", ".mov", ".wmv", ".mkv",
+                                        ".mp3", ".flac", ".m4a"};
+
+            bool isImage = Array.Exists(imageExts, x => x == ext);
+            bool isUnique = Array.Exists(uniqueIconExts, x => x == ext);
+            bool isDirectory = Directory.Exists(filePath);
+
+            // Use a special key for folders, otherwise use the file extension
+            string cacheKey = isDirectory ? "folder_icon" : ext;
+
+            // 1. CHECK THE CACHE FIRST (Skip for actual images and unique executables)
+            if (!isImage && !isUnique)
+            {
+                if (_iconCache.TryGetValue(cacheKey, out var cachedIcon))
+                {
+                    return cachedIcon; // Instant return, 0 CPU used!
+                }
+            }
+
+            // 2. IF NOT IN CACHE, ASK WINDOWS TO EXTRACT IT
             return await System.Threading.Tasks.Task.Run(() =>
             {
                 try
                 {
-                    string ext = Path.GetExtension(filePath).ToLower();
-                    string[] imageExts = { ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp" };
-
-                    if (Array.Exists(imageExts, x => x == ext))
+                    if (isImage)
                     {
                         BitmapImage img = new BitmapImage();
                         img.BeginInit();
@@ -1612,7 +1635,16 @@ namespace PocketDrop
                     {
                         ShellObject shellObj = ShellObject.FromParsingName(filePath);
                         var thumb = shellObj.Thumbnail.LargeBitmapSource;
+
+                        // Freezing the thumbnail allows it to be safely shared across the UI
                         thumb.Freeze();
+
+                        // 3. SAVE TO CACHE FOR NEXT TIME
+                        if (!isUnique)
+                        {
+                            _iconCache.TryAdd(cacheKey, thumb);
+                        }
+
                         return (System.Windows.Media.ImageSource)thumb;
                     }
                 }
