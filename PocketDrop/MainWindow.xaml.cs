@@ -132,6 +132,9 @@ namespace PocketDrop
         // Idle timer to trigger aggressive memory cleanup
         private DispatcherTimer _idleMemoryTimer;
 
+        // Prevents infinite loops when syncing the "Select All" checkbox with the list
+        private bool _isUpdatingSelectAll = false;
+
         // ================================================ //
         // 3. LIFECYCLE (STARTUP & SHUTDOWN)
         // ================================================ //
@@ -835,12 +838,16 @@ namespace PocketDrop
         // Select-all logic
         private void SelectAll_Checked(object sender, RoutedEventArgs e)
         {
+            if (_isUpdatingSelectAll) return; // Ignore if triggered by code
+
             if (ItemsListBox != null)
                 ItemsListBox.SelectAll();
         }
 
         private void SelectAll_Unchecked(object sender, RoutedEventArgs e)
         {
+            if (_isUpdatingSelectAll) return; // Ignore if triggered by code
+
             if (ItemsListBox != null)
                 ItemsListBox.UnselectAll();
         }
@@ -849,6 +856,24 @@ namespace PocketDrop
         private void ItemsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             int selectedCount = ItemsListBox.SelectedItems.Count;
+            int totalCount = PocketedItems.Count;
+
+            if (SelectAllCheckBox != null)
+            {
+                _isUpdatingSelectAll = true; // Lock the events
+
+                if (selectedCount == 0 || selectedCount < totalCount)
+                {
+                    SelectAllCheckBox.IsChecked = false; // Uncheck when not all items are selected
+                }
+                else if (selectedCount == totalCount && totalCount > 0)
+                {
+                    SelectAllCheckBox.IsChecked = true; // Check whether the user has manually selected all items
+                }
+
+                _isUpdatingSelectAll = false; // Unlock the events
+            }
+            // ----------------------
 
             if (selectedCount > 0)
             {
