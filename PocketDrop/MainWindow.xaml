@@ -42,7 +42,7 @@
         <ControlTemplate x:Key="MoreButtonTemplate" TargetType="Button">
             <Grid Background="Transparent">
                 <Border CornerRadius="12" Background="{DynamicResource IconHaloBackground}" />
-                <Viewbox Width="14" Height="14" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,1,0,0">
+                <Viewbox Width="20" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0.3,0">
                     <Canvas Width="24" Height="24">
                         <Path Fill="{DynamicResource TextSecondary}" Data="M5,10 a2,2 0 1,1 0,4 a2,2 0 1,1 0,-4 z M12,10 a2,2 0 1,1 0,4 a2,2 0 1,1 0,-4 z M19,10 a2,2 0 1,1 0,4 a2,2 0 1,1 0,-4 z"/>
                     </Canvas>
@@ -179,22 +179,22 @@
 
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="36"/>
+                    <RowDefinition Height="40"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <Grid Grid.Row="0" x:Name="TopBar" Background="Transparent" MouseLeftButtonDown="TopBar_MouseLeftButtonDown">
 
-                    <Rectangle x:Name="DragHandle" Width="32" Height="4" RadiusX="2" RadiusY="2" Fill="{DynamicResource TextSecondary}" Opacity="0.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <Rectangle x:Name="DragHandle" Width="32" Height="5" RadiusX="2" RadiusY="2" Fill="{DynamicResource TextSecondary}" Opacity="0.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
-                    <Grid HorizontalAlignment="Left" VerticalAlignment="Center" Margin="6,0,0,0" Width="24" Height="24">
+                    <Grid HorizontalAlignment="Left" VerticalAlignment="Center" Margin="6,0,0,0" Width="26" Height="26">
                         <Border CornerRadius="12" Background="{DynamicResource IconHaloBackground}" />
-                        <TextBlock x:Name="CloseButton" Text="✕" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-                                   TextAlignment="Center" Padding="0,4,0,0" Cursor="Hand" Background="Transparent" MouseLeftButtonDown="CloseButton_Click"/>
+                        <TextBlock x:Name="CloseButton" Text="✕" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                   TextAlignment="Center" Padding="0,4,1,0" Cursor="Hand" Background="Transparent" MouseLeftButtonDown="CloseButton_Click"/>
                     </Grid>
 
-                    <Button x:Name="MoreButton" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,6,0" Width="24" Height="24" Cursor="Hand" 
+                    <Button x:Name="MoreButton" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,6,0" Width="26" Height="26" Cursor="Hand" 
                             Click="MoreButton_Click" Template="{StaticResource MoreButtonTemplate}">
                         <Button.ContextMenu>
                             <ContextMenu Style="{StaticResource PocketContextMenuStyle}" FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13" Foreground="{DynamicResource TextPrimary}">
