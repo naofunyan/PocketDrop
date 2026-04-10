@@ -127,9 +127,10 @@ namespace PocketDrop
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
-        // Thread-safe Icon Cache to stop memory leaks during mass file drops
+        // Thread-safe icon cache to prevent memory leaks during mass file drops
         private static System.Collections.Concurrent.ConcurrentDictionary<string, System.Windows.Media.ImageSource> _iconCache = new System.Collections.Concurrent.ConcurrentDictionary<string, System.Windows.Media.ImageSource>(StringComparer.OrdinalIgnoreCase);
-
+        // Idle timer to trigger aggressive memory cleanup
+        private DispatcherTimer _idleMemoryTimer;
 
         // ================================================ //
         // 3. LIFECYCLE (STARTUP & SHUTDOWN)
@@ -152,8 +153,24 @@ namespace PocketDrop
                     _hookHandle = SetWindowsHookEx(WH_MOUSE_LL, _hookProc, GetModuleHandle(mod.ModuleName), 0);
             }
 
-            // Clean up heavy temp files from previous sessions!
+            // Clean up heavy temp files from previous sessions
             System.Threading.Tasks.Task.Run(() => CleanupOldShareZips());
+
+            // Setup the Idle Timer
+            _idleMemoryTimer = new DispatcherTimer();
+            _idleMemoryTimer.Interval = TimeSpan.FromSeconds(10);
+            _idleMemoryTimer.Tick += (s, e) =>
+            {
+                _idleMemoryTimer.Stop(); // Stop the timer
+
+                // Force the garbage collection
+                System.Threading.Tasks.Task.Run(() =>
+                {
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                    GC.Collect();
+                });
+            };
         }
 
         protected override void OnClosed(EventArgs e)
@@ -261,6 +278,7 @@ namespace PocketDrop
                     if (ItemsListBox == null || ItemsListBox.SelectedItems.Count == 0)
                     {
                         UpdateItemCountDisplay(PocketedItems.Count);
+                        ResetIdleMemoryTimer();
                     }
                 }
             }
@@ -1227,9 +1245,11 @@ namespace PocketDrop
             PocketedItems.Clear();
             StackContainer.Children.Clear();
             UpdateItemCountDisplay(0);
+            ResetIdleMemoryTimer();
 
             if (SelectAllCheckBox != null)
                 SelectAllCheckBox.IsChecked = false;
+
         }
 
         // Menu action: Settings
@@ -1654,6 +1674,13 @@ namespace PocketDrop
                     return null;
                 }
             });
+        }
+
+        // Call whenever the user performs an action to reset the 10-second countdown
+        private void ResetIdleMemoryTimer()
+        {
+            _idleMemoryTimer.Stop();
+            _idleMemoryTimer.Start();
         }
     }
 
