@@ -9,7 +9,7 @@
     <SolidColorBrush x:Key="StrokeControlDefault" Color="#29000000"/>
 
     <SolidColorBrush x:Key="TextPrimary" Color="#FF1A1A1A"/>
-    <SolidColorBrush x:Key="TextSecondary" Color="#CC3B3B3B"/>
+    <SolidColorBrush x:Key="TextSecondary" Color="#FF1A1A1A"/>
     <SolidColorBrush x:Key="AccentDefault" Color="#0078D4"/>
 
     <SolidColorBrush x:Key="IconHaloBackground" Color="#0F000000"/>

@@ -135,6 +135,9 @@ namespace PocketDrop
         // Prevents infinite loops when syncing the "Select All" checkbox with the list
         private bool _isUpdatingSelectAll = false;
 
+        // Shield to prevent the More Menu from instantly reopening itself
+        private long _lastMoreMenuCloseTime = 0;
+
         // ================================================ //
         // 3. LIFECYCLE (STARTUP & SHUTDOWN)
         // ================================================ //
@@ -174,6 +177,23 @@ namespace PocketDrop
                     GC.Collect();
                 });
             };
+
+            // ==========================================
+            // NEW FIX: Synchronously trap the exact moment the menu closes
+            // Bypasses the WPF fade-out animation delay!
+            // ==========================================
+            if (MoreButton.ContextMenu != null)
+            {
+                var dpd = System.ComponentModel.DependencyPropertyDescriptor.FromProperty(ContextMenu.IsOpenProperty, typeof(ContextMenu));
+                dpd.AddValueChanged(MoreButton.ContextMenu, (s, e) =>
+                {
+                    // The exact microsecond the menu is told to close, update the shield!
+                    if (MoreButton.ContextMenu.IsOpen == false)
+                    {
+                        _lastMoreMenuCloseTime = Environment.TickCount64;
+                    }
+                });
+            }
         }
 
         protected override void OnClosed(EventArgs e)
@@ -254,7 +274,7 @@ namespace PocketDrop
                         }
                         catch
                         {
-                            continue; // If we can't even read the file size (strict lock), skip it safely!
+                            continue; // If we can't even read the file size (strict lock), skip it
                         }
 
                         // Scenario 3: Auto-rename if the name is taken, but the path is different
@@ -405,11 +425,101 @@ namespace PocketDrop
         // Track click to prepare file drag-out
         private void Window_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            // Ignore drag initiation on UI control clicks
-            if (e.Source == CloseButton || e.Source == ExpandButton || e.Source == TopBar || e.Source == DragHandle)
-                return;
+            Point pos = e.GetPosition(this); // Get exact mouse coordinates relative to the window
 
-            startPoint = e.GetPosition(null); // Record the exact start point
+            // ==========================================
+            // 1. MORE BUTTON LOGIC
+            // ==========================================
+            if (IsPointOver(MoreButton, pos))
+            {
+                // 1. Close Expand popup if it's open
+                if (ExpandButton != null && ExpandButton.IsChecked == true)
+                {
+                    ExpandButton.IsChecked = false;
+                }
+
+                // 2. THE SHIELD: If the menu closed less than 200 milliseconds ago, ignore this click!
+                if (Environment.TickCount64 - _lastMoreMenuCloseTime < 200)
+                {
+                    e.Handled = true; // Destroy the ghost click!
+                    return;
+                }
+
+                // 3. Manually toggle the More Menu
+                if (MoreButton.ContextMenu != null)
+                {
+                    if (MoreButton.ContextMenu.IsOpen)
+                    {
+                        MoreButton.ContextMenu.IsOpen = false;
+                    }
+                    else
+                    {
+                        MoreButton_Click(MoreButton, new RoutedEventArgs());
+                    }
+                }
+
+                e.Handled = true;
+                return;
+            }
+
+            // ==========================================
+            // 2. EXPAND BUTTON LOGIC
+            // ==========================================
+            if (IsPointOver(ExpandButton, pos))
+            {
+                // If the Expand popup is ALREADY open, close it and swallow the click!
+                if (ExpandButton.IsChecked == true)
+                {
+                    ExpandButton.IsChecked = false;
+                    e.Handled = true; // Destroy the click so the ToggleButton doesn't get stuck
+                    return;
+                }
+
+                return; // Abort drag preparation
+            }
+
+            // ==========================================
+            // 3. OTHER UI ELEMENTS
+            // ==========================================
+            if (IsPointOver(CloseButton, pos) ||
+                IsPointOver(TopBar, pos) ||
+                IsPointOver(DragHandle, pos))
+            {
+                return; // Abort drag preparation!
+            }
+
+            // 4. Fallback: Check the visual tree for the Delete button (inside the popup)
+            DependencyObject hit = e.OriginalSource as DependencyObject;
+            while (hit != null)
+            {
+                if (hit == DeleteSelectedButton || hit is System.Windows.Controls.Primitives.ScrollBar) return;
+
+                hit = (hit is Visual || hit is System.Windows.Media.Media3D.Visual3D)
+                    ? VisualTreeHelper.GetParent(hit)
+                    : LogicalTreeHelper.GetParent(hit);
+            }
+
+            // If we survived all checks, they clicked an empty space or a file. Safe to drag!
+            startPoint = pos;
+        }
+
+        // Helper method to mathematically check if the mouse is inside a UI element's bounding box
+        private bool IsPointOver(FrameworkElement element, Point windowPos)
+        {
+            if (element == null || !element.IsVisible) return false;
+
+            try
+            {
+                // Calculate the exact mathematical bounding box of the element on the window
+                GeneralTransform transform = element.TransformToAncestor(this);
+                Rect bounds = transform.TransformBounds(new Rect(0, 0, element.ActualWidth, element.ActualHeight));
+                return bounds.Contains(windowPos);
+            }
+            catch
+            {
+                // Safely fail if the element is inside a Popup (which lives in a separate window layer)
+                return false;
+            }
         }
 
         // Reset drag state on mouse release
