@@ -135,7 +135,7 @@ namespace PocketDrop
         // Prevents infinite loops when syncing the "Select All" checkbox with the list
         private bool _isUpdatingSelectAll = false;
 
-        // Shield to prevent the More Menu from instantly reopening itself
+        // Guard to prevent the More Menu from instantly reopening after closing
         private long _lastMoreMenuCloseTime = 0;
 
         // ================================================ //
@@ -178,10 +178,7 @@ namespace PocketDrop
                 });
             };
 
-            // ==========================================
-            // NEW FIX: Synchronously trap the exact moment the menu closes
-            // Bypasses the WPF fade-out animation delay!
-            // ==========================================
+            // Synchronously capture the exact moment the menu closes, bypassing WPF's fade-out animation delay
             if (MoreButton.ContextMenu != null)
             {
                 var dpd = System.ComponentModel.DependencyPropertyDescriptor.FromProperty(ContextMenu.IsOpenProperty, typeof(ContextMenu));
@@ -427,21 +424,19 @@ namespace PocketDrop
         {
             Point pos = e.GetPosition(this); // Get exact mouse coordinates relative to the window
 
-            // ==========================================
-            // 1. MORE BUTTON LOGIC
-            // ==========================================
+            // 1. More button logic
             if (IsPointOver(MoreButton, pos))
             {
-                // 1. Close Expand popup if it's open
+                // 1. Close expand Detail view if it's open
                 if (ExpandButton != null && ExpandButton.IsChecked == true)
                 {
                     ExpandButton.IsChecked = false;
                 }
 
-                // 2. THE SHIELD: If the menu closed less than 200 milliseconds ago, ignore this click!
+                // 2. If the menu closed less than 200 milliseconds ago, ignore this click
                 if (Environment.TickCount64 - _lastMoreMenuCloseTime < 200)
                 {
-                    e.Handled = true; // Destroy the ghost click!
+                    e.Handled = true; // Destroy the ghost click
                     return;
                 }
 
@@ -462,12 +457,10 @@ namespace PocketDrop
                 return;
             }
 
-            // ==========================================
-            // 2. EXPAND BUTTON LOGIC
-            // ==========================================
+            // 2. Expand Detail view logic
             if (IsPointOver(ExpandButton, pos))
             {
-                // If the Expand popup is ALREADY open, close it and swallow the click!
+                // If the Expand popup is already open, close it and swallow the click
                 if (ExpandButton.IsChecked == true)
                 {
                     ExpandButton.IsChecked = false;
@@ -478,14 +471,12 @@ namespace PocketDrop
                 return; // Abort drag preparation
             }
 
-            // ==========================================
-            // 3. OTHER UI ELEMENTS
-            // ==========================================
+            // 3. Other UI elements
             if (IsPointOver(CloseButton, pos) ||
                 IsPointOver(TopBar, pos) ||
                 IsPointOver(DragHandle, pos))
             {
-                return; // Abort drag preparation!
+                return; // Abort drag preparation
             }
 
             // 4. Fallback: Check the visual tree for the Delete button (inside the popup)
@@ -499,11 +490,11 @@ namespace PocketDrop
                     : LogicalTreeHelper.GetParent(hit);
             }
 
-            // If we survived all checks, they clicked an empty space or a file. Safe to drag!
+            // If all checks pass, the click is on empty space or a file — safe to drag
             startPoint = pos;
         }
 
-        // Helper method to mathematically check if the mouse is inside a UI element's bounding box
+        // Helper to check if the mouse is within a UI element's bounding box
         private bool IsPointOver(FrameworkElement element, Point windowPos)
         {
             if (element == null || !element.IsVisible) return false;

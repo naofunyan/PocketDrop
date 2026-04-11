@@ -186,6 +186,8 @@ namespace PocketDrop
                     ItemsLayoutMode = Convert.ToInt32(key.GetValue("ItemsLayoutMode", 0));
                     CloseWhenEmptied = Convert.ToBoolean(key.GetValue("CloseWhenEmptied", true));
                     CloseWhenOpenWith = Convert.ToBoolean(key.GetValue("CloseWhenOpenWith", false));
+                    CloseWhenShare = Convert.ToBoolean(key.GetValue("CloseWhenShare", true));
+                    CloseWhenCompress = Convert.ToBoolean(key.GetValue("CloseWhenCompress", false));
                     AppTheme = Convert.ToInt32(key.GetValue("AppTheme", 0));
                     AppLanguage = key.GetValue("AppLanguage", "English").ToString();
                 }
@@ -214,6 +216,8 @@ namespace PocketDrop
                     key.SetValue("ItemsLayoutMode", ItemsLayoutMode);
                     key.SetValue("CloseWhenEmptied", CloseWhenEmptied);
                     key.SetValue("CloseWhenOpenWith", CloseWhenOpenWith);
+                    key.SetValue("CloseWhenShare", CloseWhenShare);
+                    key.SetValue("CloseWhenCompress", CloseWhenCompress);
                     key.SetValue("AppTheme", AppTheme);
                     key.SetValue("AppLanguage", AppLanguage);
                 }

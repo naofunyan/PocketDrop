@@ -222,7 +222,7 @@
 
                 <Canvas Grid.RowSpan="3" ClipToBounds="True" IsHitTestVisible="False" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
 
-                    <Ellipse Width="150" Height="150" Fill="#EA5B6F" Opacity="0.25" Canvas.Left="-30" Canvas.Top="-30">
+                    <Ellipse Width="150" Height="150" Fill="#EA5B6F" Opacity="0.23" Canvas.Left="-30" Canvas.Top="-30">
                         <Ellipse.Effect>
                             <BlurEffect Radius="25" RenderingBias="Performance"/>
                         </Ellipse.Effect>
@@ -231,7 +231,7 @@
                         </Ellipse.RenderTransform>
                     </Ellipse>
 
-                    <Ellipse Width="120" Height="120" Fill="#77BEF0" Opacity="0.25" Canvas.Right="-20" Canvas.Bottom="-20">
+                    <Ellipse Width="120" Height="120" Fill="#77BEF0" Opacity="0.23" Canvas.Right="-20" Canvas.Bottom="-20">
                         <Ellipse.Effect>
                             <BlurEffect Radius="25" RenderingBias="Performance"/>
                         </Ellipse.Effect>
