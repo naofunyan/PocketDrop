@@ -100,6 +100,8 @@ namespace PocketDrop
         private static ShakeDetector _shakeDetector = new ShakeDetector();
         private static bool _leftButtonHeld = false;
         private static bool _hasSpawnedPocketThisDrag = false;
+        private static bool _cachedGameModeStatus = false;
+        private static bool _cachedForegroundAppExcluded = false;
 
         // Core Data
         // Holds multiple items and updates the UI automatically
@@ -1504,6 +1506,13 @@ namespace PocketDrop
                 {
                     _leftButtonHeld = true;
                     _hasSpawnedPocketThisDrag = false;
+                    // ==========================================
+                    // THE FIX: Do the heavy lifting EXACTLY ONCE when the click starts!
+                    // ==========================================
+                    if (App.DisableInGameMode)
+                        _cachedGameModeStatus = AppHelpers.IsGameModeActive();
+
+                    _cachedForegroundAppExcluded = AppHelpers.IsForegroundAppExcluded();
                 }
                 else if (msg == WM_LBUTTONUP)
                 {
@@ -1513,9 +1522,13 @@ namespace PocketDrop
                 {
                     // 1. Check all user settings before doing math
                     if (!App.EnableMouseShake) goto done;
-                    if (App.DisableInGameMode && AppHelpers.IsGameModeActive()) goto done;
-                    if (AppHelpers.IsForegroundAppExcluded()) goto done;
-                    if (_hasSpawnedPocketThisDrag) goto done; // Don't spawn duplicates
+
+                    // ==========================================
+                    // THE FIX: Read the cached variables. 0 milliseconds of CPU time!
+                    // ==========================================
+                    if (App.DisableInGameMode && _cachedGameModeStatus) goto done;
+                    if (_cachedForegroundAppExcluded) goto done;
+                    if (_hasSpawnedPocketThisDrag) goto done;
 
                     // 2. Pass raw coordinates to decoupled placement logic
                     bool isShaking = _shakeDetector.CheckForShake(
