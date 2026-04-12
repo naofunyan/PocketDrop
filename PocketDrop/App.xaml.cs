@@ -350,9 +350,6 @@ namespace PocketDrop
             // 5. Tell WPF to listen for global Windows messages
             System.Windows.Interop.ComponentDispatcher.ThreadPreprocessMessage += ComponentDispatcher_ThreadPreprocessMessage;
 
-            // 6. Run the update check silently in the background
-            await CheckForUpdatesOnStartup();
-
 
             // Tray System - Load the text before adding to the menu
             UpdateTrayMenuLanguage();
@@ -413,6 +410,12 @@ namespace PocketDrop
                     SetForegroundWindow(hwnd);
                 }
             };
+
+            // ==========================================
+            // THE FIX: Fire-and-Forget Network Call
+            // Runs silently in the background AFTER the tray icon has instantly appeared!
+            // ==========================================
+            _ = CheckForUpdatesOnStartup();
         }
 
         // Background Update check

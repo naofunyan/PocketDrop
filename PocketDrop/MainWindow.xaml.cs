@@ -134,8 +134,6 @@ namespace PocketDrop
         // Limits icon extraction to 4 concurrent threads to protect the OS
         // ==========================================
         private static readonly System.Threading.SemaphoreSlim _iconThrottle = new System.Threading.SemaphoreSlim(4, 4);
-        // Idle timer to trigger aggressive memory cleanup
-        private DispatcherTimer _idleMemoryTimer;
 
         // Prevents infinite loops when syncing the "Select All" checkbox with the list
         private bool _isUpdatingSelectAll = false;
@@ -166,22 +164,6 @@ namespace PocketDrop
 
             // Clean up heavy temp files from previous sessions
             System.Threading.Tasks.Task.Run(() => CleanupOldShareZips());
-
-            // Setup the Idle Timer
-            _idleMemoryTimer = new DispatcherTimer();
-            _idleMemoryTimer.Interval = TimeSpan.FromSeconds(10);
-            _idleMemoryTimer.Tick += (s, e) =>
-            {
-                _idleMemoryTimer.Stop(); // Stop the timer
-
-                // Force the garbage collection
-                System.Threading.Tasks.Task.Run(() =>
-                {
-                    GC.Collect();
-                    GC.WaitForPendingFinalizers();
-                    GC.Collect();
-                });
-            };
 
             // Synchronously capture the exact moment the menu closes, bypassing WPF's fade-out animation delay
             if (MoreButton.ContextMenu != null)
@@ -253,39 +235,42 @@ namespace PocketDrop
 
                 if (droppedFiles != null && droppedFiles.Length > 0)
                 {
-                    foreach (string filePath in droppedFiles)
+                    // ==========================================
+                    // THE FIX: Fire all tasks concurrently!
+                    // ==========================================
+                    var processingTasks = droppedFiles.Select(async filePath =>
                     {
                         // Scenario 1: Skip file if exact path already exists in Pocket
-                        if (AppHelpers.IsDuplicate(PocketedItems, filePath))
-                        {
-                            continue;
-                        }
+                        if (AppHelpers.IsDuplicate(PocketedItems, filePath)) return null;
 
-                        // Scenario 2: Reject 0-byte files (corrupted, empty, or currently downloading)
+                        // Scenario 2: Reject 0-byte files
                         try
                         {
                             if (File.Exists(filePath))
                             {
                                 FileInfo fi = new FileInfo(filePath);
-                                if (fi.Length == 0)
-                                {
-                                    Console.WriteLine($"Skipped 0-byte file: {filePath}");
-                                    continue; // Skip processing this file entirely
-                                }
+                                if (fi.Length == 0) return null;
                             }
                         }
-                        catch
-                        {
-                            continue; // If we can't even read the file size (strict lock), skip it
-                        }
+                        catch { return null; }
 
                         // Scenario 3: Auto-rename if the name is taken, but the path is different
                         string finalDisplayName = AppHelpers.GetSafeDisplayName(PocketedItems, filePath);
 
+                        // This hits the Bouncer!
                         System.Windows.Media.ImageSource fileIcon = await LoadFileIconAsync(filePath);
 
-                        // Create item using resolved display name
-                        var newItem = new PocketItem { FileName = finalDisplayName, FilePath = filePath, Icon = fileIcon };
+                        return new PocketItem { FileName = finalDisplayName, FilePath = filePath, Icon = fileIcon };
+                    });
+
+                    // Wait for ALL files to finish extracting their icons (Governed perfectly by the Semaphore!)
+                    var processedItems = await System.Threading.Tasks.Task.WhenAll(processingTasks);
+
+                    // Add them safely to the UI thread all at once
+                    foreach (var newItem in processedItems)
+                    {
+                        if (newItem == null) continue;
+
                         PocketedItems.Add(newItem);
 
                         // Sync dropped file to global list immediately on drop
@@ -303,7 +288,6 @@ namespace PocketDrop
                     if (ItemsListBox == null || ItemsListBox.SelectedItems.Count == 0)
                     {
                         UpdateItemCountDisplay(PocketedItems.Count);
-                        ResetIdleMemoryTimer();
                     }
                 }
             }
@@ -375,15 +359,22 @@ namespace PocketDrop
                     string[] fileArray = new string[files.Count];
                     files.CopyTo(fileArray, 0);
 
-                    // Loop through the clipboard files and process the same as drag-and-drop
-                    foreach (string filePath in fileArray)
+                    // ==========================================
+                    // THE FIX: Concurrent Clipboard Pasting!
+                    // ==========================================
+                    var processingTasks = fileArray.Select(async filePath =>
                     {
                         string fileName = Path.GetFileName(filePath);
-
                         System.Windows.Media.ImageSource fileIcon = await LoadFileIconAsync(filePath);
+                        return new PocketItem { FileName = fileName, FilePath = filePath, Icon = fileIcon };
+                    });
 
-                        // Create item, add to pocket, and sync to global list
-                        var newItem = new PocketItem { FileName = fileName, FilePath = filePath, Icon = fileIcon };
+                    // Wait for the Bouncer to process them all
+                    var processedItems = await System.Threading.Tasks.Task.WhenAll(processingTasks);
+
+                    // Add them to the UI securely
+                    foreach (var newItem in processedItems)
+                    {
                         PocketedItems.Add(newItem);
 
                         // Sync pasted file to global list immediately on paste
@@ -846,13 +837,6 @@ namespace PocketDrop
 
                 if (PopupCountText != null) PopupCountText.Text = "0 Items";
                 if (SelectAllCheckBox != null) SelectAllCheckBox.IsChecked = false;
-
-                System.Threading.Tasks.Task.Run(() =>
-                {
-                    GC.Collect();
-                    GC.WaitForPendingFinalizers();
-                    GC.Collect();
-                });
 
                 // Destroy window after hide animation completes
                 if (closeWindow)
@@ -1410,7 +1394,6 @@ namespace PocketDrop
             PocketedItems.Clear();
             StackContainer.Children.Clear();
             UpdateItemCountDisplay(0);
-            ResetIdleMemoryTimer();
 
             if (SelectAllCheckBox != null)
                 SelectAllCheckBox.IsChecked = false;
@@ -1862,13 +1845,6 @@ namespace PocketDrop
                 // Always release the throttle so the next file can enter!
                 _iconThrottle.Release();
             }
-        }
-
-        // Call whenever the user performs an action to reset the 10-second countdown
-        private void ResetIdleMemoryTimer()
-        {
-            _idleMemoryTimer.Stop();
-            _idleMemoryTimer.Start();
         }
 
         // Helper to safely find the hidden ScrollViewer inside WPF ListBoxes
