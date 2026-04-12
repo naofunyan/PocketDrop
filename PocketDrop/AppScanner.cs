@@ -29,19 +29,21 @@ namespace PocketDrop
         // Scan Windows Registry to find all installed applications and their executable paths.
         public static List<AppItem> GetInstalledApps()
         {
-            var appList = new List<AppItem>();
+            // ==========================================
+            // PHASE 1: FAST SEQUENTIAL REGISTRY SCAN
+            // ==========================================
+            var rawApps = new List<(string Name, string Path)>();
             var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             string[] registryKeys = new string[]
             {
-                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall", // Standard 64-bit apps
-                @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall", // Standard 32-bit apps
-                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" // Current User specific apps
+        @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall", // Standard 64-bit apps
+        @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall", // Standard 32-bit apps
+        @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" // Current User specific apps
             };
 
             foreach (var keyPath in registryKeys)
             {
-                // Check LocalMachine (All Users) and CurrentUser (Just this user)
                 RegistryKey baseKey = keyPath == registryKeys[2] ? Registry.CurrentUser : Registry.LocalMachine;
 
                 using (RegistryKey key = baseKey.OpenSubKey(keyPath))
@@ -58,38 +60,50 @@ namespace PocketDrop
                             string displayIcon = subkey.GetValue("DisplayIcon") as string;
                             string installLocation = subkey.GetValue("InstallLocation") as string;
 
-                            // Strip quotes and icon index from registry icon path
                             string exePath = CleanExePath(displayIcon);
 
-                            // Fallback to InstallLocation exe if DisplayIcon is not an exe
                             if (string.IsNullOrEmpty(exePath) && !string.IsNullOrEmpty(installLocation) && Directory.Exists(installLocation))
                             {
                                 exePath = Directory.GetFiles(installLocation, "*.exe").FirstOrDefault();
                             }
 
-                            // Skip invalid or duplicate exe entries
                             if (!string.IsNullOrEmpty(exePath) && File.Exists(exePath) && !seenPaths.Contains(exePath))
                             {
-                                // Fallback to filename if app display name is missing
                                 if (string.IsNullOrEmpty(displayName))
                                     displayName = Path.GetFileNameWithoutExtension(exePath);
 
                                 seenPaths.Add(exePath);
 
-                                appList.Add(new AppItem
-                                {
-                                    AppName = displayName,
-                                    ExePath = exePath,
-                                    AppIcon = GetIconFromExe(exePath),
-                                    IsSelected = false
-                                });
+                                // Just save the raw strings for now! No slow icon extraction yet.
+                                rawApps.Add((displayName, exePath));
                             }
                         }
                     }
                 }
             }
+
+            // ==========================================
+            // PHASE 2: SLOW PARALLEL ICON EXTRACTION
+            // ==========================================
+            // Use a thread-safe ConcurrentBag because multiple CPU cores will add items to this at the exact same time
+            var concurrentAppList = new System.Collections.Concurrent.ConcurrentBag<AppItem>();
+
+            Parallel.ForEach(rawApps, rawApp =>
+            {
+                concurrentAppList.Add(new AppItem
+                {
+                    AppName = rawApp.Name,
+                    ExePath = rawApp.Path,
+
+                    // This slow task now runs on 8 to 16 threads concurrently!
+                    AppIcon = GetIconFromExe(rawApp.Path),
+
+                    IsSelected = false
+                });
+            });
+
             // Sort app list alphabetically before returning
-            return appList.OrderBy(a => a.AppName).ToList();
+            return concurrentAppList.OrderBy(a => a.AppName).ToList();
         }
 
 
