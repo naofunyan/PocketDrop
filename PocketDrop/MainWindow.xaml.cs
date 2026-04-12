@@ -315,8 +315,10 @@ namespace PocketDrop
                         string fileName = $"{domain} Link_{DateTime.Now.Ticks}.url";
                         string filePath = Path.Combine(tempFolder, fileName);
 
-                        // Generate physical shortcut file on URL drop
-                        File.WriteAllText(filePath, $"[InternetShortcut]\nURL={droppedText}");
+                        // ==========================================
+                        // THE FIX: Use sanitized AbsoluteUri to prevent CRLF / NTLM Injection!
+                        // ==========================================
+                        File.WriteAllText(filePath, $"[InternetShortcut]\nURL={uriResult.AbsoluteUri}");
 
                         ShellObject shellObj = ShellObject.FromParsingName(filePath);
 
