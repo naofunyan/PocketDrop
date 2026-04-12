@@ -7,6 +7,7 @@
 // any later version.
 
 using Microsoft.Win32;
+using Sentry;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -16,7 +17,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Input;
-using Sentry;
+using static PocketDrop.AppHelpers;
 
 namespace PocketDrop
 {
@@ -28,7 +29,7 @@ namespace PocketDrop
         // ================================================ //
 
         // Global master list to hold every file dropped during this session
-        public static List<PocketItem> SessionHistory = new List<PocketItem>();
+        public static ObservableRangeCollection<PocketItem> SessionHistory = new ObservableRangeCollection<PocketItem>();
 
         // Global flag so the rest of the app knows an update is waiting
         public static bool UpdateAvailable = false;

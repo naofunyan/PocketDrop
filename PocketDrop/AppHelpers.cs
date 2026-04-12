@@ -414,5 +414,26 @@ namespace PocketDrop
 
             return false;
         }
+
+        // ================================================ //
+        // 10. High-Performance UI Collection
+        // ================================================ //
+        public class ObservableRangeCollection<T> : System.Collections.ObjectModel.ObservableCollection<T>
+        {
+            // Adds a massive batch of items while suppressing UI updates until the very end
+            public void AddRange(IEnumerable<T> collection)
+            {
+                if (collection == null) throw new ArgumentNullException(nameof(collection));
+
+                // 1. Add items silently to the underlying base list (does NOT alert the UI)
+                foreach (var item in collection)
+                {
+                    Items.Add(item);
+                }
+
+                // 2. Fire a single "Reset" flare to tell the WPF UI to draw the new items exactly once!
+                OnCollectionChanged(new System.Collections.Specialized.NotifyCollectionChangedEventArgs(System.Collections.Specialized.NotifyCollectionChangedAction.Reset));
+            }
+        }
     }
 }

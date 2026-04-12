@@ -103,7 +103,7 @@ namespace PocketDrop
 
         // Core Data
         // Holds multiple items and updates the UI automatically
-        public ObservableCollection<PocketItem> PocketedItems { get; set; } = new ObservableCollection<PocketItem>();
+        public ObservableRangeCollection<PocketItem> PocketedItems { get; set; } = new ObservableRangeCollection<PocketItem>();
         public bool IsGhost { get; set; } = false;
         private bool _isDraggingFromApp = false; // The safety flag to prevent self-drops
         private Point? startPoint = null;
@@ -263,22 +263,25 @@ namespace PocketDrop
                         return new PocketItem { FileName = finalDisplayName, FilePath = filePath, Icon = fileIcon };
                     });
 
-                    // Wait for ALL files to finish extracting their icons (Governed perfectly by the Semaphore!)
+                    // Wait for ALL files to finish extracting their icons
                     var processedItems = await System.Threading.Tasks.Task.WhenAll(processingTasks);
 
-                    // Add them safely to the UI thread all at once
-                    foreach (var newItem in processedItems)
+                    // 1. Filter out the nulls (rejected 0-byte or duplicate files)
+                    var validItems = processedItems.Where(item => item != null).ToList();
+
+                    // 2. Sync to the background global history (this doesn't affect the UI, so a loop is fast)
+                    foreach (var newItem in validItems)
                     {
-                        if (newItem == null) continue;
-
-                        PocketedItems.Add(newItem);
-
-                        // Sync dropped file to global list immediately on drop
-                        if (!App.SessionHistory.Exists(x => x.FilePath == newItem.FilePath))
+                        if (!App.SessionHistory.Any(x => x.FilePath == newItem.FilePath))
                         {
                             App.SessionHistory.Add(newItem);
                         }
                     }
+
+                    // ==========================================
+                    // THE FIX: Add to the UI all at once! (1 UI redraw instead of 100)
+                    // ==========================================
+                    PocketedItems.AddRange(validItems);
 
                     // Refresh UI after items load
                     StatusText.Visibility = Visibility.Collapsed;
@@ -325,7 +328,7 @@ namespace PocketDrop
                         PocketedItems.Add(newUrlItem);
 
                         // Sync dropped URL to global list immediately on drop
-                        if (!App.SessionHistory.Exists(x => x.FilePath == newUrlItem.FilePath))
+                        if (!App.SessionHistory.Any(x => x.FilePath == newUrlItem.FilePath))
                         {
                             App.SessionHistory.Add(newUrlItem);
                         }
@@ -372,17 +375,19 @@ namespace PocketDrop
                     // Wait for the Bouncer to process them all
                     var processedItems = await System.Threading.Tasks.Task.WhenAll(processingTasks);
 
-                    // Add them to the UI securely
+                    // 1. Sync to the background global history
                     foreach (var newItem in processedItems)
                     {
-                        PocketedItems.Add(newItem);
-
-                        // Sync pasted file to global list immediately on paste
-                        if (!App.SessionHistory.Exists(x => x.FilePath == newItem.FilePath))
+                        if (!App.SessionHistory.Any(x => x.FilePath == newItem.FilePath))
                         {
                             App.SessionHistory.Add(newItem);
                         }
                     }
+
+                    // ==========================================
+                    // THE FIX: Add to the UI all at once! 
+                    // ==========================================
+                    PocketedItems.AddRange(processedItems);
 
                     // Refresh UI after paste load
                     StatusText.Visibility = Visibility.Collapsed;
@@ -1462,7 +1467,7 @@ namespace PocketDrop
             // 1. Log all current items to the Global History
             foreach (var item in PocketedItems)
             {
-                if (!App.SessionHistory.Exists(x => x.FilePath == item.FilePath))
+                if (!App.SessionHistory.Any(x => x.FilePath == item.FilePath))
                 {
                     App.SessionHistory.Add(item);
                 }
@@ -1701,7 +1706,7 @@ namespace PocketDrop
         public void RefreshPocketUI()
         {
             // 1. Find items in this Pocket that no longer exist in the global history
-            var itemsToRemove = PocketedItems.Where(p => !App.SessionHistory.Exists(h => h.FilePath == p.FilePath)).ToList();
+            var itemsToRemove = PocketedItems.Where(p => !App.SessionHistory.Any(h => h.FilePath == p.FilePath)).ToList();
 
             if (itemsToRemove.Count == 0) return; // Nothing to sync
 
