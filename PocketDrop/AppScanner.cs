@@ -29,17 +29,14 @@ namespace PocketDrop
         // Scan Windows Registry to find all installed applications and their executable paths.
         public static List<AppItem> GetInstalledApps()
         {
-            // ==========================================
-            // PHASE 1: FAST SEQUENTIAL REGISTRY SCAN
-            // ==========================================
-            var rawApps = new List<(string Name, string Path)>();
+            var appList = new List<AppItem>();
             var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             string[] registryKeys = new string[]
             {
-        @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall", // Standard 64-bit apps
-        @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall", // Standard 32-bit apps
-        @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" // Current User specific apps
+                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall", // Standard 64-bit apps
+                @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall", // Standard 32-bit apps
+                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" // Current User specific apps
             };
 
             foreach (var keyPath in registryKeys)
@@ -74,36 +71,22 @@ namespace PocketDrop
 
                                 seenPaths.Add(exePath);
 
-                                // Just save the raw strings for now! No slow icon extraction yet.
-                                rawApps.Add((displayName, exePath));
+                                // THE FIX: Just create the AppItem and pass the path. 
+                                // Do NOT extract the icon here! The AppItem will do it lazily.
+                                appList.Add(new AppItem
+                                {
+                                    AppName = displayName,
+                                    ExePath = exePath,
+                                    IsSelected = false
+                                });
                             }
                         }
                     }
                 }
             }
 
-            // ==========================================
-            // PHASE 2: SLOW PARALLEL ICON EXTRACTION
-            // ==========================================
-            // Use a thread-safe ConcurrentBag because multiple CPU cores will add items to this at the exact same time
-            var concurrentAppList = new System.Collections.Concurrent.ConcurrentBag<AppItem>();
-
-            Parallel.ForEach(rawApps, rawApp =>
-            {
-                concurrentAppList.Add(new AppItem
-                {
-                    AppName = rawApp.Name,
-                    ExePath = rawApp.Path,
-
-                    // This slow task now runs on 8 to 16 threads concurrently!
-                    AppIcon = GetIconFromExe(rawApp.Path),
-
-                    IsSelected = false
-                });
-            });
-
             // Sort app list alphabetically before returning
-            return concurrentAppList.OrderBy(a => a.AppName).ToList();
+            return appList.OrderBy(a => a.AppName).ToList();
         }
 
 

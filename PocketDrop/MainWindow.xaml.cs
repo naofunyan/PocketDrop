@@ -100,8 +100,6 @@ namespace PocketDrop
         private static ShakeDetector _shakeDetector = new ShakeDetector();
         private static bool _leftButtonHeld = false;
         private static bool _hasSpawnedPocketThisDrag = false;
-        private static bool _cachedGameModeStatus = false;
-        private static bool _cachedForegroundAppExcluded = false;
 
         // Core Data
         // Holds multiple items and updates the UI automatically
@@ -131,6 +129,11 @@ namespace PocketDrop
 
         // Thread-safe icon cache to prevent memory leaks during mass file drops
         private static System.Collections.Concurrent.ConcurrentDictionary<string, System.Windows.Media.ImageSource> _iconCache = new System.Collections.Concurrent.ConcurrentDictionary<string, System.Windows.Media.ImageSource>(StringComparer.OrdinalIgnoreCase);
+        // ==========================================
+        // THE NEW FIX: The Concurrency Bouncer
+        // Limits icon extraction to 4 concurrent threads to protect the OS
+        // ==========================================
+        private static readonly System.Threading.SemaphoreSlim _iconThrottle = new System.Threading.SemaphoreSlim(4, 4);
         // Idle timer to trigger aggressive memory cleanup
         private DispatcherTimer _idleMemoryTimer;
 
@@ -424,6 +427,11 @@ namespace PocketDrop
         // Track click to prepare file drag-out
         private void Window_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
+            // ==========================================
+            // THE FIX: Tell the Global Mouse Hook to abort shake detection!
+            // ==========================================
+            _hasSpawnedPocketThisDrag = true;
+
             Point pos = e.GetPosition(this); // Get exact mouse coordinates relative to the window
 
             // 1. More button logic
@@ -1506,13 +1514,8 @@ namespace PocketDrop
                 {
                     _leftButtonHeld = true;
                     _hasSpawnedPocketThisDrag = false;
-                    // ==========================================
-                    // THE FIX: Do the heavy lifting EXACTLY ONCE when the click starts!
-                    // ==========================================
-                    if (App.DisableInGameMode)
-                        _cachedGameModeStatus = AppHelpers.IsGameModeActive();
 
-                    _cachedForegroundAppExcluded = AppHelpers.IsForegroundAppExcluded();
+                    // Note: We removed the heavy OpenProcess caching from here!
                 }
                 else if (msg == WM_LBUTTONUP)
                 {
@@ -1520,17 +1523,11 @@ namespace PocketDrop
                 }
                 else if (msg == WM_MOUSEMOVE && _leftButtonHeld)
                 {
-                    // 1. Check all user settings before doing math
+                    // 1. Instant exits (0 milliseconds, no OS API calls)
                     if (!App.EnableMouseShake) goto done;
+                    if (_hasSpawnedPocketThisDrag) goto done; // Don't spawn duplicates
 
-                    // ==========================================
-                    // THE FIX: Read the cached variables. 0 milliseconds of CPU time!
-                    // ==========================================
-                    if (App.DisableInGameMode && _cachedGameModeStatus) goto done;
-                    if (_cachedForegroundAppExcluded) goto done;
-                    if (_hasSpawnedPocketThisDrag) goto done;
-
-                    // 2. Pass raw coordinates to decoupled placement logic
+                    // 2. Run the incredibly cheap math tracking (0 CPU impact)
                     bool isShaking = _shakeDetector.CheckForShake(
                         currentMouseX: hookStruct.pt.X,
                         currentTimestampMs: Environment.TickCount64,
@@ -1539,10 +1536,15 @@ namespace PocketDrop
                         requiredSwings: 3
                     );
 
-                    // 3. If the math detects a shake, spawn the UI
+                    // 3. If a physical shake actually completes, THEN do the heavy OS checks
                     if (isShaking)
                     {
-                        _hasSpawnedPocketThisDrag = true; // Lock it down until the users release the mouse
+                        // JIT (Just-In-Time) OS Evaluation
+                        if (App.DisableInGameMode && AppHelpers.IsGameModeActive()) goto done;
+                        if (AppHelpers.IsForegroundAppExcluded()) goto done;
+
+                        // If it passes the OS checks, lock it down and spawn the UI
+                        _hasSpawnedPocketThisDrag = true;
 
                         Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)(() =>
                         {
@@ -1790,65 +1792,76 @@ namespace PocketDrop
             string ext = Path.GetExtension(filePath).ToLower();
             string[] imageExts = { ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp" };
             string[] uniqueIconExts = { ".exe", ".ico", ".lnk", ".pdf",
-                                        ".mp4", ".avi", ".mov", ".wmv", ".mkv",
-                                        ".mp3", ".flac", ".m4a"};
+                                ".mp4", ".avi", ".mov", ".wmv", ".mkv",
+                                ".mp3", ".flac", ".m4a"};
 
             bool isImage = Array.Exists(imageExts, x => x == ext);
             bool isUnique = Array.Exists(uniqueIconExts, x => x == ext);
             bool isDirectory = Directory.Exists(filePath);
 
-            // Use a special key for folders, otherwise use the file extension
             string cacheKey = isDirectory ? "folder_icon" : ext;
 
-            // 1. CHECK THE CACHE FIRST (Skip for actual images and unique executables)
+            // 1. CHECK THE CACHE FIRST (Instant return, bypasses the bouncer!)
             if (!isImage && !isUnique)
             {
                 if (_iconCache.TryGetValue(cacheKey, out var cachedIcon))
                 {
-                    return cachedIcon; // Instant return, 0 CPU used!
+                    return cachedIcon;
                 }
             }
 
-            // 2. IF NOT IN CACHE, ASK WINDOWS TO EXTRACT IT
-            return await System.Threading.Tasks.Task.Run(() =>
+            // 2. WAIT IN LINE
+            // Only let 4 files ask Windows for an icon at the exact same time
+            await _iconThrottle.WaitAsync();
+
+            try
             {
-                try
+                // 3. IF IT'S OUR TURN, ASK WINDOWS
+                return await System.Threading.Tasks.Task.Run(() =>
                 {
-                    if (isImage)
+                    try
                     {
-                        BitmapImage img = new BitmapImage();
-                        img.BeginInit();
-                        img.CacheOption = BitmapCacheOption.OnLoad;
-                        img.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
-                        img.UriSource = new Uri(filePath);
-                        img.DecodePixelWidth = 120;
-                        img.EndInit();
-                        img.Freeze();
-                        return (System.Windows.Media.ImageSource)img;
-                    }
-                    else
-                    {
-                        ShellObject shellObj = ShellObject.FromParsingName(filePath);
-                        var thumb = shellObj.Thumbnail.LargeBitmapSource;
-
-                        // Freezing the thumbnail allows it to be safely shared across the UI
-                        thumb.Freeze();
-
-                        // 3. SAVE TO CACHE FOR NEXT TIME
-                        if (!isUnique)
+                        if (isImage)
                         {
-                            _iconCache.TryAdd(cacheKey, thumb);
+                            BitmapImage img = new BitmapImage();
+                            img.BeginInit();
+                            img.CacheOption = BitmapCacheOption.OnLoad;
+                            img.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+                            img.UriSource = new Uri(filePath);
+                            img.DecodePixelWidth = 120;
+                            img.EndInit();
+                            img.Freeze();
+                            return (System.Windows.Media.ImageSource)img;
                         }
+                        else
+                        {
+                            ShellObject shellObj = ShellObject.FromParsingName(filePath);
+                            var thumb = shellObj.Thumbnail.LargeBitmapSource;
 
-                        return (System.Windows.Media.ImageSource)thumb;
+                            thumb.Freeze();
+
+                            // SAVE TO CACHE FOR NEXT TIME
+                            if (!isUnique)
+                            {
+                                _iconCache.TryAdd(cacheKey, thumb);
+                            }
+
+                            return (System.Windows.Media.ImageSource)thumb;
+                        }
                     }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Icon error: {ex.Message}");
-                    return null;
-                }
-            });
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Icon error: {ex.Message}");
+                        return null;
+                    }
+                });
+            }
+            finally
+            {
+                // 4. LEAVE THE LINE 
+                // Always release the throttle so the next file can enter!
+                _iconThrottle.Release();
+            }
         }
 
         // Call whenever the user performs an action to reset the 10-second countdown
