@@ -238,17 +238,21 @@ namespace PocketDrop
                     // ==========================================
                     // THE NEW FIX: Soft Cap with User Consent
                     // ==========================================
-                    int warningThreshold = 500;
+                    int warningThreshold = 5;
                     if (droppedFiles.Length > warningThreshold)
                     {
                         string titleTemplate = (string)Application.Current.TryFindResource("Text_LargeDropTitle") ?? "Large File Drop";
                         string messageTemplate = (string)Application.Current.TryFindResource("Text_LargeDropMsg") ?? "You are about to process {0} items.\n\nThis may take a moment to load depending on your hard drive speed. Do you want to continue?";
 
                         string finalMessage = string.Format(messageTemplate, droppedFiles.Length);
-                        var result = MessageBox.Show(finalMessage, titleTemplate, MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                        // ==========================================
+                        // THE FIX: Use our new fully translated Custom Dialog!
+                        // ==========================================
+                        var dialog = new CustomDialog(finalMessage, titleTemplate);
+                        dialog.Owner = this; // Locks it to the main window
+                        dialog.ShowDialog(); // Freezes the app until they click a button
 
-                        // If the user says no, instantly abort the drag-and-drop
-                        if (result == MessageBoxResult.No) return;
+                        if (dialog.Result == MessageBoxResult.No) return;
                     }
                     // ==========================================
                     // THE FIX: Fire all tasks concurrently!
@@ -389,9 +393,14 @@ namespace PocketDrop
                         string messageTemplate = (string)Application.Current.TryFindResource("Text_LargePasteMsg") ?? "You are about to paste {0} items.\n\nThis may take a moment to load. Do you want to continue?";
 
                         string finalMessage = string.Format(messageTemplate, fileArray.Length);
-                        var result = MessageBox.Show(finalMessage, titleTemplate, MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                        // ==========================================
+                        // THE FIX: Use our new fully translated Custom Dialog!
+                        // ==========================================
+                        var dialog = new CustomDialog(finalMessage, titleTemplate);
+                        dialog.Owner = this; // Locks it to the main window
+                        dialog.ShowDialog(); // Freezes the app until they click a button
 
-                        if (result == MessageBoxResult.No) return;
+                        if (dialog.Result == MessageBoxResult.No) return;
                     }
 
                     // Process ALL files!
@@ -870,7 +879,6 @@ namespace PocketDrop
                 StackContainer.Children.Clear();
                 UpdateItemCountDisplay(0);
 
-                if (PopupCountText != null) PopupCountText.Text = "0 Items";
                 if (SelectAllCheckBox != null) SelectAllCheckBox.IsChecked = false;
 
                 // Destroy window after hide animation completes
@@ -1021,11 +1029,12 @@ namespace PocketDrop
                         totalBytes += new FileInfo(item.FilePath).Length;
                 }
 
-                string fileWord = selectedCount == 1
-                    ? (string)Application.Current.Resources["Text_FileSelected"]
-                    : (string)Application.Current.Resources["Text_FilesSelected"];
+                // Update the separated UI elements for the popup
+                if (PopupCountNumberText != null) PopupCountNumberText.Text = selectedCount.ToString();
+                if (PopupCountSizeText != null) PopupCountSizeText.Text = $"({AppHelpers.FormatBytes(totalBytes)})";
 
-                PopupCountText.Text = $"{selectedCount} {fileWord} ({AppHelpers.FormatBytes(totalBytes)})";
+                string resourceKey = selectedCount == 1 ? "Text_FileSelected" : "Text_FilesSelected";
+                if (PopupCountLabelText != null) PopupCountLabelText.SetResourceReference(TextBlock.TextProperty, resourceKey);
             }
             else
             {
@@ -1775,18 +1784,20 @@ namespace PocketDrop
         // Updates text and translates dynamically
         private void UpdateItemCountDisplay(int count)
         {
-            string translatedItemWord = count == 1
-                ? (string)Application.Current.Resources["Text_Item"]
-                : (string)Application.Current.Resources["Text_Items"];
+            // Update the raw numbers
+            if (CountNumberText != null) CountNumberText.Text = count.ToString();
+            if (PopupCountNumberText != null) PopupCountNumberText.Text = count.ToString();
+            if (PopupCountSizeText != null) PopupCountSizeText.Text = ""; // Clear file size
 
-            string displayText = $"{count} {translatedItemWord}";
+            // THE FIX: Use SetResourceReference to change the word while keeping the live language binding!
+            string resourceKey = count == 1 ? "Text_Item" : "Text_Items";
+            if (CountLabelText != null) CountLabelText.SetResourceReference(TextBlock.TextProperty, resourceKey);
+            if (PopupCountLabelText != null) PopupCountLabelText.SetResourceReference(TextBlock.TextProperty, resourceKey);
 
-            if (CountText != null) CountText.Text = displayText;
-            if (PopupCountText != null) PopupCountText.Text = displayText;
-
+            // Safely reset the empty state
             if (count == 0 && StatusText != null)
             {
-                StatusText.Text = (string)Application.Current.Resources["Text_DropItemsHere"];
+                StatusText.SetResourceReference(TextBlock.TextProperty, "Text_DropItemsHere");
                 StatusText.Visibility = Visibility.Visible;
                 FileIconContainer.Visibility = Visibility.Collapsed;
             }

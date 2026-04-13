@@ -19,6 +19,8 @@
     <sys:String x:Key="Text_LargePasteTitle">Dán tập tin số lượng lớn</sys:String>
     <sys:String x:Key="Text_LargePasteMsg">Bạn sắp dán {0} tập tin.&#x0a;&#x0a;Quá trình này có thể mất một lúc tùy thuộc vào cấu hình máy của bạn. Tiếp tục chứ?</sys:String>
 
+    <sys:String x:Key="Text_BtnYes">Đồng ý</sys:String>
+    <sys:String x:Key="Text_BtnNo">Không</sys:String>
     <!-- Main Window - More Menu -->
     <sys:String x:Key="Text_MenuOpen">Mở...</sys:String>
     <sys:String x:Key="Text_MenuOpenWith">Mở bằng...</sys:String>

@@ -19,6 +19,8 @@
     <sys:String x:Key="Text_LargePasteTitle">Mass file paste</sys:String>
     <sys:String x:Key="Text_LargePasteMsg">You are about to paste {0} items.&#x0a;&#x0a;This may take a moment depending on your hardware. Continue?</sys:String>
 
+    <sys:String x:Key="Text_BtnYes">Yes</sys:String>
+    <sys:String x:Key="Text_BtnNo">No</sys:String>
     <!-- Main Window - More Menu -->
     <sys:String x:Key="Text_MenuOpen">Open...</sys:String>
     <sys:String x:Key="Text_MenuOpenWith">Open with...</sys:String>
