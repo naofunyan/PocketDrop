@@ -5,17 +5,15 @@ AppVersion=1.0.0
 AppPublisher=Naofunyan
 AppCopyright=Copyright (C) 2026 Naofunyan
 
-; 1. Changed to Relative Path
-SetupIconFile=Assets\PocketDrop.ico
-
 DisableWelcomePage=no
 
 ; 2. Changed to Relative Paths
-WizardImageFile=Assets\GithubBanner.bmp
-WizardSmallImageFile=Assets\PocketDrop.bmp
+SetupIconFile=PocketDrop\Assets\PocketDrop.ico
+WizardImageFile=PocketDrop\Assets\GithubBanner.bmp
+WizardSmallImageFile=PocketDrop\Assets\PocketDrop.bmp
 
 ; 3. Changed to Relative Path (Note: Check if you saved this as .txt or .rtf!)
-LicenseFile=Assets\License.txt
+LicenseFile=PocketDrop\Assets\License.txt
 
 ; Where it installs by default
 DefaultDirName={autopf}\PocketDrop
