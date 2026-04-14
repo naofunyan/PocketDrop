@@ -247,7 +247,7 @@ namespace PocketDrop
                     // ==========================================
                     // THE NEW FIX: Soft Cap with User Consent
                     // ==========================================
-                    int warningThreshold = 5;
+                    int warningThreshold = 500;
                     if (droppedFiles.Length > warningThreshold)
                     {
                         string titleTemplate = (string)Application.Current.TryFindResource("Text_LargeDropTitle") ?? "Large File Drop";
@@ -962,19 +962,6 @@ namespace PocketDrop
                         }
                     }
                 };
-
-                // Add drop shadow to top card only in stack preview
-                if (isTop)
-                {
-                    card.Effect = new System.Windows.Media.Effects.DropShadowEffect
-                    {
-                        BlurRadius = 10,
-                        Color = System.Windows.Media.Colors.Black,
-                        Opacity = 0.18,
-                        Direction = 270,
-                        ShadowDepth = 3
-                    };
-                }
 
                 StackContainer.Children.Add(card);
             }
