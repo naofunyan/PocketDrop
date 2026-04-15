@@ -1,8 +1,9 @@
 name: Build PocketDrop Installer
 
+# 1. The Trigger: This tells the action to ONLY run when you publish a new release!
 on:
-  push:
-    branches: [ "main" ]
+  release:
+    types: [published]
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -10,8 +11,7 @@ env:
 jobs:
   build-and-package:
     runs-on: windows-latest
-    
-    # THE MATRIX: This tells GitHub to run this entire job 3 separate times simultaneously!
+
     strategy:
       matrix:
         target: [win-x64, win-x86, win-arm64]
@@ -23,6 +23,10 @@ jobs:
           - target: win-arm64
             arch: arm64
 
+    # 2. Permissions: The robot needs permission to edit your release page
+    permissions:
+      contents: write
+
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
@@ -32,17 +36,14 @@ jobs:
       with:
         dotnet-version: '10.0.x'
 
-    # The -r flag now dynamically pulls from the matrix (win-x64, win-x86, win-arm64)
     - name: Publish PocketDrop
       run: dotnet publish ./PocketDrop/PocketDrop.csproj -c Release -r ${{ matrix.target }} --self-contained false -o ./publish
 
-    # We call the native Inno Setup compiler and inject the /D flag to set our variable
     - name: Compile Inno Setup
       run: iscc /DMyAppArch="${{ matrix.arch }}" ./Setup.iss
 
-    # Uploads 3 separate zip folders to your Actions page!
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
+    # 3. THE MAGIC STEP: This pushes the .exe directly to the release you just created!
+    - name: Upload directly to GitHub Release
+      uses: softprops/action-gh-release@v2
       with:
-        name: PocketDrop_Installer-${{ matrix.arch }}
-        path: Output/*.exe
+        files: Output/*.exe
