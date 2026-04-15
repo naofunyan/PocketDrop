@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="PocketDrop/Assets/GithubBanner.png" width="400" alt="PocketDrop Icon" />
+  <img src="PocketDrop/Assets/GithubBanner.png" width="450" alt="PocketDrop Icon" />
   <h3><em>Drag. Drop. Effortlessly.</em></h3>
 
 <br/>
@@ -18,7 +18,12 @@
 
 PocketDrop is a free and open-source file transfer application for Windows that allows you to send files between devices on the same network.
 
-## License and Trademarks
+> [!IMPORTANT]
+> * PocketDrop is currently in active development. The app is functional but may contain bugs or incomplete features. If you encounter any issues, please report them in the Issues tab.
+> ### Limitation of Liability:
+> * This application is provided "AS IS" and used at your own risk. The developers and contributors are not liable for any claims, damages, or other liability — including any legal consequences — arising from or in connection with the software or its use. All responsibility for outcomes rests entirely with the user.
+
+# License and Trademarks
 
 **Code:**
 The source code of PocketDrop is licensed under the [GNU General Public License v3.0](LICENSE). You are free to download, modify, and distribute the code under the terms of this license.
