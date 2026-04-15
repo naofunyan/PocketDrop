@@ -14,7 +14,7 @@
 
 </div>
 
-# About
+# ℹ️ About
 
 PocketDrop is a free and open-source drag and drop utility for Windows.
 
@@ -23,15 +23,21 @@ PocketDrop is a free and open-source drag and drop utility for Windows.
 > #### Liability:
 > * This application is provided "AS IS" and used at your own risk. The developers and contributors are not liable for any claims, damages, or other liability — including any legal consequences — arising from or in connection with the software or its use. All responsibility for outcomes rests entirely with the user.
 
-# Technologies
+# 🛠️ Technologies
+
+- `C# / .NET10`
+- `Windows Presentation Foundation (WPF)`
+- `WindowsAPICodePack-Shell`
+- `Sentry`
+- `Inno Setup`
+
+# ✨ Features
 
 
-# Features
+# 💬 How can it be improved?
 
 
-# How can it be improved?
-
-# Download
+# 💾 Download
 
 You can check out the [latest release](https://github.com/naofunyan/PocketDrop/releases) to download the latest version of PocketDrop.
 
