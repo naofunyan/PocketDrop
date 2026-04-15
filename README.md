@@ -4,8 +4,8 @@
 
 <br/>
 
-[![Windows](https://img.shields.io/badge/Platform-Windows-2FA4D7?style=for-the-badge&logo=windows)](https://github.com/Naofunyan/PocketDrop)
-[![GitHub License](https://img.shields.io/github/license/Naofunyan/PocketDrop?style=for-the-badge&color=e9724c)](https://github.com/Naofunyan/PocketDrop/blob/main/LICENSE)
+[![Windows](https://img.shields.io/badge/Platform-Windows-6895d2?style=for-the-badge&logo=windows)](https://github.com/Naofunyan/PocketDrop)
+[![GitHub License](https://img.shields.io/github/license/Naofunyan/PocketDrop?style=for-the-badge&color=f3b95f)](https://github.com/Naofunyan/PocketDrop/blob/main/LICENSE)
 [![GitHub Release](https://img.shields.io/github/v/release/Naofunyan/PocketDrop?style=for-the-badge&color=c5283d)](https://github.com/Naofunyan/PocketDrop/releases)
 [![GitHub Repo stars](https://img.shields.io/github/stars/Naofunyan/PocketDrop?style=for-the-badge&color=ffc857)](https://github.com/Naofunyan/PocketDrop/stargazers)
 [![GitHub Downloads](https://img.shields.io/github/downloads/Naofunyan/PocketDrop/total?style=for-the-badge&color=2FA084)](https://github.com/Naofunyan/PocketDrop/releases)
@@ -33,8 +33,37 @@ PocketDrop is a free and open-source drag and drop utility for Windows.
 
 # ✨ Features
 
+Here's what you can do with PocketDrop:
 
-# 💬 How can it be improved?
+- **Shake to summon:** Wiggle your mouse while dragging a file to summon a Pocket.
+- **Works with what you drag:** Add folders, documents, images, links, text snippets.
+- **Manage your files:** Preview, rename, reorder, or remove files directly on the Pocket without breaking your flow.
+- **Built-in file actions:** Resize images, extract text, create ZIP archives, and handle common tasks without leaving the Pocket.
+- **Advanced controls:** Use keyboard shortcuts, Command Bar, custom actions, and scripts to move faster through repetitive work.
+
+## 🗃️ Supported file formats:
+
+| Format | Support |
+| --- | --- |
+| Text formats | .txt / .rtf / .docx / .csv / .doc / .wps / .wpd / .msg |
+| Image formats | .jpg / .png / .webp / .gif / .tif / .bmp / .eps |
+| Audio formats | .mp3 / .wma / .snd / .wav / .ra / .au / .aac |
+| Video formats | .mp4 / .3gp / .avi / .mpg / .mov / .wmv |
+| Program formats | .c / .cpp / .java / .py / .js / .ts / .cs / .swift / .dta / .pl / .sh / .bat / .com / .exe / .msi |
+| Compress / Archive formats | .rar / .zip / .hqx / .arj / .tar / .arc / .sit / .gz / .z |
+| Web Page formats | .html / .htm / .xhtml / .asp / .css / .aspx / .rss |
+| Folders | ✅ |
+
+## ⌨️ Keyboard Shortcuts:
+
+Speed up your workflow with these shortcuts (customizable in Settings):
+
+| Action | Shortcut |
+| --- | --- |
+| Create a new Pocket | `Win + Shift + Z` |
+| Create a new Pocket from the clipboard | `Win + Shift + X` |
+
+# 🎯 How can it be improved?
 
 
 # 💾 Download
