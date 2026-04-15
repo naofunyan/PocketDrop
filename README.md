@@ -1,6 +1,17 @@
 <p align="center">
-  <img src="PocketDrop/Assets/GithubBanner.png" width="128" alt="PocketDrop Icon" />
+  <img src="PocketDrop/Assets/GithubBanner.png" width="512" alt="PocketDrop Icon" />
 </p>
+
+<div align="center">
+
+![Windows](https://img.shields.io/badge/Platform-Windows-blue?logo=windows)
+![Github Repo](https://img.shields.io/badge/github-repo-blue?logo=github)
+![GitHub Repo stars](https://img.shields.io/github/stars/Naofunyan/PocketDrop?style=flat&labelColor=black&color=brightgreen)
+![GitHub License](https://img.shields.io/github/license/Naofunyan/PocketDrop)
+
+</div>
+
+
 
 # PocketDrop
 
