@@ -4,10 +4,10 @@
 
 <div align="center">
 
-![Windows](https://img.shields.io/badge/Platform-Windows-blue?logo=windows)
-![Github Repo](https://img.shields.io/badge/github-repo-blue?logo=github)
-![GitHub Repo stars](https://img.shields.io/github/stars/Naofunyan/PocketDrop?style=flat&labelColor=black&color=brightgreen)
-![GitHub License](https://img.shields.io/github/license/Naofunyan/PocketDrop)
+[![Windows](https://img.shields.io/badge/Platform-Windows-blue?logo=windows)](#)
+[![GitHub Release](https://img.shields.io/github/v/release/Naofunyan/PocketDrop?style=flat&color=brightgreen)](https://github.com/Naofunyan/PocketDrop/releases)
+[![GitHub Repo stars](https://img.shields.io/github/stars/Naofunyan/PocketDrop?style=flat&color=brightgreen)](#)
+[![GitHub License](https://img.shields.io/github/license/Naofunyan/PocketDrop)](https://github.com/naofunyan/PocketDrop/blob/main/LICENSE)
 
 </div>
 
