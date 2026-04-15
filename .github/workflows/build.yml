@@ -10,6 +10,18 @@ env:
 jobs:
   build-and-package:
     runs-on: windows-latest
+    
+    # THE MATRIX: This tells GitHub to run this entire job 3 separate times simultaneously!
+    strategy:
+      matrix:
+        target: [win-x64, win-x86, win-arm64]
+        include:
+          - target: win-x64
+            arch: x64
+          - target: win-x86
+            arch: x86
+          - target: win-arm64
+            arch: arm64
 
     steps:
     - name: Checkout Code
@@ -20,18 +32,17 @@ jobs:
       with:
         dotnet-version: '10.0.x'
 
-    # 1. FIXED PATH: Points inside the PocketDrop folder based on your layout
+    # The -r flag now dynamically pulls from the matrix (win-x64, win-x86, win-arm64)
     - name: Publish PocketDrop
-      run: dotnet publish ./PocketDrop/PocketDrop.csproj -c Release -r win-x64 --self-contained false -o ./publish
+      run: dotnet publish ./PocketDrop/PocketDrop.csproj -c Release -r ${{ matrix.target }} --self-contained false -o ./publish
 
-    # 2. Setup.iss is in the root, so this stays exactly the same
+    # We call the native Inno Setup compiler and inject the /D flag to set our variable
     - name: Compile Inno Setup
-      uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
-      with:
-        path: ./Setup.iss
+      run: iscc /DMyAppArch="${{ matrix.arch }}" ./Setup.iss
 
+    # Uploads 3 separate zip folders to your Actions page!
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: PocketDrop_Installer
+        name: PocketDrop_Installer-${{ matrix.arch }}
         path: Output/*.exe

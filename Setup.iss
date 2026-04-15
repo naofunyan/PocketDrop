@@ -1,7 +1,15 @@
+; 1. Listen for the architecture passed from GitHub (Defaults to x64 for local testing)
+#ifndef MyAppArch
+  #define MyAppArch "x64"
+#endif
+
+; Define your version once here, and it updates everywhere!
+#define MyAppVersion "1.0.0"
+
 [Setup]
 ; App Information
 AppName=PocketDrop
-AppVersion=1.0.0
+AppVersion={#MyAppVersion}
 AppPublisher=Naofunyan
 AppCopyright=Copyright (C) 2026 Naofunyan
 
@@ -19,32 +27,22 @@ LicenseFile=PocketDrop\Assets\License.txt
 DefaultDirName={autopf}\PocketDrop
 DisableProgramGroupPage=yes
 
-; 4. Changed to a generic "Output" folder so GitHub Actions can find it
+; 4. Dynamically protect the installer based on the architecture
+#if MyAppArch == "arm64"
+  ArchitecturesAllowed=arm64
+  ArchitecturesInstallIn64BitMode=arm64
+#elif MyAppArch == "x64"
+  ArchitecturesAllowed=x64 arm64
+  ArchitecturesInstallIn64BitMode=x64 arm64
+#else
+  ArchitecturesAllowed=x86 x64 arm64
+#endif
+
+; 5. Dynamically name the output file using our variables
 OutputDir=Output
-OutputBaseFilename=PocketDrop_Setup_x64_1.0.0
+OutputBaseFilename=PocketDrop_Setup_{#MyAppArch}_{#MyAppVersion}
 
 ; Makes the installer smaller and faster
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-
-ArchitecturesInstallIn64BitMode=x64compatible
-
-
-[Tasks]
-Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-
-[Files]
-; 5. Changed to match the GitHub Actions output folder!
-; We grab everything inside the 'publish' folder just in case there are extra DLLs
-Source: "publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-
-[Icons]
-Name: "{autoprograms}\PocketDrop"; Filename: "{app}\PocketDrop.exe"
-Name: "{autodesktop}\PocketDrop"; Filename: "{app}\PocketDrop.exe"; Tasks: desktopicon
-
-[Run]
-Filename: "{app}\PocketDrop.exe"; Description: "{cm:LaunchProgram,PocketDrop}"; Flags: nowait postinstall skipifsilent
-
-; Forces the app to launch automatically ONLY during a silent background update
-Filename: "{app}\PocketDrop.exe"; Flags: nowait; Check: WizardSilent
