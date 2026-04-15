@@ -45,3 +45,6 @@ Name: "{autodesktop}\PocketDrop"; Filename: "{app}\PocketDrop.exe"; Tasks: deskt
 
 [Run]
 Filename: "{app}\PocketDrop.exe"; Description: "{cm:LaunchProgram,PocketDrop}"; Flags: nowait postinstall skipifsilent
+
+; Forces the app to launch automatically ONLY during a silent background update
+Filename: "{app}\PocketDrop.exe"; Flags: nowait; Check: WizardSilent

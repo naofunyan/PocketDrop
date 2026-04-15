@@ -511,30 +511,54 @@ namespace PocketDrop
                             if (hasUpdate)
                             {
                                 App.UpdateAvailable = true;
-                                App.UpdateUrl = "https://github.com/naofunyan/PocketDrop/releases/latest";
 
                                 string updateTitle = (string)Application.Current.Resources["Text_UpdateAvailableTitle"] ?? "Update Available";
-                                string updateMsgTemplate = (string)Application.Current.Resources["Text_UpdateAvailableMsg"] ?? "A new version of PocketDrop ({0}) is available!\n\nWould you like to download it now?";
+                                string updateMsgTemplate = (string)Application.Current.Resources["Text_UpdateAvailableMsg"] ?? "A new version of PocketDrop ({0}) is available!\n\nWould you like to install it now? The app will restart automatically.";
                                 string updateMsg = string.Format(updateMsgTemplate, latestVersionString.Trim());
 
                                 MessageBoxResult result = MessageBox.Show(updateMsg, updateTitle, MessageBoxButton.YesNo, MessageBoxImage.Information);
 
                                 if (result == MessageBoxResult.Yes)
                                 {
-                                    AppHelpers.OpenUrl(App.UpdateUrl);
+                                    try
+                                    {
+                                        // 1. Change UI to show it is working
+                                        CheckUpdateBtn.Content = "Downloading Update...";
+                                        CheckUpdateBtn.IsEnabled = false;
+
+                                        // 2. Dig into the GitHub JSON to find the actual .exe download link
+                                        // (Assuming the installer is the first file in your release assets)
+                                        string downloadUrl = root[0].GetProperty("assets")[0].GetProperty("browser_download_url").GetString();
+                                        string tempInstallerPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "PocketDrop_Update.exe");
+
+                                        // 3. Download the .exe to the hidden Windows Temp folder
+                                        byte[] fileBytes = await client.GetByteArrayAsync(downloadUrl);
+                                        await System.IO.File.WriteAllBytesAsync(tempInstallerPath, fileBytes);
+
+                                        // 4. Fire the installer in completely silent mode
+                                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                                        {
+                                            FileName = tempInstallerPath,
+                                            // /VERYSILENT hides the UI. /SUPPRESSMSGBOXES hides errors. /NORESTART prevents Windows from rebooting.
+                                            Arguments = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART",
+                                            UseShellExecute = true
+                                        });
+
+                                        // 5. Instantly commit suicide so the installer can overwrite our files!
+                                        System.Windows.Application.Current.Shutdown();
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        MessageBox.Show("Failed to download the update: " + ex.Message, "Update Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                                        CheckUpdateBtn.Content = "Update Failed";
+                                    }
                                 }
                                 else
                                 {
+                                    // If they click No, just show the green button so they can do it later
                                     CheckUpdateBtn.Content = (string)Application.Current.Resources["Text_UpdateAvailableBtn"] ?? "Update Available!";
                                     CheckUpdateBtn.Style = (Style)FindResource("SuccessButtonStyle");
                                 }
-                            }
-                            else
-                            {
-                                string upToDateTitle = (string)Application.Current.Resources["Text_UpdateUpToDateTitle"] ?? "Up to Date";
-                                string upToDateMsg = (string)Application.Current.Resources["Text_UpdateUpToDateMsg"] ?? "You are already using the latest version of PocketDrop.";
-
-                                MessageBox.Show(upToDateMsg, upToDateTitle, MessageBoxButton.OK, MessageBoxImage.Information);
                             }
                         }
                     }

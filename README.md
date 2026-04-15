@@ -16,7 +16,7 @@
 
 # About
 
-PocketDrop is a free and open-source file transfer application for Windows that allows you to send files between devices on the same network.
+PocketDrop is a free and open-source drag and drop utility for Windows.
 
 > [!IMPORTANT]
 > * PocketDrop is currently in active development. The app is functional but may contain bugs or incomplete features. If you encounter any issues, please report them in the Issues tab.
