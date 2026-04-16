@@ -22,7 +22,7 @@
                     <Border CornerRadius="6" Background="Transparent" Width="90" Height="90" ClipToBounds="True">
                         <Image Source="{Binding Icon}" Stretch="Uniform" UseLayoutRounding="True" SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="HighQuality"/>
                     </Border>
-                    <TextBlock Text="{Binding FileName}" FontSize="11" Foreground="{DynamicResource TextPrimary}" TextAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,5,0,0"/>
+                    <TextBlock Text="{Binding FileName}" FontSize="11" Foreground="{DynamicResource TextPrimary}" TextAlignment="Center" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" Margin="0,5,0,0"/>
                 </StackPanel>
 
                 <Border x:Name="ListUI" Margin="0,3" Width="475" CornerRadius="8" Padding="12,10" Visibility="Collapsed">
@@ -34,7 +34,7 @@
                         <Border CornerRadius="6" Width="48" Height="48" Background="Transparent" BorderThickness="0" HorizontalAlignment="Center" ClipToBounds="True">
                             <Image Source="{Binding Icon}" UseLayoutRounding="True" SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="HighQuality" Stretch="Uniform"/>
                         </Border>
-                        <TextBlock Grid.Column="1" Text="{Binding FileName}" VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextPrimary}" Margin="14,0,0,0" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Grid.Column="1" Text="{Binding FileName}" VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextPrimary}" Margin="14,0,0,0" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"/>
                     </Grid>
                 </Border>
 
