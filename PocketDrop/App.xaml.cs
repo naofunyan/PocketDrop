@@ -88,7 +88,7 @@ namespace PocketDrop
         // Pocket Interaction - Close Pocket After Action
         public static bool CloseWhenEmptied = true;
         public static bool CloseWhenOpenWith { get; set; } = false;
-        public static bool CloseWhenShare { get; set; } = true;
+        public static bool CloseWhenShare { get; set; } = false;
         public static bool CloseWhenCompress = false;
 
 

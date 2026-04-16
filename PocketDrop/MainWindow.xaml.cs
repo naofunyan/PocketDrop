@@ -623,6 +623,12 @@ namespace PocketDrop
                     foreach (var item in PocketedItems)
                     {
                         CleanupTempFile(item.FilePath);
+
+                        // ✨ THE NEW LOGIC: If it's a Move, and the file was swapped for a Temp file, delete the original!
+                        if (!App.CopyItemToDestination && item.OriginalFilePath != item.FilePath)
+                        {
+                            try { if (File.Exists(item.OriginalFilePath)) File.Delete(item.OriginalFilePath); } catch { }
+                        }
                     }
 
                     PocketedItems.Clear();
@@ -630,18 +636,16 @@ namespace PocketDrop
                     // Check auto-close condition after drop
                     if (App.CloseWhenEmptied)
                     {
-                        ExpandButton.IsChecked = false; // Ensure popup closes
+                        ExpandButton.IsChecked = false;
                         ForceClose();
                     }
                     else
                     {
-                        // Reset UI when Pocket stays open after drop
                         StackContainer.Children.Clear();
                         ExpandButton.IsChecked = false;
                         UpdateItemCountDisplay(0);
 
-                        if (SelectAllCheckBox != null)
-                            SelectAllCheckBox.IsChecked = false;
+                        if (SelectAllCheckBox != null) SelectAllCheckBox.IsChecked = false;
                     }
                 }
             }
@@ -695,22 +699,29 @@ namespace PocketDrop
             byte[] dropEffect = new byte[] { (byte)(App.CopyItemToDestination ? 1 : 2), 0, 0, 0 };
             dragData.SetData("Preferred DropEffect", new System.IO.MemoryStream(dropEffect));
 
-            // ✨ NEW: Set up our memory-safe tracking variables
+            // ✨ Setup internal reorder tracking variables
             _internalDragPayload = selectedItems.ToList();
             _internalDropHandled = false;
             _isDraggingFromApp = true;
 
-            // ✨ NEW: Allow 'All' effects so WPF doesn't reject our internal move request
+            // Allow 'All' effects so WPF doesn't reject our internal move request
             DragDropEffects result = DragDrop.DoDragDrop(ItemsListBox, dragData, DragDropEffects.All);
 
             _isDraggingFromApp = false;
 
-            // ✨ NEW: Only delete files if the drop was completely outside the app
+            // ✨ MERGED LOGIC: Only delete files if the drop was completely outside the app
             if (!_internalDropHandled && result != DragDropEffects.None && result != DragDropEffects.Copy)
             {
                 foreach (var item in selectedItems)
                 {
                     CleanupTempFile(item.FilePath);
+
+                    // ✨ THE MOVE LOGIC: Delete the original if it was a Move and we swapped it for a temp file!
+                    if (!App.CopyItemToDestination && item.OriginalFilePath != item.FilePath)
+                    {
+                        try { if (File.Exists(item.OriginalFilePath)) File.Delete(item.OriginalFilePath); } catch { }
+                    }
+
                     PocketedItems.Remove(item);
                 }
 
@@ -737,7 +748,7 @@ namespace PocketDrop
                 UpdateItemCountDisplay(PocketedItems.Count);
             }
 
-            // ✨ NEW: Wipe the memory payload when the drag is completely finished
+            // ✨ Wipe the memory payload when the drag is completely finished
             _internalDragPayload = null;
         }
 
@@ -1448,15 +1459,92 @@ namespace PocketDrop
 
         }
 
-        private void Menu_ImageRemoveMetadata_Click(object sender, RoutedEventArgs e)
+        private async void Menu_ImageRemoveMetadata_Click(object sender, RoutedEventArgs e)
         {
             var imagesToProcess = GetOnlyValidImages();
-            if (imagesToProcess.Count == 0) return; // Silently abort if they only selected an .exe
+            if (imagesToProcess.Count == 0) return;
 
-            // Your EXIF removal logic will go here!
-            // Example: foreach (var img in imagesToProcess) { ... }
+            // 1. Show loading status
+            if (ExpandButton != null) ExpandButton.IsChecked = false;
+            if (FileIconContainer != null) FileIconContainer.Visibility = Visibility.Collapsed;
+            if (StatusText != null)
+            {
+                StatusText.Text = (string)Application.Current.TryFindResource("Text_StrippingMetadata") ?? "Cleaning images...";
+                StatusText.Visibility = Visibility.Visible;
+            }
 
-            MessageBox.Show($"Successfully stripped metadata from {imagesToProcess.Count} images!", "Success");
+            int successCount = 0;
+
+            // 2. Run on a background thread so the UI doesn't freeze
+            await System.Threading.Tasks.Task.Run(() =>
+            {
+                string tempFolder = Path.GetTempPath();
+
+                foreach (var img in imagesToProcess)
+                {
+                    try
+                    {
+                        string ext = Path.GetExtension(img.FilePath).ToLower();
+                        string filename = Path.GetFileNameWithoutExtension(img.FilePath);
+
+                        string cleanFileName = $"{filename}_Clean{ext}";
+
+                        // Use a random Guid instead of DateTime so the filename doesn't leak info
+                        string cleanFilePath = Path.Combine(tempFolder, $"PocketDrop_{Guid.NewGuid().ToString("N").Substring(0, 8)}_{cleanFileName}");
+
+                        byte[] fileBytes = File.ReadAllBytes(img.FilePath);
+
+                        using (var ms = new System.IO.MemoryStream(fileBytes))
+                        {
+                            BitmapDecoder decoder = BitmapDecoder.Create(ms, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.None);
+
+                            BitmapEncoder encoder = null;
+                            if (ext == ".png") encoder = new PngBitmapEncoder();
+                            else if (ext == ".jpg" || ext == ".jpeg") encoder = new JpegBitmapEncoder { QualityLevel = 100 };
+                            else if (ext == ".bmp") encoder = new BmpBitmapEncoder();
+                            else if (ext == ".gif") encoder = new GifBitmapEncoder();
+
+                            if (encoder == null) continue;
+
+                            foreach (BitmapFrame frame in decoder.Frames)
+                            {
+                                var cleanSource = new FormatConvertedBitmap(frame, frame.Format, frame.Palette, 0);
+
+                                // Explicitly force metadata to NULL to guarantee EXIF destruction
+                                encoder.Frames.Add(BitmapFrame.Create(cleanSource, null, (BitmapMetadata)null, null));
+                            }
+
+                            using (var fs = new FileStream(cleanFilePath, FileMode.Create, FileAccess.Write))
+                            {
+                                encoder.Save(fs);
+                            }
+                        }
+
+                        // Point the PocketItem to the new clean file
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            img.FilePath = cleanFilePath;
+                            img.FileName = cleanFileName;
+                        });
+
+                        successCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Could not strip EXIF from {img.FileName}: {ex.Message}");
+                    }
+                }
+            });
+
+            // 3. Restore UI
+            if (StatusText != null) StatusText.Visibility = Visibility.Collapsed;
+            if (FileIconContainer != null) FileIconContainer.Visibility = Visibility.Visible;
+
+            // 4. Update the success message
+            string title = (string)Application.Current.TryFindResource("Text_MetadataSuccessTitle") ?? "Success";
+            string msgTemplate = (string)Application.Current.TryFindResource("Text_MetadataSuccessMsg") ?? "Successfully cleaned {0} images!\n\nThey are now ready in your Pocket. Simply drag them out to save them.";
+
+            MessageBox.Show(string.Format(msgTemplate, successCount), title, MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void Menu_ImageConvertFormat_Click(object sender, RoutedEventArgs e)
@@ -2149,13 +2237,39 @@ namespace PocketDrop
 
     public class PocketItem : System.ComponentModel.INotifyPropertyChanged
     {
-        public string FileName { get; set; }
-        public string FilePath { get; set; }
+        private string _fileName;
+        public string FileName
+        {
+            get => _fileName;
+            set
+            {
+                _fileName = value;
+                PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(FileName)));
+            }
+        }
+
+        // ✨ THE FIX: A permanent memory of where the file originally came from
+        private string _originalFilePath;
+        public string OriginalFilePath => _originalFilePath;
+
+        private string _filePath;
+        public string FilePath
+        {
+            get => _filePath;
+            set
+            {
+                _filePath = value;
+
+                // Automatically capture the original path the first time this is set!
+                if (string.IsNullOrEmpty(_originalFilePath)) _originalFilePath = value;
+
+                PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(FilePath)));
+            }
+        }
+
         public bool IsPinned { get; set; }
 
         private System.Windows.Media.ImageSource _icon;
-
-        // This tells WPF to automatically update the screen the moment the icon finishes loading!
         public System.Windows.Media.ImageSource Icon
         {
             get => _icon;

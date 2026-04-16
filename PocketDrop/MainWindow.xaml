@@ -299,7 +299,7 @@
                                 <MenuItem Header="{DynamicResource Text_MenuShare}" Click="Menu_Share_Click" />
                                 <MenuItem Header="{DynamicResource Text_MenuCompressZip}" Click="Menu_CompressZip_Click" />
 
-                                <MenuItem Header="More Functions">
+                                <MenuItem Header="Advanced Tools">
 
                                     <MenuItem Header="Images" IsHitTestVisible="False" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}"/>
                                     <MenuItem Style="{StaticResource FullWidthSeparator}" IsEnabled="False"/>

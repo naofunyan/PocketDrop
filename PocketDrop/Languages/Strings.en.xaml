@@ -46,6 +46,9 @@
 
     <sys:String x:Key="Text_NoImagesTitle">Invalid Selection</sys:String>
     <sys:String x:Key="Text_NoImagesDesc">Please select at least one valid image file to use this tool.</sys:String>
+    <sys:String x:Key="Text_StrippingMetadata">Cleaning images...</sys:String>
+    <sys:String x:Key="Text_MetadataSuccessTitle">Success</sys:String>
+    <sys:String x:Key="Text_MetadataSuccessMsg">Successfully cleaned {0} images!&#x0a;&#x0a;They are now ready in your Pocket. Simply drag them out to save them.</sys:String>
 
     <sys:String x:Key="Text_MenuClearItems">Clear all</sys:String>
     <sys:String x:Key="Text_MenuSettings">Settings</sys:String>
