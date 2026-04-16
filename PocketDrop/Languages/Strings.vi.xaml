@@ -65,8 +65,28 @@
     <sys:String x:Key="Text_PdfSuccessTitle">Thành công</sys:String>
     <sys:String x:Key="Text_PdfSuccessMsg">Đã tạo thành công tài liệu PDF gồm {0} trang!&#x0a;&#x0a;Tệp đã được thêm vào Pocket của bạn.</sys:String>
 
+    <sys:String x:Key="Text_ResizingImages">Đang thay đổi kích thước...</sys:String>
+    <sys:String x:Key="Text_ResizedSuffix">_Resized</sys:String>
+    <sys:String x:Key="Text_ResizeSuccessTitle">Thành công</sys:String>
+    <sys:String x:Key="Text_ResizeSuccessMsg">Đã thay đổi kích thước thành công {0} hình ảnh!&#x0a;&#x0a;Chúng hiện đã sẵn sàng trong Pocket của bạn.</sys:String>
+
     <sys:String x:Key="Text_MenuClearItems">Xóa tất cả tập tin</sys:String>
     <sys:String x:Key="Text_MenuSettings">Cài đặt</sys:String>
+
+
+    <sys:String x:Key="Text_ResizeImagesTitle">Thay đổi kích thước</sys:String>
+    <sys:String x:Key="Text_ResizeImagesDesc">Cấu hình kích thước mục tiêu và hành vi.</sys:String>
+    <sys:String x:Key="Text_Width">Chiều rộng</sys:String>
+    <sys:String x:Key="Text_Height">Chiều cao</sys:String>
+    <sys:String x:Key="Text_ResizeMode">Chế độ</sys:String>
+    <sys:String x:Key="Text_ModeFit">Vừa vặn (Fit)</sys:String>
+    <sys:String x:Key="Text_ModeFill">Lấp đầy (Fill)</sys:String>
+    <sys:String x:Key="Text_ModeStretch">Kéo giãn (Stretch)</sys:String>
+    <sys:String x:Key="Text_Unit">Đơn vị</sys:String>
+    <sys:String x:Key="Text_UnitPixels">Pixel</sys:String>
+    <sys:String x:Key="Text_UnitPercentages">Phần trăm</sys:String>
+    <sys:String x:Key="Text_UnitCentimeters">Centimet</sys:String>
+    <sys:String x:Key="Text_ResizeBtn">Áp dụng</sys:String>
 
     <!-- My Pockets Window -->
     <sys:String x:Key="Text_SavedPocketsTitle">Các Pocket của bạn</sys:String>

@@ -1548,6 +1548,8 @@ namespace PocketDrop
             MessageBox.Show(string.Format(msgTemplate, successCount), title, MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
+
+
         private async void Menu_ImageConvertAction_Click(object sender, RoutedEventArgs e)
         {
             var imagesToProcess = GetOnlyValidImages();
@@ -1685,12 +1687,195 @@ namespace PocketDrop
             }
         }
 
-        private void Menu_ImageResize_Click(object sender, RoutedEventArgs e)
+        private async void Menu_ImageResize_Click(object sender, RoutedEventArgs e)
         {
             var imagesToProcess = GetOnlyValidImages();
             if (imagesToProcess.Count == 0) return;
 
-            // Your resizing logic will go here!
+            // 1. Pop the custom input window
+            var resizeDialog = new ResizeWindow { Owner = this };
+            if (resizeDialog.ShowDialog() != true) return;
+
+            double inputW = resizeDialog.TargetWidth;
+            double inputH = resizeDialog.TargetHeight;
+            ImageResizeMode mode = resizeDialog.SelectedMode;
+            ImageResizeUnit unit = resizeDialog.SelectedUnit;
+
+            // 2. Prepare the UI
+            if (ExpandButton != null) ExpandButton.IsChecked = false;
+            if (FileIconContainer != null) FileIconContainer.Visibility = Visibility.Collapsed;
+            if (StatusText != null)
+            {
+                StatusText.Text = (string)Application.Current.TryFindResource("Text_ResizingImages") ?? "Resizing images...";
+                StatusText.Visibility = Visibility.Visible;
+            }
+
+            // ✨ DYNAMIC FILE SUFFIX (Fetched before the background thread starts!)
+            string resizedSuffix = (string)Application.Current.TryFindResource("Text_ResizedSuffix") ?? "_Resized";
+
+            int successCount = 0;
+
+            // 3. Process the images
+            await System.Threading.Tasks.Task.Run(() =>
+            {
+                string tempFolder = System.IO.Path.GetTempPath();
+                double standardDpi = 96.0; // Standard screen DPI for CM conversion
+
+                foreach (var img in imagesToProcess)
+                {
+                    try
+                    {
+                        string ext = System.IO.Path.GetExtension(img.FilePath).ToLower();
+                        string filename = System.IO.Path.GetFileNameWithoutExtension(img.FilePath);
+
+                        // ✨ Applies the translated suffix to the file
+                        string newFileName = $"{filename}{resizedSuffix}{ext}";
+                        string targetFilePath = System.IO.Path.Combine(tempFolder, $"PocketDrop_Rsz_{System.Guid.NewGuid().ToString("N").Substring(0, 8)}_{newFileName}");
+
+                        byte[] fileBytes = System.IO.File.ReadAllBytes(img.FilePath);
+
+                        using (var ms = new System.IO.MemoryStream(fileBytes))
+                        using (var originalBitmap = SkiaSharp.SKBitmap.Decode(ms))
+                        {
+                            if (originalBitmap == null) continue;
+
+                            int originalW = originalBitmap.Width;
+                            int originalH = originalBitmap.Height;
+
+                            // STEP A: Convert user inputs to a Target Pixel Box based on the specific image
+                            double targetBoxW = 0;
+                            double targetBoxH = 0;
+
+                            if (unit == ImageResizeUnit.Pixels)
+                            {
+                                targetBoxW = inputW;
+                                targetBoxH = inputH;
+                            }
+                            else if (unit == ImageResizeUnit.Percentages)
+                            {
+                                targetBoxW = originalW * (inputW / 100.0);
+                                targetBoxH = originalH * (inputH / 100.0);
+                            }
+                            else if (unit == ImageResizeUnit.Centimeters)
+                            {
+                                targetBoxW = (inputW / 2.54) * standardDpi;
+                                targetBoxH = (inputH / 2.54) * standardDpi;
+                            }
+
+                            // STEP B: PowerToys Behavior - If one box is 0 (blank), auto-calculate it to maintain ratio!
+                            if (targetBoxW > 0 && targetBoxH <= 0)
+                            {
+                                targetBoxH = originalH * (targetBoxW / originalW);
+                            }
+                            else if (targetBoxH > 0 && targetBoxW <= 0)
+                            {
+                                targetBoxW = originalW * (targetBoxH / originalH);
+                            }
+
+                            // STEP C: Calculate actual Skia resize dimensions based on Mode
+                            int scaleW = originalW;
+                            int scaleH = originalH;
+
+                            if (targetBoxW > 0 && targetBoxH > 0)
+                            {
+                                if (mode == ImageResizeMode.Stretch)
+                                {
+                                    scaleW = (int)targetBoxW;
+                                    scaleH = (int)targetBoxH;
+                                }
+                                else // Fit or Fill
+                                {
+                                    double ratioX = targetBoxW / originalW;
+                                    double ratioY = targetBoxH / originalH;
+
+                                    // Fit = Min ratio (stops at edges), Fill = Max ratio (bleeds over edges)
+                                    double ratio = (mode == ImageResizeMode.Fit)
+                                        ? System.Math.Min(ratioX, ratioY)
+                                        : System.Math.Max(ratioX, ratioY);
+
+                                    scaleW = (int)(originalW * ratio);
+                                    scaleH = (int)(originalH * ratio);
+                                }
+                            }
+
+                            // Ensure we don't try to render a 0px image
+                            if (scaleW <= 0 || scaleH <= 0) continue;
+
+                            // STEP D: Perform High-Quality Skia Resize
+                            using (var resizedBitmap = originalBitmap.Resize(new SkiaSharp.SKImageInfo(scaleW, scaleH), SkiaSharp.SKFilterQuality.High))
+                            using (var scaledImage = SkiaSharp.SKImage.FromBitmap(resizedBitmap))
+                            {
+                                SkiaSharp.SKImage finalImage = scaledImage;
+
+                                // STEP E: If 'Fill', perform a center-crop to cut off the bleeding edges!
+                                // (We only do this if the user actually provided BOTH inputs to create a hard bounding box)
+                                if (mode == ImageResizeMode.Fill && inputW > 0 && inputH > 0)
+                                {
+                                    int cropBoxW = (int)targetBoxW;
+                                    int cropBoxH = (int)targetBoxH;
+
+                                    int left = (scaleW - cropBoxW) / 2;
+                                    int top = (scaleH - cropBoxH) / 2;
+
+                                    // Subset perfectly extracts the center pixels
+                                    finalImage = scaledImage.Subset(new SkiaSharp.SKRectI(left, top, left + cropBoxW, top + cropBoxH));
+                                }
+
+                                // STEP F: Encode to match the original file format
+                                SkiaSharp.SKEncodedImageFormat format = SkiaSharp.SKEncodedImageFormat.Jpeg;
+                                if (ext == ".png") format = SkiaSharp.SKEncodedImageFormat.Png;
+                                else if (ext == ".webp") format = SkiaSharp.SKEncodedImageFormat.Webp;
+                                else if (ext == ".bmp") format = SkiaSharp.SKEncodedImageFormat.Bmp;
+
+                                using (var data = finalImage.Encode(format, 95))
+                                using (var fs = new System.IO.FileStream(targetFilePath, System.IO.FileMode.Create, System.IO.FileAccess.Write))
+                                {
+                                    data.SaveTo(fs);
+                                }
+
+                                if (finalImage != scaledImage) finalImage.Dispose();
+                            }
+                        }
+
+                        // Update the UI item
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            img.FilePath = targetFilePath;
+                            img.FileName = newFileName;
+                            img.Icon = null;
+                        });
+
+                        successCount++;
+                    }
+                    catch (System.Exception ex)
+                    {
+                        System.Console.WriteLine($"Could not resize {img.FileName}: {ex.Message}");
+                    }
+                }
+            });
+
+            // 4. Force the UI to refresh the empty icons we just nulled out
+            foreach (var item in imagesToProcess)
+            {
+                if (item.Icon == null)
+                {
+                    _ = LoadFileIconAsync(item.FilePath).ContinueWith(t =>
+                    {
+                        if (t.Result != null) Application.Current.Dispatcher.Invoke(() => item.Icon = t.Result);
+                    });
+                }
+            }
+
+            if (StatusText != null) StatusText.Visibility = Visibility.Collapsed;
+            if (FileIconContainer != null) FileIconContainer.Visibility = Visibility.Visible;
+
+            if (successCount > 0)
+            {
+                string title = (string)Application.Current.TryFindResource("Text_ResizeSuccessTitle") ?? "Success";
+                string msgTemplate = (string)Application.Current.TryFindResource("Text_ResizeSuccessMsg") ?? "Successfully resized {0} images!\n\nThey are ready in your Pocket.";
+
+                MessageBox.Show(string.Format(msgTemplate, successCount), title, MessageBoxButton.OK, MessageBoxImage.Information);
+            }
         }
 
         private async void Menu_ImageCreatePdf_Click(object sender, RoutedEventArgs e)

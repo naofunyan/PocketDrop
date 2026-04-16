@@ -65,8 +65,28 @@
     <sys:String x:Key="Text_PdfSuccessTitle">Success</sys:String>
     <sys:String x:Key="Text_PdfSuccessMsg">Successfully created a {0}-page PDF document!&#x0a;&#x0a;It has been added to your Pocket.</sys:String>
 
+    <sys:String x:Key="Text_ResizingImages">Resizing images...</sys:String>
+    <sys:String x:Key="Text_ResizedSuffix">_Resized</sys:String>
+    <sys:String x:Key="Text_ResizeSuccessTitle">Success</sys:String>
+    <sys:String x:Key="Text_ResizeSuccessMsg">Successfully resized {0} images!&#x0a;&#x0a;They are ready in your Pocket.</sys:String>
+
     <sys:String x:Key="Text_MenuClearItems">Clear all</sys:String>
     <sys:String x:Key="Text_MenuSettings">Settings</sys:String>
+
+
+    <sys:String x:Key="Text_ResizeImagesTitle">Resize Images</sys:String>
+    <sys:String x:Key="Text_ResizeImagesDesc">Configure your target dimensions and behavior.</sys:String>
+    <sys:String x:Key="Text_Width">Width</sys:String>
+    <sys:String x:Key="Text_Height">Height</sys:String>
+    <sys:String x:Key="Text_ResizeMode">Resize Mode</sys:String>
+    <sys:String x:Key="Text_ModeFit">Fit</sys:String>
+    <sys:String x:Key="Text_ModeFill">Fill</sys:String>
+    <sys:String x:Key="Text_ModeStretch">Stretch</sys:String>
+    <sys:String x:Key="Text_Unit">Unit</sys:String>
+    <sys:String x:Key="Text_UnitPixels">Pixels</sys:String>
+    <sys:String x:Key="Text_UnitPercentages">Percentages</sys:String>
+    <sys:String x:Key="Text_UnitCentimeters">Centimeters</sys:String>
+    <sys:String x:Key="Text_ResizeBtn">Resize</sys:String>
 
     <!-- My Pockets Window -->
     <sys:String x:Key="Text_SavedPocketsTitle">My Pockets</sys:String>
