@@ -1637,73 +1637,87 @@ namespace PocketDrop
 
             int successCount = 0;
 
+            // Processing in parallel
             await System.Threading.Tasks.Task.Run(() =>
             {
                 // PDFsharp requires this once per app lifecycle in modern .NET for proper font handling
                 System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 
-                string tempFolder = Path.GetTempPath();
+                string tempFolder = System.IO.Path.GetTempPath();
 
-                foreach (var img in imagesToProcess)
+                System.Threading.Tasks.Parallel.ForEach(imagesToProcess, img =>
                 {
                     try
                     {
-                        string originalExt = Path.GetExtension(img.FilePath).ToLower();
-                        if (originalExt == targetExt) continue;
+                        string originalExt = System.IO.Path.GetExtension(img.FilePath).ToLower();
 
-                        string filename = Path.GetFileNameWithoutExtension(img.FilePath);
+                        // Thread-safe skip if the image is already the correct format
+                        if (originalExt == targetExt) return;
+
+                        string filename = System.IO.Path.GetFileNameWithoutExtension(img.FilePath);
                         string newFileName = $"{filename}{targetExt}";
-                        string targetFilePath = Path.Combine(tempFolder, $"PocketDrop_Cvt_{Guid.NewGuid().ToString("N").Substring(0, 8)}_{newFileName}");
+                        string targetFilePath = System.IO.Path.Combine(tempFolder, newFileName);
 
-                        byte[] fileBytes = File.ReadAllBytes(img.FilePath);
-
-                        // Route A: Native WPF for PNG / JPG
-                        if (targetExt == ".png" || targetExt == ".jpg")
+                        // Safe Collision Check: Adds (1), (2) if the file already exists
+                        int fileCounter = 1;
+                        while (System.IO.File.Exists(targetFilePath))
                         {
-                            using (var ms = new System.IO.MemoryStream(fileBytes))
+                            string nameOnly = System.IO.Path.GetFileNameWithoutExtension(newFileName);
+                            string extension = System.IO.Path.GetExtension(newFileName);
+                            targetFilePath = System.IO.Path.Combine(tempFolder, $"{nameOnly} ({fileCounter}){extension}");
+                            fileCounter++;
+                        }
+
+                        // Update the UI name to match the final path
+                        newFileName = System.IO.Path.GetFileName(targetFilePath);
+
+                        using (var fs = System.IO.File.OpenRead(img.FilePath))
+                        {
+                            // Route A: Native WPF for PNG / JPG
+                            if (targetExt == ".png" || targetExt == ".jpg")
                             {
-                                BitmapDecoder decoder = BitmapDecoder.Create(ms, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.None);
-                                BitmapEncoder encoder = targetExt == ".png" ? (BitmapEncoder)new PngBitmapEncoder() : new JpegBitmapEncoder { QualityLevel = 95 };
+                                // Changed to OnLoad for active stream reading
+                                BitmapDecoder decoder = BitmapDecoder.Create(fs, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.OnLoad);
+
+                                BitmapEncoder encoder = targetExt == ".png" ? (BitmapEncoder)new PngBitmapEncoder() : new JpegBitmapEncoder { QualityLevel = 100 };
 
                                 var standardizedFrame = new FormatConvertedBitmap(decoder.Frames[0], System.Windows.Media.PixelFormats.Bgra32, null, 0);
                                 encoder.Frames.Add(BitmapFrame.Create(standardizedFrame));
 
-                                using (var fs = new FileStream(targetFilePath, FileMode.Create, FileAccess.Write))
+                                using (var outStream = new System.IO.FileStream(targetFilePath, System.IO.FileMode.Create, System.IO.FileAccess.Write))
                                 {
-                                    encoder.Save(fs);
+                                    encoder.Save(outStream);
                                 }
                             }
-                        }
-                        // Route B: SkiaSharp for WEBP
-                        else if (targetExt == ".webp")
-                        {
-                            using (var ms = new System.IO.MemoryStream(fileBytes))
-                            using (var originalBitmap = SkiaSharp.SKBitmap.Decode(ms))
-                            using (var image = SkiaSharp.SKImage.FromBitmap(originalBitmap))
-                            using (var data = image.Encode(SkiaSharp.SKEncodedImageFormat.Webp, 90))
-                            using (var fs = new FileStream(targetFilePath, FileMode.Create, FileAccess.Write))
+                            // Route B: SkiaSharp for WEBP
+                            else if (targetExt == ".webp")
                             {
-                                data.SaveTo(fs);
-                            }
-                        }
-                        // Route C: PDFsharp for Individual PDFs
-                        else if (targetExt == ".pdf")
-                        {
-                            using (var document = new PdfSharp.Pdf.PdfDocument())
-                            {
-                                var page = document.AddPage();
-                                using (var ms = new System.IO.MemoryStream(fileBytes))
-                                using (var xImage = PdfSharp.Drawing.XImage.FromStream(ms))
+                                using (var originalBitmap = SkiaSharp.SKBitmap.Decode(fs))
+                                using (var image = SkiaSharp.SKImage.FromBitmap(originalBitmap))
+                                using (var data = image.Encode(SkiaSharp.SKEncodedImageFormat.Webp, 100))
+                                using (var outStream = new System.IO.FileStream(targetFilePath, System.IO.FileMode.Create, System.IO.FileAccess.Write))
                                 {
-                                    page.Width = xImage.PointWidth;
-                                    page.Height = xImage.PointHeight;
-
-                                    using (var gfx = PdfSharp.Drawing.XGraphics.FromPdfPage(page))
+                                    data.SaveTo(outStream);
+                                }
+                            }
+                            // Route C: PDFsharp for Individual PDFs
+                            else if (targetExt == ".pdf")
+                            {
+                                using (var document = new PdfSharp.Pdf.PdfDocument())
+                                {
+                                    var page = document.AddPage();
+                                    using (var xImage = PdfSharp.Drawing.XImage.FromStream(fs))
                                     {
-                                        gfx.DrawImage(xImage, 0, 0, page.Width, page.Height);
+                                        page.Width = xImage.PointWidth;
+                                        page.Height = xImage.PointHeight;
+
+                                        using (var gfx = PdfSharp.Drawing.XGraphics.FromPdfPage(page))
+                                        {
+                                            gfx.DrawImage(xImage, 0, 0, page.Width, page.Height);
+                                        }
                                     }
+                                    document.Save(targetFilePath);
                                 }
-                                document.Save(targetFilePath);
                             }
                         }
 
@@ -1714,16 +1728,16 @@ namespace PocketDrop
                             img.Icon = null;
                         });
 
-                        successCount++;
+                        // Thread-safe counting
+                        System.Threading.Interlocked.Increment(ref successCount);
                     }
-                    catch (Exception ex)
+                    catch (System.Exception ex)
                     {
-                        Console.WriteLine($"Could not convert {img.FileName}: {ex.Message}");
+                        System.Console.WriteLine($"Could not convert {img.FileName}: {ex.Message}");
                     }
-                }
+                });
             });
 
-            // Force the UI to refresh the icons that were just cleared
             foreach (var item in imagesToProcess)
             {
                 if (item.Icon == null)
@@ -1759,7 +1773,6 @@ namespace PocketDrop
             MenuItem clickedItem = sender as MenuItem;
             if (!int.TryParse(clickedItem?.Tag?.ToString(), out int userDegrees)) return;
 
-            // 1. Prepare UI
             if (ExpandButton != null) ExpandButton.IsChecked = false;
             if (FileIconContainer != null) FileIconContainer.Visibility = Visibility.Collapsed;
             if (StatusText != null)
@@ -1771,32 +1784,39 @@ namespace PocketDrop
             string rotatedSuffix = (string)Application.Current.TryFindResource("Text_RotatedSuffix") ?? "_Rotated";
             int successCount = 0;
 
-            // 2. Process in the background using pure SkiaSharp math
+            // Processing in parallel
             await System.Threading.Tasks.Task.Run(() =>
             {
                 string tempFolder = System.IO.Path.GetTempPath();
 
-                foreach (var img in imagesToProcess)
+                System.Threading.Tasks.Parallel.ForEach(imagesToProcess, img =>
                 {
                     try
                     {
                         string ext = System.IO.Path.GetExtension(img.FilePath).ToLower();
                         string filename = System.IO.Path.GetFileNameWithoutExtension(img.FilePath);
                         string newFileName = $"{filename}{rotatedSuffix}{ext}";
-                        string targetFilePath = System.IO.Path.Combine(tempFolder, $"PocketDrop_Rot_{System.Guid.NewGuid().ToString("N").Substring(0, 8)}_{newFileName}");
+                        string targetFilePath = System.IO.Path.Combine(tempFolder, newFileName);
 
-                        byte[] fileBytes = System.IO.File.ReadAllBytes(img.FilePath);
-
-                        using (var ms = new System.IO.MemoryStream(fileBytes))
-                        using (var codec = SkiaSharp.SKCodec.Create(ms))
+                        int fileCounter = 1;
+                        while (System.IO.File.Exists(targetFilePath))
                         {
-                            if (codec == null) continue;
+                            string nameOnly = System.IO.Path.GetFileNameWithoutExtension(newFileName);
+                            string extension = System.IO.Path.GetExtension(newFileName);
+                            targetFilePath = System.IO.Path.Combine(tempFolder, $"{nameOnly} ({fileCounter}){extension}");
+                            fileCounter++;
+                        }
+                        newFileName = System.IO.Path.GetFileName(targetFilePath);
+
+                        using (var fs = System.IO.File.OpenRead(img.FilePath))
+                        using (var codec = SkiaSharp.SKCodec.Create(fs))
+                        {
+                            if (codec == null) return;
 
                             using (var rawBitmap = SkiaSharp.SKBitmap.Decode(codec))
                             {
-                                if (rawBitmap == null) continue;
+                                if (rawBitmap == null) return;
 
-                                // 1. Read the hidden EXIF orientation to determine true upright
                                 int exifDegrees = 0;
                                 switch (codec.EncodedOrigin)
                                 {
@@ -1805,7 +1825,6 @@ namespace PocketDrop
                                     case SkiaSharp.SKEncodedOrigin.LeftBottom: exifDegrees = 270; break;
                                 }
 
-                                // 2. Combine EXIF tilt with the requested rotation (-90 becomes 270 for clean math)
                                 int safeUserDegrees = userDegrees < 0 ? userDegrees + 360 : userDegrees;
                                 int totalDegrees = (exifDegrees + safeUserDegrees) % 360;
 
@@ -1814,15 +1833,13 @@ namespace PocketDrop
                                 else if (ext == ".webp") format = SkiaSharp.SKEncodedImageFormat.Webp;
                                 else if (ext == ".bmp") format = SkiaSharp.SKEncodedImageFormat.Bmp;
 
-                                // 3. Execute the physical pixel rotation
                                 if (totalDegrees == 0)
                                 {
-                                    // If the result is 0° tilt (e.g. EXIF 90° + rotation -90°), re-encode the upright pixels as-is
                                     using (var image = SkiaSharp.SKImage.FromBitmap(rawBitmap))
                                     using (var data = image.Encode(format, 100))
-                                    using (var fs = new System.IO.FileStream(targetFilePath, System.IO.FileMode.Create, System.IO.FileAccess.Write))
+                                    using (var outStream = new System.IO.FileStream(targetFilePath, System.IO.FileMode.Create, System.IO.FileAccess.Write))
                                     {
-                                        data.SaveTo(fs);
+                                        data.SaveTo(outStream);
                                     }
                                 }
                                 else
@@ -1834,42 +1851,38 @@ namespace PocketDrop
                                     using (var canvas = new SkiaSharp.SKCanvas(rotatedBitmap))
                                     {
                                         canvas.Clear(SkiaSharp.SKColors.Transparent);
-
-                                        // Spin the canvas
                                         canvas.Translate(newW / 2f, newH / 2f);
                                         canvas.RotateDegrees(totalDegrees);
                                         canvas.Translate(-rawBitmap.Width / 2f, -rawBitmap.Height / 2f);
                                         canvas.DrawBitmap(rawBitmap, 0, 0);
 
-                                        // Encoding with max quality at 100
                                         using (var image = SkiaSharp.SKImage.FromBitmap(rotatedBitmap))
                                         using (var data = image.Encode(format, 100))
-                                        using (var fs = new System.IO.FileStream(targetFilePath, System.IO.FileMode.Create, System.IO.FileAccess.Write))
+                                        using (var outStream = new System.IO.FileStream(targetFilePath, System.IO.FileMode.Create, System.IO.FileAccess.Write))
                                         {
-                                            data.SaveTo(fs);
+                                            data.SaveTo(outStream);
                                         }
                                     }
                                 }
                             }
                         }
 
-                        // Update the UI
                         Application.Current.Dispatcher.Invoke(() =>
                         {
                             img.FilePath = targetFilePath;
                             img.FileName = newFileName;
                             img.Icon = null;
                         });
-                        successCount++;
+
+                        System.Threading.Interlocked.Increment(ref successCount);
                     }
                     catch (System.Exception ex)
                     {
                         System.Console.WriteLine($"Could not rotate {img.FileName}: {ex.Message}");
                     }
-                }
+                });
             });
 
-            // 3. Force the UI to redraw the fresh icons and the stack
             foreach (var item in imagesToProcess)
             {
                 if (item.Icon == null)
@@ -1928,29 +1941,36 @@ namespace PocketDrop
 
             int successCount = 0;
 
-            // 3. Process the images
+            // 3. Process the images in parallel
             await System.Threading.Tasks.Task.Run(() =>
             {
                 string tempFolder = System.IO.Path.GetTempPath();
                 double standardDpi = 96.0; // Standard screen DPI for CM conversion
 
-                foreach (var img in imagesToProcess)
+                // Parallel.ForEach spins up multiple threads instantly
+                System.Threading.Tasks.Parallel.ForEach(imagesToProcess, img =>
                 {
                     try
                     {
                         string ext = System.IO.Path.GetExtension(img.FilePath).ToLower();
                         string filename = System.IO.Path.GetFileNameWithoutExtension(img.FilePath);
-
-                        // Applies the translated suffix to the file
                         string newFileName = $"{filename}{resizedSuffix}{ext}";
-                        string targetFilePath = System.IO.Path.Combine(tempFolder, $"PocketDrop_Rsz_{System.Guid.NewGuid().ToString("N").Substring(0, 8)}_{newFileName}");
+                        string targetFilePath = System.IO.Path.Combine(tempFolder, newFileName);
 
-                        byte[] fileBytes = System.IO.File.ReadAllBytes(img.FilePath);
-
-                        using (var ms = new System.IO.MemoryStream(fileBytes))
-                        using (var originalBitmap = SkiaSharp.SKBitmap.Decode(ms))
+                        int fileCounter = 1;
+                        while (System.IO.File.Exists(targetFilePath))
                         {
-                            if (originalBitmap == null) continue;
+                            string nameOnly = System.IO.Path.GetFileNameWithoutExtension(newFileName);
+                            string extension = System.IO.Path.GetExtension(newFileName);
+                            targetFilePath = System.IO.Path.Combine(tempFolder, $"{nameOnly} ({fileCounter}){extension}");
+                            fileCounter++;
+                        }
+                        newFileName = System.IO.Path.GetFileName(targetFilePath);
+
+                        using (var fs = System.IO.File.OpenRead(img.FilePath))
+                        using (var originalBitmap = SkiaSharp.SKBitmap.Decode(fs))
+                        {
+                            if (originalBitmap == null) return;
 
                             int originalW = originalBitmap.Width;
                             int originalH = originalBitmap.Height;
@@ -2012,7 +2032,7 @@ namespace PocketDrop
                             }
 
                             // Ensure the image has non-zero dimensions before rendering
-                            if (scaleW <= 0 || scaleH <= 0) continue;
+                            if (scaleW <= 0 || scaleH <= 0) return;
 
                             // Step D: Perform High-Quality Skia Resize
                             using (var resizedBitmap = originalBitmap.Resize(new SkiaSharp.SKImageInfo(scaleW, scaleH), SkiaSharp.SKFilterQuality.High))
@@ -2029,7 +2049,6 @@ namespace PocketDrop
                                     int left = (scaleW - cropBoxW) / 2;
                                     int top = (scaleH - cropBoxH) / 2;
 
-                                    // Subset perfectly extracts the center pixels
                                     finalImage = scaledImage.Subset(new SkiaSharp.SKRectI(left, top, left + cropBoxW, top + cropBoxH));
                                 }
 
@@ -2040,9 +2059,9 @@ namespace PocketDrop
                                 else if (ext == ".bmp") format = SkiaSharp.SKEncodedImageFormat.Bmp;
 
                                 using (var data = finalImage.Encode(format, 95))
-                                using (var fs = new System.IO.FileStream(targetFilePath, System.IO.FileMode.Create, System.IO.FileAccess.Write))
+                                using (var outStream = new System.IO.FileStream(targetFilePath, System.IO.FileMode.Create, System.IO.FileAccess.Write))
                                 {
-                                    data.SaveTo(fs);
+                                    data.SaveTo(outStream);
                                 }
 
                                 if (finalImage != scaledImage) finalImage.Dispose();
@@ -2057,13 +2076,14 @@ namespace PocketDrop
                             img.Icon = null;
                         });
 
-                        successCount++;
+                        // This forces the cores to line up and count perfectly
+                        System.Threading.Interlocked.Increment(ref successCount);
                     }
                     catch (System.Exception ex)
                     {
                         System.Console.WriteLine($"Could not resize {img.FileName}: {ex.Message}");
                     }
-                }
+                });
             });
 
             // 4. Force the UI to refresh the icons that were just cleared
@@ -2120,11 +2140,10 @@ namespace PocketDrop
                     {
                         foreach (var img in imagesToProcess)
                         {
-                            byte[] fileBytes = File.ReadAllBytes(img.FilePath);
-
                             var page = document.AddPage();
-                            using (var ms = new System.IO.MemoryStream(fileBytes))
-                            using (var xImage = PdfSharp.Drawing.XImage.FromStream(ms))
+
+                            using (var fs = File.OpenRead(img.FilePath))
+                            using (var xImage = PdfSharp.Drawing.XImage.FromStream(fs))
                             {
                                 page.Width = xImage.PointWidth;
                                 page.Height = xImage.PointHeight;
