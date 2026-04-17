@@ -60,8 +60,7 @@ namespace PocketDrop
             // 3. Load the exception apps UI
             RefreshExcludedAppsDisplay();
 
-            // 4. Get the version number, chopping off the Git hash
-            // 4. ✨ THE FIX: Pull the clean version from our new central source
+            // 4. Pull the clean version from our new central source
             AppVersionText.Text = $"Version {App.GetAppVersion()}";
 
             // 5. Load and apply the Theme
@@ -298,7 +297,7 @@ namespace PocketDrop
         {
             var border = new Border
             {
-                Background = new SolidColorBrush(Color.FromRgb(0, 95, 184)), // #005FB8
+                Background = (Brush)new BrushConverter().ConvertFrom("#dd2c2f"),
                 CornerRadius = new CornerRadius(4),
 
                 Padding = new Thickness(10, 4, 10, 4),

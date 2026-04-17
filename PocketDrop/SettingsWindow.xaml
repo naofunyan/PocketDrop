@@ -172,8 +172,8 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter TargetName="StatusText" Property="Text" Value="{DynamicResource Text_ToggleOn}"/>
-                                <Setter TargetName="Border" Property="Background" Value="#005FB8"/>
-                                <Setter TargetName="Border" Property="BorderBrush" Value="#005FB8"/>
+                                <Setter TargetName="Border" Property="Background" Value="#dd2c2f"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#dd2c2f"/>
                                 <Setter TargetName="Thumb" Property="Fill" Value="White"/>
                                 <Trigger.EnterActions>
                                     <BeginStoryboard>
@@ -212,8 +212,8 @@
                         </StackPanel>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="CheckBoxBorder" Property="Background" Value="#005FB8"/>
-                                <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#005FB8"/>
+                                <Setter TargetName="CheckBoxBorder" Property="Background" Value="#dd2c2f"/>
+                                <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#dd2c2f"/>
                                 <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -224,8 +224,8 @@
                                     <Condition Property="IsChecked" Value="True"/>
                                     <Condition Property="IsMouseOver" Value="True"/>
                                 </MultiTrigger.Conditions>
-                                <Setter TargetName="CheckBoxBorder" Property="Background" Value="#0053A0"/>
-                                <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#0053A0"/>
+                                <Setter TargetName="CheckBoxBorder" Property="Background" Value="#bd2528"/>
+                                <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#bd2528"/>
                             </MultiTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -258,7 +258,7 @@
         </Style>
 
         <Style x:Key="PrimaryButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#005FB8"/>
+            <Setter Property="Background" Value="#dd2c2f"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -273,10 +273,10 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="BtnBorder" Property="Background" Value="#0053A0"/>
+                                <Setter TargetName="BtnBorder" Property="Background" Value="#bd2528"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="BtnBorder" Property="Background" Value="#004380"/>
+                                <Setter TargetName="BtnBorder" Property="Background" Value="#9c1e20"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -347,7 +347,7 @@
         </Style>
 
         <Style x:Key="Keycap" TargetType="Border">
-            <Setter Property="Background" Value="#005FB8"/>
+            <Setter Property="Background" Value="#dd2c2f"/>
             <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="Padding" Value="10,4"/>
             <Setter Property="Margin" Value="0,0,4,0"/>
@@ -472,7 +472,7 @@
                                     <TextBlock Text="{DynamicResource Text_OpenTempFolder}" FontSize="14" Foreground="{DynamicResource TextPrimary}" Margin="0,0,20,0" TextWrapping="Wrap"/>
                                     <TextBlock Text="{DynamicResource Text_OpenTempFolderDesc}" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource TextSecondary}" Margin="0,2,20,0"/>
                                 </StackPanel>
-                                <Button Grid.Column="2" Content="Open" Width="80" Height="32" VerticalAlignment="Center" Click="OpenTempFolder_Click" Style="{StaticResource StandardButtonStyle}"/>
+                                <Button Grid.Column="2" Content="Open" Width="80" Height="32" VerticalAlignment="Center" Click="OpenTempFolder_Click" Style="{StaticResource PrimaryButtonStyle}"/>
                             </Grid>
                         </Border>
                     </StackPanel>
@@ -605,7 +605,7 @@
                                         <TextBlock Text="{DynamicResource Text_ExcludedApps}" FontSize="14" Foreground="{DynamicResource TextPrimary}"/>
                                         <TextBlock Text="{DynamicResource Text_ExcludedAppsDesc}" FontSize="12" Foreground="{DynamicResource TextSecondary}" Margin="0,2,0,0" TextWrapping="Wrap"/>
                                     </StackPanel>
-                                    <Button Grid.Column="2" Content="{DynamicResource Text_ManageApps}" Width="140" Height="32" VerticalAlignment="Center" Click="OpenAppPicker_Click" Margin="0,0,10,0" Style="{StaticResource StandardButtonStyle}"/>
+                                    <Button Grid.Column="2" Content="{DynamicResource Text_ManageApps}" Width="140" Height="32" VerticalAlignment="Center" Click="OpenAppPicker_Click" Margin="0,0,10,0" Style="{StaticResource PrimaryButtonStyle}"/>
                                     <ToggleButton x:Name="ExpandExcludeButton" Grid.Column="3" Style="{StaticResource ExpandToggleButtonStyle}"/>
                                 </Grid>
                                 <Border Margin="-15,15,-15,-15" Padding="20,16,20,20" Background="{DynamicResource LayerAlt}" BorderBrush="{DynamicResource StrokeCardDefault}" BorderThickness="0,1,0,0" CornerRadius="0,0,8,8" Visibility="{Binding IsChecked, ElementName=ExpandExcludeButton, Converter={StaticResource BoolToVis}}">
@@ -863,6 +863,12 @@
                             <TextBlock Text="{DynamicResource Text_LicenseSentry}" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,4"/>
                             <TextBlock Text="{DynamicResource Text_LicenseSentryDesc}" TextWrapping="Wrap" FontSize="13" Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,16" LineHeight="20"/>
 
+                            <TextBlock Text="{DynamicResource Text_LicenseSkiaSharp}" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,4"/>
+                            <TextBlock Text="{DynamicResource Text_LicenseSkiaSharpDesc}" TextWrapping="Wrap" FontSize="13" Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,16" LineHeight="20"/>
+
+                            <TextBlock Text="{DynamicResource Text_LicensePdfSharp}" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,4"/>
+                            <TextBlock Text="{DynamicResource Text_LicensePdfSharpDesc}" TextWrapping="Wrap" FontSize="13" Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,20" LineHeight="20"/>
+                            
                             <TextBlock Text="{DynamicResource Text_LicenseMITTitle}" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,4"/>
                             <TextBlock Text="{DynamicResource Text_LicenseMITBody}" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,12" LineHeight="18" TextAlignment="Justify"/>
                         </StackPanel>

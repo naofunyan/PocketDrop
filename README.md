@@ -29,6 +29,8 @@ PocketDrop is a free and open-source drag and drop utility for Windows.
 - `Windows Presentation Foundation (WPF)`
 - `WindowsAPICodePack-Shell`
 - `Sentry`
+- `SkiaSharp`
+- `PDFsharp`
 - `Inno Setup`
 
 # ✨ Features
