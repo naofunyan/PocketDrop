@@ -37,29 +37,30 @@ PocketDrop is a free and open-source drag and drop utility for Windows.
 
 Here's what you can do with PocketDrop:
 
-- **Shake to summon:** Wiggle your mouse while dragging a file to summon a Pocket.
-- **Works with what you drag:** Add folders, documents, images, links, text snippets.
-- **Manage your files:** Preview, rename, reorder, or remove files directly on the Pocket without breaking your flow.
-- **Built-in file actions:** Resize images, extract text, create ZIP archives, and handle common tasks without leaving the Pocket.
-- **Advanced controls:** Use keyboard shortcuts, Command Bar, custom actions, and scripts to move faster through repetitive work.
+- **Shake to summon:** Wiggle your mouse while dragging any item to instantly summon a Pocket right where you need it.
+- **Accepts everything:** Works seamlessly with folders, images, videos, audio files, URLs, and even text snippets.
+- **Seamless control:** Preview, reorder, or remove items directly inside the Pocket so you never lose your focus.
+- **Powerful built-in tools:** Compress to ZIP, resize, convert formats, and instantly open or share items directly from the Pocket.
+- **Always at your fingertips:** Use keyboard shortcuts, access My Pocket, and explore more features via the system tray so the app is always ready when you need it.
 
 ## 🗃️ Supported file formats:
 
-PocketDrop is compatible with these popular file formats:
+PocketDrop supports most file formats, such as these popular types:
 
 | Format | Support |
 | --- | --- |
-| Text formats | .txt / .rtf / .docx / .csv / .doc / .wps / .wpd / .msg |
-| Image formats | .jpg / .png / .webp / .gif / .tif / .bmp / .eps |
-| Audio formats | .mp3 / .wma / .snd / .wav / .ra / .au / .aac |
-| Video formats | .mp4 / .3gp / .avi / .mpg / .mov / .wmv |
-| Program formats | .c / .cpp / .java / .py / .js / .ts / .cs / .swift / .dta / .pl / .sh / .bat / .com / .exe / .msi |
-| Compress / Archive formats | .rar / .zip / .hqx / .arj / .tar / .arc / .sit / .gz / .z |
-| Web Page formats | .html / .htm / .xhtml / .asp / .css / .aspx / .rss |
-| Folders | ✅ |
+| 📄 Text formats | .doc / .docx / .txt / .rtf / .msg / .csv / .pdf / .epub / .azw / .mobi|
+| 🖼️ Image formats | .jpg / .png / .raw / .heif / .webp / .svg / .avif / .gif / .tiff / .bmp / .eps |
+| 🎵 Audio formats | .mp3 / .m4a / .flac / .wav / .wma / .aac |
+| 🎬 Video formats | .mp4 / .avi / .mpg / .mov / .wmv |
+| 💻 Programming formats | .c / .cpp / .java / .py / .js / .ts / .cs / .swift / .sh / .bat / .md / .ipynb / .html / .htm / .xhtml / .css / .rss / .exe / .msi |
+| 🗄️ Compress / Archive formats | .rar / .zip / .tar / .7z / .gz |
+| 🚀 Beyond the file | Web Links, Folders, Text Snippets |
+
+...and many more! If Windows can drag it, PocketDrop can catch it.
 
 > [!NOTE]
-> PocketDrop should be compatible with most file formats. If you encounter an issue with a specific format, please let me know in the Issues tab.
+> If you encounter an issue with a specific format, please let me know in the [Issues](https://github.com/Naofunyan/PocketDrop/issues) tab.
 
 ## ⌨️ Keyboard Shortcuts:
 
@@ -67,11 +68,11 @@ Speed up your workflow with these shortcuts (customizable in Settings):
 
 | Action | Shortcut |
 | --- | --- |
-| Create a new Pocket | `Win + Shift + Z` |
-| Create a new Pocket from the clipboard | `Win + Shift + X` |
+| 🪄 Create a new Pocket | `Win + Shift + Z` |
+| 📋 Create a new Pocket from the clipboard | `Win + Shift + X` |
 
 # 🎯 How can it be improved?
-- [ ] \(Optional) Open a followup issue
+- [ ] \Direct upload to cloud services (Google Drive, OneDrive).
 
 # 💾 Download
 
@@ -83,12 +84,8 @@ You can check out the [latest release](https://github.com/naofunyan/PocketDrop/r
 
 Run the installer (`PocketDrop_Setup.exe`) and follow the on-screen steps to install PocketDrop.
 
-# License and Trademarks
+# 🎬 PocketDrop in motion
 
-**Code:**
-The source code of PocketDrop is licensed under the [GNU General Public License v3.0](LICENSE). You are free to download, modify, and distribute the code under the terms of this license.
+# ⚖️ License
 
-**Branding (Trademarks):**
-The name "PocketDrop", the PocketDrop logo, and related brand assets are the exclusive property of Naofunyan. The GPLv3 license **does not** grant you the right to use these branding elements. 
-
-If you choose to modify and distribute this software, you must remove the PocketDrop logo and use a different name for your project to avoid confusing users.
+The source code is licensed under the [GNU General Public License v3.0](LICENSE). The name "PocketDrop", its logo, and related brand assets are the exclusive property of Naofunyan and **are not** covered by the GPLv3 license.
