@@ -15,7 +15,7 @@ body:
         You can find your Windows version by go to <kbd>Settings</kbd> > <kbd>System</kbd> > <kbd>About</kbd> and look for <kbd>Windows specifications</kbd>.
       placeholder: |
         - PocketDrop version: e.g. PocketDrop version: v1.0.0
-        - Windows version: e.g. Windows version: Windows 11 24H2 (OS Build 26100.8037)
+        - Windows version: e.g. Windows version: Windows 11 24H2 (OS Build 26100.8037) (64-bit)
     validations:
       required: true
   - type: textarea
@@ -62,4 +62,4 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting this issue! We will get back to you as soon as possible.
+        Thanks for reporting this issue! We will get back to you as soon as possible ❤️

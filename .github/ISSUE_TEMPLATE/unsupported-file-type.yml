@@ -1,0 +1,54 @@
+name: 💾 Report an unsupported file format
+description: Help us expand PocketDrop's compatibility by reporting a file format that isn't working for you.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Tell us more about the file format you'd like to see! The more details you provide, the easier it will be for us to add support.
+  - type: textarea
+    id: pocketdrop-info
+    attributes:
+      label: ℹ️ PocketDrop version
+      description: |
+        You can find the PocketDrop version number by right-clicking on the PocketDrop tray icon and going to <kbd>Settings</kbd> > <kbd>About</kbd>.
+      placeholder: |
+        - PocketDrop version: e.g. PocketDrop version: v1.0.0
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: 📝 About the file format
+      description: What file format would you like PocketDrop to support?
+      placeholder: |
+        Example: "I'd like to see support for .format files."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 🎯 How does PocketDrop currently handle this file format?
+      description: Let us know what happens when you try to use this format - share any error messages or unexpected behavior you encounter.
+      placeholder: |
+        Example: I expected the .png file to be saved inside the Pocket.
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 💻 What app do you normally use for this format? (Optional)
+      description: Knowing what software you use helps us understand your workflow and gives us a great starting point.
+      placeholder: |
+        Example: "I usually open these files with app X, and I want to use PocketDrop to quickly stage them for my project."
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Before submitting
+      options:
+        - label: "I have searched the existing issues to ensure this hasn't already been requested."
+          required: true
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping us improve PocketDrop! We'll review your suggestion and get back to you soon ❤️

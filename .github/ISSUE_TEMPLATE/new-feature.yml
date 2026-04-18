@@ -9,10 +9,10 @@ body:
   - type: textarea
     id: description
     attributes:
-      label: 📝 Describe the new features or enhancements
+      label: 📝 Describe the new feature or enhancement
       description: Tell us exactly how this new feature should work in PocketDrop.
       placeholder: |
-        Example: "A button in the screen X that allows to do Y".
+        Example: "A button on the X screen that allows users to do Y."
     validations:
       required: true
   - type: textarea
@@ -21,7 +21,7 @@ body:
       label: 💡 Why would this be a great addition to PocketDrop?
       description: Tell us how this feature would make your day-to-day tasks easier or more enjoyable.
       placeholder: |
-        Example: "It will allow to do Y that is needed for Z"
+        Example: "It will allow me to do Y, which is necessary for Z."
     validations:
       required: true
   - type: textarea
@@ -32,4 +32,4 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to share this with us! We are excited to review your idea and see if it can be implemented.
+        Thanks for taking the time to share this with us! We are excited to review your idea and see if it can be implemented 🪄
