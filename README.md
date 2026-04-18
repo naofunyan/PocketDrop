@@ -16,7 +16,7 @@
 
 # ℹ️ About
 
-PocketDrop is a free and open-source drag and drop utility for Windows.
+PocketDrop is a free, open-source Windows utility built for effortless file management. It delivers a seamless drag-and-drop experience packed with powerful built-in tools, so you can get things done without ever leaving your current workspace.
 
 > [!IMPORTANT]
 > * PocketDrop is currently in active development. The app is functional but may contain bugs or incomplete features. If you encounter any issues, please report them in the Issues tab.
@@ -68,8 +68,8 @@ Speed up your workflow with these shortcuts (customizable in Settings):
 
 | Action | Shortcut |
 | --- | --- |
-| 🪄 Create a new Pocket | `Win + Shift + Z` |
-| 📋 Create a new Pocket from the clipboard | `Win + Shift + X` |
+| 🪄 Create a new Pocket | <kbd>Win</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd> |
+| 📋 Create a new Pocket from the clipboard | <kbd>Win</kbd> + <kbd>Shift</kbd> + <kbd>X</kbd> |
 
 # 🎯 How can it be improved?
 - [ ] Direct upload to cloud services (Google Drive, OneDrive).

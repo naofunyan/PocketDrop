@@ -1,43 +1,62 @@
-name: Bug Report
-description: Report a bug
+name: 🐛 Report a bug or unexpected behavior
+description: Spot an issue? Help us improve PocketDrop by reporting it here.
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Please fill out the sections below to help everyone identify and fix the bug
+        Please share as much detail as possible below so we can track down the issue and get it fixed!
   - type: textarea
     id: description
     attributes:
-      label: Describe your issue
-      placeholder: When I click here this happens
+      label: ℹ️ System information
+      description: |
+        You can find the PocketDrop version number by right-clicking on the PocketDrop tray icon and going to <kbd>Settings</kbd> > <kbd>About</kbd>.
+        You can find your Windows version by go to <kbd>Settings</kbd> > <kbd>System</kbd> > <kbd>About</kbd> and look for <kbd>Windows specifications</kbd>.
+      placeholder: |
+        - PocketDrop version: e.g. PocketDrop version: v1.0.0
+        - Windows version: e.g. Windows version: Windows 11 24H2 (OS Build 26100.8037)
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: 📝 Describe your issue
+      description: Describe the unexpected behavior you encountered.
+      placeholder: Example: "When I drag a .png file into the Pocket, it shows an error message."
     validations:
       required: true
   - type: textarea
     id: steps
     attributes:
-      label: Steps to reproduce
+      label: 🪜 Steps to reproduce
+      description: What steps do we need to follow to see this issue ourselves?
       placeholder: |
-        1. Go to page X
-        2. Click here
-        3. Click there
+        Example:
+        1. Open 'PocketDrop'
+        2. Shake the mouse to summon the Pocket
+        3. Drag a .png file into it
+        4. See error
     validations:
       required: true
   - type: textarea
     id: expected
     attributes:
-      label: What was the expected result?
-      placeholder: I expected this to happen
+      label: 🎯 Expected behavior
+      description: Tell us what should have happened if the bug didn't occur.
+      placeholder: Example: I expected the .png file to be saved inside the Pocket.
   - type: textarea
     id: screenshots
     attributes:
-      label: Put here any screenshots or videos (optional)
-  - type: dropdown
-    id: assign
+      label: 📸 Put here any screenshots or videos (optional)
+      description: Please attach screenshots or screen recordings showing the unexpected behavior. Visuals help us understand and fix issues much faster.
+  - type: checkboxes
+    id: terms
     attributes:
-      label: "Would you like to work on this issue?"
+      label: Extra fields
       options:
-        - "Yes"
+        - label: "I have used the search function <kbd>Ctrl</kbd> + <kbd>F</kbd> to check if an issue already exists"
+          required: true
   - type: markdown
     attributes:
       value: |
