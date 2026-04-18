@@ -10,7 +10,7 @@
 [![GitHub Repo stars](https://img.shields.io/github/stars/Naofunyan/PocketDrop?style=for-the-badge&color=ffc857)](https://github.com/Naofunyan/PocketDrop/stargazers)
 [![GitHub Downloads](https://img.shields.io/github/downloads/Naofunyan/PocketDrop/total?style=for-the-badge&color=2FA084)](https://github.com/Naofunyan/PocketDrop/releases)
 
-⭐️ If you find PocketDrop useful, please leave a star to support the project. ⭐️
+⭐️ If you find PocketDrop useful, please leave a star to support the project ⭐️
 
 </div>
 
