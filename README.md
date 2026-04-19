@@ -14,7 +14,7 @@
 
 </div>
 
-# ℹ️ About
+## ℹ️ About
 
 PocketDrop is a free, open-source Windows utility built for effortless file management. It delivers a seamless drag-and-drop experience packed with powerful built-in tools, so you can get things done without ever leaving your workflow.
 
@@ -23,7 +23,7 @@ PocketDrop is a free, open-source Windows utility built for effortless file mana
 > #### Liability:
 > * This application is provided "AS IS" and used at your own risk. The developers and contributors are not liable for any claims, damages, or other liability — including any legal consequences — arising from or in connection with the software or its use. All responsibility for outcomes rests entirely with the user.
 
-# 🛠️ Technologies
+## 🛠️ Technologies
 
 - `C# / .NET10`
 - `Windows Presentation Foundation (WPF)`
@@ -33,7 +33,7 @@ PocketDrop is a free, open-source Windows utility built for effortless file mana
 - `PDFsharp`
 - `Inno Setup`
 
-# ✨ Features
+## ✨ Features
 
 Here's what you can do with PocketDrop:
 
@@ -43,7 +43,7 @@ Here's what you can do with PocketDrop:
 - **Powerful built-in tools:** Compress to ZIP, resize, convert formats, and instantly open or share items directly from the Pocket.
 - **Always at your fingertips:** Use keyboard shortcuts, access My Pocket, and explore more features via the system tray so the app is always ready when you need it.
 
-## 🗃️ Supported file formats:
+### 🗃️ Supported file formats:
 
 PocketDrop supports most file formats, such as these popular types:
 
@@ -62,7 +62,7 @@ PocketDrop supports most file formats, such as these popular types:
 > [!NOTE]
 > If you encounter an issue with a specific format, please let me know in the [Issues](https://github.com/Naofunyan/PocketDrop/issues) tab.
 
-## ⌨️ Keyboard Shortcuts:
+### ⌨️ Keyboard Shortcuts:
 
 Speed up your workflow with these shortcuts (customizable in Settings):
 
@@ -71,10 +71,10 @@ Speed up your workflow with these shortcuts (customizable in Settings):
 | 🪄 Create a new Pocket | <kbd>Win</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd> |
 | 📋 Create a new Pocket from the clipboard | <kbd>Win</kbd> + <kbd>Shift</kbd> + <kbd>X</kbd> |
 
-# 🎯 How can it be improved?
+## 🎯 How can it be improved?
 - [ ] Direct upload to cloud services (Google Drive, OneDrive).
 
-# 💾 Download
+## 💾 Download
 
 You can check out the [latest release](https://github.com/naofunyan/PocketDrop/releases) to download the latest version of PocketDrop.
 
@@ -84,8 +84,8 @@ You can check out the [latest release](https://github.com/naofunyan/PocketDrop/r
 
 Run the installer (`PocketDrop_Setup.exe`) and follow the on-screen steps to install PocketDrop.
 
-# 🎬 PocketDrop in motion
+## 🎬 PocketDrop in motion
 
-# ⚖️ License
+## ⚖️ License
 
 The source code is licensed under the [GNU General Public License v3.0](LICENSE). The name "PocketDrop", its logo, and related brand assets are the exclusive property of Naofunyan and **are not** covered by the GPLv3 license.
