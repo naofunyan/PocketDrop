@@ -2453,7 +2453,7 @@ namespace PocketDrop
                         }
                         catch
                         {
-                            // If the file is locked for some reason, just ignore it and try again next time
+                            // If the file is locked for some reason, ignore it and try again next time
                         }
                     }
                 }
