@@ -252,7 +252,7 @@ namespace PocketDrop
                     foreach (string filePath in droppedFiles)
                     {
                         if (AppHelpers.IsDuplicate(PocketedItems, filePath)) continue;
-                        try { if (File.Exists(filePath) && new FileInfo(filePath).Length == 0) continue; } catch { continue; }
+                        try { if (!File.Exists(filePath) && !Directory.Exists(filePath)) continue; } catch { continue; }
 
                         string finalDisplayName = AppHelpers.GetSafeDisplayName(PocketedItems, filePath);
                         validItems.Add(new PocketItem { FileName = finalDisplayName, FilePath = filePath, Icon = null });
@@ -2872,11 +2872,13 @@ namespace PocketDrop
                 : PocketedItems.ToList();
 
             // 2. Define what counts as a valid image for these tools
-            string[] validExts = { ".png", ".jpg", ".jpeg", ".bmp", ".webp", ".gif" };
+            string[] validExts = { ".png", ".jpg", ".jpeg", ".bmp", ".webp", ".gif", ".dng", ".heif", ".svg", ".avif", ".tiff", ".eps" };
 
             // 3. Filter the list, silently dropping non-image files such as .exe, .pdf, and folders
             var validImages = itemsToProcess.Where(item =>
-                validExts.Contains(Path.GetExtension(item.FilePath).ToLower())
+                validExts.Contains(Path.GetExtension(item.FilePath).ToLower()) &&
+                File.Exists(item.FilePath) &&
+                new FileInfo(item.FilePath).Length > 0 // Explicitly reject 0-byte files here!
             ).ToList();
 
             // 4. Show a warning if no valid images remain
