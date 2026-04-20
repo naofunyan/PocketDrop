@@ -37,16 +37,16 @@ jobs:
         dotnet-version: '10.0.x'
 
     - name: Publish PocketDrop
-      run: |
-        dotnet publish ./PocketDrop/PocketDrop.csproj `
-        -c Release `
-        -r ${{ matrix.target }} `
-        --self-contained true `
-        -p:PublishSingleFile=true `
-        -p:UseAppHost=true `
-        -p:IncludeNativeLibrariesForSelfExtract=true `
-        -p:IncludeAllContentForSelfExtract=true `
-        -p:EnableCompressionInSingleFile=true `
+      run: >
+        dotnet publish ./PocketDrop/PocketDrop.csproj
+        -c Release
+        -r ${{ matrix.target }}
+        --self-contained true
+        -p:PublishSingleFile=true
+        -p:UseAppHost=true
+        -p:IncludeNativeLibrariesForSelfExtract=true
+        -p:IncludeAllContentForSelfExtract=true
+        -p:EnableCompressionInSingleFile=true
         -o GH_Publish
 
     - name: Compile Inno Setup
