@@ -4,11 +4,11 @@
 <br/>
 <br/>
 
-[![Windows](https://img.shields.io/badge/Platform-Windows-6895d2?style=for-the-badge&logo=windows)](https://github.com/Naofunyan/PocketDrop)
-[![GitHub License](https://img.shields.io/github/license/Naofunyan/PocketDrop?style=for-the-badge&color=f3b95f)](https://github.com/Naofunyan/PocketDrop/blob/main/LICENSE)
-[![GitHub Release](https://img.shields.io/github/v/release/Naofunyan/PocketDrop?style=for-the-badge&color=c5283d)](https://github.com/Naofunyan/PocketDrop/releases)
-[![GitHub Repo stars](https://img.shields.io/github/stars/Naofunyan/PocketDrop?style=for-the-badge&color=ffc857)](https://github.com/Naofunyan/PocketDrop/stargazers)
-[![GitHub Downloads](https://img.shields.io/github/downloads/Naofunyan/PocketDrop/total?style=for-the-badge&color=2FA084)](https://github.com/Naofunyan/PocketDrop/releases)
+[![Windows](https://img.shields.io/badge/Platform-Windows-4A8BBE?style=for-the-badge&logo=windows)](https://github.com/Naofunyan/PocketDrop)
+[![GitHub License](https://img.shields.io/github/license/Naofunyan/PocketDrop?style=for-the-badge&color=DF7D46&v=1)](https://github.com/Naofunyan/PocketDrop/blob/main/LICENSE)
+[![GitHub Release](https://img.shields.io/github/v/release/Naofunyan/PocketDrop?style=for-the-badge&color=D25252)](https://github.com/Naofunyan/PocketDrop/releases)
+[![GitHub Repo stars](https://img.shields.io/github/stars/Naofunyan/PocketDrop?style=for-the-badge&color=D49F3E&v=1)](https://github.com/Naofunyan/PocketDrop/stargazers)
+[![GitHub Downloads](https://img.shields.io/github/downloads/Naofunyan/PocketDrop/total?style=for-the-badge&color=52A772&v=1)](https://github.com/naofunyan/PocketDrop/releases)
 
 ⭐️ If you find PocketDrop useful, please leave a star to support the project ⭐️
 
