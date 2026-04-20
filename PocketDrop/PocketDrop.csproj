@@ -12,6 +12,7 @@
 	<ApplicationIcon>Assets\PocketDrop.ico</ApplicationIcon>
 	<PublishSingleFile>true</PublishSingleFile>
 	<SelfContained>true</SelfContained>
+	<UseAppHost>true</UseAppHost>
 	<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 

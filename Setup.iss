@@ -13,6 +13,8 @@ AppVersion={#MyAppVersion}
 AppPublisher=Naofunyan
 AppCopyright=Copyright (C) 2026 Naofunyan
 
+DisableDirPage=no
+
 DisableWelcomePage=no
 
 ; 2. Changed to Relative Paths
@@ -60,3 +62,6 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "{autoprograms}\PocketDrop"; Filename: "{app}\PocketDrop.exe"
 ; Creates the Desktop shortcut (only if the user checked the box)
 Name: "{autodesktop}\PocketDrop"; Filename: "{app}\PocketDrop.exe"; Tasks: desktopicon
+
+[Run]
+Filename: "{app}\PocketDrop.exe"; Description: "{cm:LaunchProgram,PocketDrop}"; Flags: nowait postinstall skipifsilent
