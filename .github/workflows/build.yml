@@ -39,6 +39,9 @@ jobs:
     - name: Publish PocketDrop
       run: dotnet publish ./PocketDrop/PocketDrop.csproj -c Release -r ${{ matrix.target }} --self-contained false -o ./publish
 
+    - name: Publish PocketDrop
+      run: dotnet publish ./PocketDrop/PocketDrop.csproj -c Release -r ${{ matrix.target }} --self-contained false -o PublishOutput
+
     - name: Compile Inno Setup
       run: iscc /DMyAppArch="${{ matrix.arch }}" ./Setup.iss
 

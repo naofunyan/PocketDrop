@@ -48,8 +48,8 @@ SolidCompression=no
 WizardStyle=modern
 
 [Files]
-; Grab the single bundled executable from the publish folder
-Source: "PocketDrop\bin\Release\net10.0-windows10.0.19041.0\publish\win-x64\PocketDrop.exe"; DestDir: "{app}"; Flags: ignoreversion
+; Grab the single bundled executable from the GitHub publish folder
+Source: "publish\PocketDrop.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Tasks]
 ; Creates a checkbox on the "Select Additional Tasks" page of the installer
