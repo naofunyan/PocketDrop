@@ -37,10 +37,7 @@ jobs:
         dotnet-version: '10.0.x'
 
     - name: Publish PocketDrop
-      run: dotnet publish ./PocketDrop/PocketDrop.csproj -c Release -r ${{ matrix.target }} --self-contained false -o ./publish
-
-    - name: Publish PocketDrop
-      run: dotnet publish ./PocketDrop/PocketDrop.csproj -c Release -r ${{ matrix.target }} --self-contained false -o PublishOutput
+      run: dotnet publish ./PocketDrop/PocketDrop.csproj -c Release -r ${{ matrix.target }} --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
 
     - name: Compile Inno Setup
       run: iscc /DMyAppArch="${{ matrix.arch }}" ./Setup.iss
