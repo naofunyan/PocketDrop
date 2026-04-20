@@ -10,6 +10,8 @@
 	<AssemblyVersion>1.0.0</AssemblyVersion>
 	<Version>1.0.0</Version>
 	<ApplicationIcon>Assets\PocketDrop.ico</ApplicationIcon>
+	<PublishSingleFile>true</PublishSingleFile>
+	<SelfContained>true</SelfContained>
 	<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 

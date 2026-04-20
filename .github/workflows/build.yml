@@ -45,6 +45,8 @@ jobs:
         -p:PublishSingleFile=true \
         -p:UseAppHost=true \
         -p:IncludeNativeLibrariesForSelfExtract=true \
+        -p:IncludeAllContentForSelfExtract=true \
+        -p:EnableCompressionInSingleFile=true \
         -o PublishOutput
 
     - name: Compile Inno Setup
