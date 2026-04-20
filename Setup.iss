@@ -60,7 +60,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Icons]
 ; Creates the Start Menu shortcut
 Name: "{autoprograms}\PocketDrop"; Filename: "{app}\PocketDrop.exe"
-; Creates the Desktop shortcut (only if the user checked the box)
+; Creates the Desktop shortcut (if the user checked the box)
 Name: "{autodesktop}\PocketDrop"; Filename: "{app}\PocketDrop.exe"; Tasks: desktopicon
 
 [Run]

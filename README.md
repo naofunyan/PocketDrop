@@ -23,6 +23,7 @@ PocketDrop is a free, open-source utility that delivers a seamless drag-and-drop
 > #### Liability:
 > * This application is provided "AS IS" and used at your own risk. The developers and contributors are not liable for any claims, damages, or other liability — including any legal consequences — arising from or in connection with the software or its use. All responsibility for outcomes rests entirely with the user.
 
+
 ## 🛠️ Technologies
 
 - `C# / .NET10`
@@ -72,9 +73,22 @@ Speed up your workflow with these shortcuts (customizable in Settings):
 | 📋 Create a new Pocket from the clipboard | <kbd>Win</kbd> + <kbd>Shift</kbd> + <kbd>X</kbd> |
 
 ## 🎯 How can it be improved?
+- [ ] Publish PocketDrop to Microsoft Store.
 - [ ] Direct upload to cloud services (Google Drive, OneDrive).
 
 ## 💾 Download
+
+> [!NOTE]
+> **Note for Windows users (Microsoft Defender SmartScreen)**
+> As PocketDrop is a new open-source application, Windows SmartScreen may flag the installer as an "unrecognized app" and block the download in Microsoft Edge.
+>
+> **This is a false positive due to the app being new.** To install safely:
+> 1. In Edge, hover over the blocked download and click the **`...`** (More actions) button.
+> 2. Click **Keep**.
+> 3. Click **Show more** ➔ **Keep anyway**.
+> 4. When you run the installer, if Windows protects your PC, click **More info** ➔ **Run anyway**.
+>
+> PocketDrop is safe and has been verified by [VirusTotal](https://www.virustotal.com/gui/file/e65a4fbd5380048e67df6f7ea7f6c76efa1cebf8368ef53a67e0bb956af49a87/detection).
 
 You can check out the [latest release](https://github.com/naofunyan/PocketDrop/releases) to download the latest version of PocketDrop.
 
@@ -89,14 +103,14 @@ Run the installer (`PocketDrop_Setup.exe`) and follow the on-screen steps to ins
 <table>
   <tr>
     <td align="center">
-      <img src="YOUR_FIRST_GIF_LINK.gif" width="450" alt="Shake to summon" />
+      <img src="PocketDrop/Assets/feature1.gif" width="400" alt="Shake to summon" />
       <br />
       <b>1. Shake to summon</b>
     </td>
     <td align="center">
-      <img src="YOUR_SECOND_GIF_LINK.gif" width="450" alt="Built-in tools" />
+      <img src="PocketDrop/Assets/feature2.gif" width="400" alt="Access saved files in My Pocket" />
       <br />
-      <b>2. Built-in tools</b>
+      <b>2. Access saved files in My Pocket</b>
     </td>
   </tr>
 </table>
@@ -104,14 +118,14 @@ Run the installer (`PocketDrop_Setup.exe`) and follow the on-screen steps to ins
 <table>
   <tr>
     <td align="center">
-      <img src="YOUR_FIRST_GIF_LINK.gif" width="450" alt="Shake to summon" />
+      <img src="PocketDrop/Assets/feature3.gif" width="400" alt="Open, share, and more with built-in tools" />
       <br />
-      <b>1. Shake to summon</b>
+      <b>3. Open, share, and more with built-in tools</b>
     </td>
     <td align="center">
-      <img src="YOUR_SECOND_GIF_LINK.gif" width="450" alt="Built-in tools" />
+      <img src="PocketDrop/Assets/feature4.gif" width="400" alt="Manage everything directly from the system tray" />
       <br />
-      <b>2. Built-in tools</b>
+      <b>4. Manage everything directly from the system tray</b>
     </td>
   </tr>
 </table>
