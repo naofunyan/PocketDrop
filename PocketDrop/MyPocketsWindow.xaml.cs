@@ -459,9 +459,21 @@ namespace PocketDrop
             // 2. Remove only unpinned items from memory on clear
             var itemsToDelete = App.SessionHistory.Cast<PocketItem>().Where(p => !p.IsPinned).ToList();
 
+            string tempFolder = System.IO.Path.GetTempPath(); // ✨ Grab the temp path
+
             foreach (var item in itemsToDelete)
             {
-                App.SessionHistory.Remove(item);
+                // ✨ FIX: Delete the physical file ONLY if it lives inside the Temp folder
+                try
+                {
+                    if (!string.IsNullOrEmpty(item.FilePath) && item.FilePath.StartsWith(tempFolder, StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (System.IO.File.Exists(item.FilePath)) System.IO.File.Delete(item.FilePath);
+                    }
+                }
+                catch { }
+
+                App.SessionHistory.Remove(item); // Now remove it from the UI list
             }
 
             // 3. Refresh the UI to reflect the remaining items
@@ -486,9 +498,21 @@ namespace PocketDrop
             // 2. Grab a snapshot of the highlighted items
             var itemsToDelete = HistoryListBox.SelectedItems.Cast<PocketItem>().ToList();
 
-            // 3. Remove them from the global history
+            string tempFolder = System.IO.Path.GetTempPath(); // ✨ Grab the temp path
+
+            // 3. Remove them from the global history AND the hard drive
             foreach (var item in itemsToDelete)
             {
+                // ✨ FIX: Delete the physical file ONLY if it lives inside the Temp folder
+                try
+                {
+                    if (!string.IsNullOrEmpty(item.FilePath) && item.FilePath.StartsWith(tempFolder, StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (System.IO.File.Exists(item.FilePath)) System.IO.File.Delete(item.FilePath);
+                    }
+                }
+                catch { }
+
                 App.SessionHistory.Remove(item);
             }
 

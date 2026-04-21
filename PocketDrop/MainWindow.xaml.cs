@@ -318,32 +318,31 @@ namespace PocketDrop
                         string fileName = $"{domain} Link_{DateTime.Now.Ticks}.url";
                         string filePath = Path.Combine(tempFolder, fileName);
 
+                        // Create the physical file before asking Windows for its icon
                         File.WriteAllText(filePath, $"[InternetShortcut]\nURL={uriResult.AbsoluteUri}");
 
+                        // Grab the native WPF BitmapSource directly to preserve transparency
                         using (ShellObject shellObj = ShellObject.FromParsingName(filePath))
                         {
-                            var wpfBmp = new BitmapImage();
-                            using (var drawingBmp = shellObj.Thumbnail.Bitmap)
-                            {
-                                using (var ms = new System.IO.MemoryStream())
-                                {
-                                    drawingBmp.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
-                                    ms.Position = 0;
-                                    wpfBmp.BeginInit();
-                                    wpfBmp.CacheOption = BitmapCacheOption.OnLoad;
-                                    wpfBmp.StreamSource = ms;
-                                    wpfBmp.EndInit();
-                                }
-                            }
-                            wpfBmp.Freeze();
+                            var transparentIcon = shellObj.Thumbnail.LargeBitmapSource;
+                            transparentIcon.Freeze();
 
-                            var safeUrlItem = new PocketItem { FileName = finalDomainName, FilePath = filePath, Icon = wpfBmp };
+                            var safeUrlItem = new PocketItem { FileName = finalDomainName, FilePath = filePath, Icon = transparentIcon };
                             PocketedItems.Add(safeUrlItem);
 
                             if (!App.SessionHistory.Any(x => x.FilePath == safeUrlItem.FilePath))
                             {
                                 App.SessionHistory.Add(safeUrlItem);
                             }
+                        }
+
+                        StatusText.Visibility = Visibility.Collapsed;
+                        FileIconContainer.Visibility = Visibility.Visible;
+                        UpdateStackPreview();
+
+                        if (ItemsListBox == null || ItemsListBox.SelectedItems.Count == 0)
+                        {
+                            UpdateItemCountDisplay(PocketedItems.Count);
                         }
 
                         StatusText.Visibility = Visibility.Collapsed;
@@ -666,8 +665,18 @@ namespace PocketDrop
                 DragDropEffects result = DragDrop.DoDragDrop((DependencyObject)sender, dragData, DragDropEffects.All);
                 _isDraggingFromApp = false;
 
-                // Always clear Pocket after successful drop (Whether Copy or Move)
-                if (result != DragDropEffects.None)
+                // Check if they dropped a URL/Snippet into a browser (which returns 'None')
+                bool forceClear = false;
+                if (result == DragDropEffects.None && Mouse.LeftButton == MouseButtonState.Released)
+                {
+                    if (itemsToDrag.All(i => i.IsSnippet || i.FileName.EndsWith(".url", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        forceClear = true;
+                    }
+                }
+
+                // Always clear Pocket after successful drop OR if it's a forced web clear
+                if (result != DragDropEffects.None || forceClear)
                 {
                     foreach (var item in PocketedItems)
                     {
@@ -780,7 +789,18 @@ namespace PocketDrop
 
             _isDraggingFromApp = false;
 
-            if (!_internalDropHandled && result != DragDropEffects.None)
+            // Check if they dropped a URL/Snippet into a browser
+            bool forceClear = false;
+            if (result == DragDropEffects.None && Mouse.LeftButton == MouseButtonState.Released)
+            {
+                if (selectedItems.All(i => i.IsSnippet || i.FileName.EndsWith(".url", StringComparison.OrdinalIgnoreCase)))
+                {
+                    forceClear = true;
+                }
+            }
+
+            // Proceed if it was a valid OS drop OR a forced web clear
+            if (!_internalDropHandled && (result != DragDropEffects.None || forceClear))
             {
                 foreach (var item in selectedItems)
                 {
@@ -970,6 +990,12 @@ namespace PocketDrop
             // 4. Defer UI cleanup until close animation completes
             fadeOut.Completed += (s, e) =>
             {
+                // ✨ FIX: Delete any lingering temp files created by tools before wiping the list!
+                foreach (var item in PocketedItems)
+                {
+                    CleanupTempFile(item.FilePath);
+                }
+
                 PocketedItems.Clear();
                 StackContainer.Children.Clear();
                 UpdateItemCountDisplay(0);
@@ -2175,6 +2201,11 @@ namespace PocketDrop
                 };
 
                 PocketedItems.Add(newPdfItem);
+                // ✨ FIX: Push the newly generated PDF to the global history list!
+                if (!App.SessionHistory.Any(x => x.FilePath == newPdfItem.FilePath))
+                {
+                    App.SessionHistory.Add(newPdfItem);
+                }
 
                 _ = LoadFileIconAsync(newPdfItem.FilePath).ContinueWith(t =>
                 {
@@ -2514,6 +2545,9 @@ namespace PocketDrop
         {
             try
             {
+                // Never delete a temp file if it's still saved in My Pockets
+                if (App.SessionHistory.Any(h => h.FilePath == filePath)) return;
+
                 if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
                 {
                     // Only delete the file if path is within temp folder

@@ -563,27 +563,37 @@ namespace PocketDrop
                                     CheckUpdateBtn.Style = (Style)FindResource("SuccessButtonStyle");
                                 }
                             }
+                            else
+                            {
+                                // 1. Grab the translation strings
+                                string upToDateTitle = (string)Application.Current.Resources["Text_UpdateUpToDateTitle"] ?? "Up to date";
+                                string upToDateMsg = (string)Application.Current.Resources["Text_UpdateUpToDateMsg"] ?? "You are already using the latest version of PocketDrop.";
+
+                                // 2. Show the confirmation popup
+                                MessageBox.Show(upToDateMsg, upToDateTitle, MessageBoxButton.OK, MessageBoxImage.Information);
+
+                                // 3. Update the button to show success visually
+                                CheckUpdateBtn.Content = upToDateTitle;
+                                CheckUpdateBtn.Style = (Style)FindResource("SuccessButtonStyle");
+                            }
                         }
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 string failTitle = (string)Application.Current.Resources["Text_UpdateCheckFailedTitle"] ?? "Update Check Failed";
-                string failMsg = (string)Application.Current.Resources["Text_UpdateCheckFailedMsg"] ?? "Could not connect to the update server. Please check your internet connection and try again.";
+                string failMsg = $"Could not connect to GitHub. Reason:\n\n{ex.Message}";
 
                 MessageBox.Show(failMsg, failTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+
+                // Reset the button back to normal ONLY if it failed
+                CheckUpdateBtn.Content = (string)Application.Current.Resources["Text_CheckUpdatesBtn"] ?? "Check for updates";
+                CheckUpdateBtn.Style = (Style)FindResource("PrimaryButtonStyle");
             }
             finally
             {
                 CheckUpdateBtn.IsEnabled = true;
-
-                // Only reset version check button if no update was found
-                if (!App.UpdateAvailable)
-                {
-                    CheckUpdateBtn.Content = (string)Application.Current.Resources["Text_CheckUpdatesBtn"] ?? "Check for updates";
-                    CheckUpdateBtn.Style = (Style)FindResource("PrimaryButtonStyle");
-                }
             }
         }
     }
