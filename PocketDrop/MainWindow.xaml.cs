@@ -842,6 +842,7 @@ namespace PocketDrop
 
 
         // Dragging the window
+        // Dragging the window
         private void TopBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             // Prevent window drag when clicking the close button
@@ -850,10 +851,24 @@ namespace PocketDrop
 
             if (e.LeftButton == MouseButtonState.Pressed)
             {
-                // Bypass WPF and use GPU-accelerated OS-level dragging
+                // 1. Animate the handle expanding (e.g., Width 40 -> 60, Opacity 0.5 -> 0.8)
+                var expandAnim = new DoubleAnimation(50, TimeSpan.FromMilliseconds(100)) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
+                var opacityAnim = new DoubleAnimation(0.8, TimeSpan.FromMilliseconds(100));
+                DragHandle.BeginAnimation(WidthProperty, expandAnim);
+                DragHandle.BeginAnimation(OpacityProperty, opacityAnim);
+
+                // 2. Bypass WPF and use GPU-accelerated OS-level dragging
                 ReleaseCapture();
                 var hwnd = new WindowInteropHelper(this).Handle;
+
+                // This line blocks the thread until the user drops the window!
                 SendMessage(hwnd, WM_NCLBUTTONDOWN, HT_CAPTION, 0);
+
+                // 3. The user dropped the window! Animate the handle shrinking back to 40
+                var shrinkAnim = new DoubleAnimation(30, TimeSpan.FromMilliseconds(100)) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
+                var fadeAnim = new DoubleAnimation(0.5, TimeSpan.FromMilliseconds(100));
+                DragHandle.BeginAnimation(WidthProperty, shrinkAnim);
+                DragHandle.BeginAnimation(OpacityProperty, fadeAnim);
             }
         }
 
