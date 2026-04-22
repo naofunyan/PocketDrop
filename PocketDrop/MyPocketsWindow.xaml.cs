@@ -41,10 +41,10 @@ namespace PocketDrop
         {
             InitializeComponent();
 
-            HistoryListBox.ItemsSource = App.SessionHistory;
+            HistoryListBox.ItemsSource = AppGlobals.SessionHistory;
             RefreshHistory();
             // Tell this window to automatically run RefreshHistory() anytime the background data changes
-            App.SessionHistory.CollectionChanged += (s, e) =>
+            AppGlobals.SessionHistory.CollectionChanged += (s, e) =>
             {
                 Application.Current.Dispatcher.Invoke(() => RefreshHistory());
             };
@@ -140,7 +140,7 @@ namespace PocketDrop
         // Checks the RAM and updates the UI
         public void RefreshHistory()
         {
-            if (App.SessionHistory.Count > 0)
+            if (AppGlobals.SessionHistory.Count > 0)
             {
                 EmptyStateText.Visibility = Visibility.Collapsed;
                 HistoryListBox.Visibility = Visibility.Visible;
@@ -457,7 +457,7 @@ namespace PocketDrop
             DeleteConfirmPopup.IsOpen = false;
 
             // 2. Remove only unpinned items from memory on clear
-            var itemsToDelete = App.SessionHistory.Cast<PocketItem>().Where(p => !p.IsPinned).ToList();
+            var itemsToDelete = AppGlobals.SessionHistory.Cast<PocketItem>().Where(p => !p.IsPinned).ToList();
 
             string tempFolder = System.IO.Path.GetTempPath(); // ✨ Grab the temp path
 
@@ -473,7 +473,7 @@ namespace PocketDrop
                 }
                 catch { }
 
-                App.SessionHistory.Remove(item); // Now remove it from the UI list
+                AppGlobals.SessionHistory.Remove(item); // Now remove it from the UI list
             }
 
             // 3. Refresh the UI to reflect the remaining items
@@ -513,7 +513,7 @@ namespace PocketDrop
                 }
                 catch { }
 
-                App.SessionHistory.Remove(item);
+                AppGlobals.SessionHistory.Remove(item);
             }
 
             // 4. Uncheck the "Select all" box

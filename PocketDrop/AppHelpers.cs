@@ -351,12 +351,12 @@ namespace PocketDrop
         // Helper to cleanly update the cache only when the user changes settings
         private static void UpdateExcludedAppsCache()
         {
-            if (_lastExcludedAppsRaw == App.ExcludedApps) return; // Skip if nothing changed
+            if (_lastExcludedAppsRaw == AppGlobals.ExcludedApps) return; // Skip if nothing changed
 
             _cachedExcludedApps.Clear();
-            if (!string.IsNullOrWhiteSpace(App.ExcludedApps))
+            if (!string.IsNullOrWhiteSpace(AppGlobals.ExcludedApps))
             {
-                var rules = App.ExcludedApps.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                var rules = AppGlobals.ExcludedApps.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
                 foreach (var ruleText in rules)
                 {
                     string rule = System.IO.Path.GetFileNameWithoutExtension(ruleText.Trim());
@@ -366,12 +366,12 @@ namespace PocketDrop
                     }
                 }
             }
-            _lastExcludedAppsRaw = App.ExcludedApps;
+            _lastExcludedAppsRaw = AppGlobals.ExcludedApps;
         }
 
         public static bool IsForegroundAppExcluded()
         {
-            if (string.IsNullOrWhiteSpace(App.ExcludedApps)) return false;
+            if (string.IsNullOrWhiteSpace(AppGlobals.ExcludedApps)) return false;
 
             // 1. Ensure our fast-lookup cache is up to date
             UpdateExcludedAppsCache();

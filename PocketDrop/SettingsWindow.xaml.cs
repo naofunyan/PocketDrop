@@ -40,35 +40,35 @@ namespace PocketDrop
             InitializeComponent();
 
             // 1. Load basic toggles and combo boxes
-            CopyItemToDestinationCheckbox.IsChecked = App.CopyItemToDestination;
+            CopyItemToDestinationCheckbox.IsChecked = AppGlobals.CopyItemToDestination;
             StartupToggle.IsChecked = AppHelpers.IsRunAtStartupEnabled();
-            ShakeToggle.IsChecked = App.EnableMouseShake;
-            ShakeDistText.Text = App.ShakeMinimumDistance.ToString();
-            GameModeCheck.IsChecked = App.DisableInGameMode;
-            PlacementCombo.SelectedIndex = App.PocketPlacement;
-            LayoutCombo.SelectedIndex = App.ItemsLayoutMode;
-            AutoCompressShareToggle.IsChecked = App.AutoCompressFoldersShare;
-            CloseEmptiedToggle.IsChecked = App.CloseWhenEmptied;
-            CloseOpenWithToggle.IsChecked = App.CloseWhenOpenWith;
-            CloseShareToggle.IsChecked = App.CloseWhenShare;
-            CloseCompressToggle.IsChecked = App.CloseWhenCompress;
+            ShakeToggle.IsChecked = AppGlobals.EnableMouseShake;
+            ShakeDistText.Text = AppGlobals.ShakeMinimumDistance.ToString();
+            GameModeCheck.IsChecked = AppGlobals.DisableInGameMode;
+            PlacementCombo.SelectedIndex = AppGlobals.PocketPlacement;
+            LayoutCombo.SelectedIndex = AppGlobals.ItemsLayoutMode;
+            AutoCompressShareToggle.IsChecked = AppGlobals.AutoCompressFoldersShare;
+            CloseEmptiedToggle.IsChecked = AppGlobals.CloseWhenEmptied;
+            CloseOpenWithToggle.IsChecked = AppGlobals.CloseWhenOpenWith;
+            CloseShareToggle.IsChecked = AppGlobals.CloseWhenShare;
+            CloseCompressToggle.IsChecked = AppGlobals.CloseWhenCompress;
 
             // 2. Dynamically draw the saved shortcut keys
-            RenderKeycaps(PocketKeysContainer, App.PocketModifiers, App.PocketKeyChar);
-            RenderKeycaps(ClipboardKeysContainer, App.ClipboardModifiers, App.ClipboardKeyChar);
+            RenderKeycaps(PocketKeysContainer, AppGlobals.PocketModifiers, AppGlobals.PocketKeyChar);
+            RenderKeycaps(ClipboardKeysContainer, AppGlobals.ClipboardModifiers, AppGlobals.ClipboardKeyChar);
 
             // 3. Load the exception apps UI
             RefreshExcludedAppsDisplay();
 
             // 4. Pull the clean version from our new central source
-            AppVersionText.Text = $"Version {App.GetAppVersion()}";
+            AppVersionText.Text = $"Version {AppGlobals.GetAppVersion()}";
 
             // 5. Load and apply the Theme
-            ThemeCombo.SelectedIndex = App.AppTheme;
-            ApplyTheme(App.AppTheme);
+            ThemeCombo.SelectedIndex = AppGlobals.AppTheme;
+            ApplyTheme(AppGlobals.AppTheme);
 
             // 6. Load and apply the Language
-            if (App.AppLanguage == "Vietnamese")
+            if (AppGlobals.AppLanguage == "Vietnamese")
             {
                 LanguageCombo.SelectedIndex = 1;
             }
@@ -80,7 +80,7 @@ namespace PocketDrop
             _isLanguageLoaded = true;
 
             // 7. Check if background scanner already found an update
-            if (App.UpdateAvailable)
+            if (AppGlobals.UpdateAvailable)
             {
                 CheckUpdateBtn.Content = "Update Available!";
                 CheckUpdateBtn.Style = (Style)FindResource("SuccessButtonStyle");
@@ -95,8 +95,8 @@ namespace PocketDrop
         {
             if (ThemeCombo != null && this.IsLoaded)
             {
-                App.AppTheme = ThemeCombo.SelectedIndex;
-                App.SaveSettings();
+                AppGlobals.AppTheme = ThemeCombo.SelectedIndex;
+                AppGlobals.SaveSettings();
                 ApplyTheme(ThemeCombo.SelectedIndex);
             }
         }
@@ -140,8 +140,8 @@ namespace PocketDrop
                 : "pack://application:,,,/PocketDrop;component/Languages/Strings.en.xaml";
 
             // Save choice
-            App.AppLanguage = selectedLanguage == "Vietnamese" ? "Vietnamese" : "English";
-            App.SaveSettings();
+            AppGlobals.AppLanguage = selectedLanguage == "Vietnamese" ? "Vietnamese" : "English";
+            AppGlobals.SaveSettings();
 
             var dictionaries = System.Windows.Application.Current.Resources.MergedDictionaries;
 
@@ -193,58 +193,58 @@ namespace PocketDrop
         // Update global setting on toggle switch change
         private void Copy_Click(object sender, RoutedEventArgs e)
         {
-            App.CopyItemToDestination = CopyItemToDestinationCheckbox.IsChecked ?? true;
-            App.SaveSettings();
+            AppGlobals.CopyItemToDestination = CopyItemToDestinationCheckbox.IsChecked ?? true;
+            AppGlobals.SaveSettings();
         }
 
         private void ShakeToggle_Click(object sender, RoutedEventArgs e)
         {
-            App.EnableMouseShake = ShakeToggle.IsChecked ?? true;
-            App.SaveSettings();
+            AppGlobals.EnableMouseShake = ShakeToggle.IsChecked ?? true;
+            AppGlobals.SaveSettings();
         }
 
         private void GameModeCheck_Click(object sender, RoutedEventArgs e)
         {
-            App.DisableInGameMode = GameModeCheck.IsChecked ?? true;
-            App.SaveSettings();
+            AppGlobals.DisableInGameMode = GameModeCheck.IsChecked ?? true;
+            AppGlobals.SaveSettings();
         }
 
         private void AutoCompressShareToggle_Click(object sender, RoutedEventArgs e)
         {
-            App.AutoCompressFoldersShare = AutoCompressShareToggle.IsChecked ?? true;
-            App.SaveSettings();
+            AppGlobals.AutoCompressFoldersShare = AutoCompressShareToggle.IsChecked ?? true;
+            AppGlobals.SaveSettings();
         }
 
         private void CloseEmptiedToggle_Click(object sender, RoutedEventArgs e)
         {
-            App.CloseWhenEmptied = CloseEmptiedToggle.IsChecked ?? true;
-            App.SaveSettings();
+            AppGlobals.CloseWhenEmptied = CloseEmptiedToggle.IsChecked ?? true;
+            AppGlobals.SaveSettings();
         }
 
         private void CloseOpenWithToggle_Click(object sender, RoutedEventArgs e)
         {
-            App.CloseWhenOpenWith = CloseOpenWithToggle.IsChecked ?? true;
-            App.SaveSettings();
+            AppGlobals.CloseWhenOpenWith = CloseOpenWithToggle.IsChecked ?? true;
+            AppGlobals.SaveSettings();
         }
 
         private void CloseShareToggle_Click(object sender, RoutedEventArgs e)
         {
-            App.CloseWhenShare = CloseShareToggle.IsChecked ?? true;
-            App.SaveSettings();
+            AppGlobals.CloseWhenShare = CloseShareToggle.IsChecked ?? true;
+            AppGlobals.SaveSettings();
         }
 
         private void CloseCompressToggle_Click(object sender, RoutedEventArgs e)
         {
-            App.CloseWhenCompress = CloseCompressToggle.IsChecked ?? true;
-            App.SaveSettings();
+            AppGlobals.CloseWhenCompress = CloseCompressToggle.IsChecked ?? true;
+            AppGlobals.SaveSettings();
         }
 
         private void PlacementCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (PlacementCombo != null && this.IsLoaded)
             {
-                App.PocketPlacement = PlacementCombo.SelectedIndex;
-                App.SaveSettings();
+                AppGlobals.PocketPlacement = PlacementCombo.SelectedIndex;
+                AppGlobals.SaveSettings();
             }
         }
 
@@ -252,8 +252,8 @@ namespace PocketDrop
         {
             if (LayoutCombo != null && this.IsLoaded)
             {
-                App.ItemsLayoutMode = LayoutCombo.SelectedIndex;
-                App.SaveSettings();
+                AppGlobals.ItemsLayoutMode = LayoutCombo.SelectedIndex;
+                AppGlobals.SaveSettings();
             }
         }
 
@@ -271,8 +271,8 @@ namespace PocketDrop
             // Only save input if value is a valid number
             if (int.TryParse(ShakeDistText.Text, out int dist))
             {
-                App.ShakeMinimumDistance = dist;
-                App.SaveSettings();
+                AppGlobals.ShakeMinimumDistance = dist;
+                AppGlobals.SaveSettings();
             }
         }
 
@@ -285,10 +285,10 @@ namespace PocketDrop
         {
             container.Children.Clear();
 
-            if ((mods & App.MOD_WIN) != 0) AddKeycap(container, "Win");
-            if ((mods & App.MOD_CTRL) != 0) AddKeycap(container, "Ctrl");
-            if ((mods & App.MOD_ALT) != 0) AddKeycap(container, "Alt");
-            if ((mods & App.MOD_SHIFT) != 0) AddKeycap(container, "Shift");
+            if ((mods & AppGlobals.MOD_WIN) != 0) AddKeycap(container, "Win");
+            if ((mods & AppGlobals.MOD_CTRL) != 0) AddKeycap(container, "Ctrl");
+            if ((mods & AppGlobals.MOD_ALT) != 0) AddKeycap(container, "Alt");
+            if ((mods & AppGlobals.MOD_SHIFT) != 0) AddKeycap(container, "Shift");
 
             AddKeycap(container, letter);
         }
@@ -338,13 +338,13 @@ namespace PocketDrop
             string dialogTitle = (string)this.FindResource("Text_NewPocketShortcut");
 
             // Pass current and factory-reset keys to shortcut handler
-            var dialog = new ShortcutDialog(dialogTitle, App.PocketKeyChar, App.PocketModifiers, "Z", App.MOD_WIN | App.MOD_SHIFT) { Owner = this };
+            var dialog = new ShortcutDialog(dialogTitle, AppGlobals.PocketKeyChar, AppGlobals.PocketModifiers, "Z", AppGlobals.MOD_WIN | AppGlobals.MOD_SHIFT) { Owner = this };
             if (dialog.ShowDialog() == true)
             {
-                App.PocketKeyChar = dialog.SelectedLetter;
-                App.PocketKeyVK = dialog.SelectedVK;
-                App.PocketModifiers = dialog.SelectedModifiers; // Save the new modifiers
-                RenderKeycaps(PocketKeysContainer, App.PocketModifiers, App.PocketKeyChar);
+                AppGlobals.PocketKeyChar = dialog.SelectedLetter;
+                AppGlobals.PocketKeyVK = dialog.SelectedVK;
+                AppGlobals.PocketModifiers = dialog.SelectedModifiers; // Save the new modifiers
+                RenderKeycaps(PocketKeysContainer, AppGlobals.PocketModifiers, AppGlobals.PocketKeyChar);
                 App.ReloadHotkeys();
             }
         }
@@ -353,13 +353,13 @@ namespace PocketDrop
         {
             string dialogTitle = (string)this.FindResource("Text_ClipboardShortcut");
 
-            var dialog = new ShortcutDialog(dialogTitle, App.ClipboardKeyChar, App.ClipboardModifiers, "X", App.MOD_WIN | App.MOD_SHIFT) { Owner = this };
+            var dialog = new ShortcutDialog(dialogTitle, AppGlobals.ClipboardKeyChar, AppGlobals.ClipboardModifiers, "X", AppGlobals.MOD_WIN | AppGlobals.MOD_SHIFT) { Owner = this };
             if (dialog.ShowDialog() == true)
             {
-                App.ClipboardKeyChar = dialog.SelectedLetter;
-                App.ClipboardKeyVK = dialog.SelectedVK;
-                App.ClipboardModifiers = dialog.SelectedModifiers; // Save the new modifiers
-                RenderKeycaps(ClipboardKeysContainer, App.ClipboardModifiers, App.ClipboardKeyChar);
+                AppGlobals.ClipboardKeyChar = dialog.SelectedLetter;
+                AppGlobals.ClipboardKeyVK = dialog.SelectedVK;
+                AppGlobals.ClipboardModifiers = dialog.SelectedModifiers; // Save the new modifiers
+                RenderKeycaps(ClipboardKeysContainer, AppGlobals.ClipboardModifiers, AppGlobals.ClipboardKeyChar);
                 App.ReloadHotkeys();
             }
         }
@@ -367,14 +367,14 @@ namespace PocketDrop
         private void OpenAppPicker_Click(object sender, RoutedEventArgs e)
         {
             // Open exceptions dialog with currently saved apps
-            var dialog = new AppPickerDialog(App.ExcludedApps) { Owner = this };
+            var dialog = new AppPickerDialog(AppGlobals.ExcludedApps) { Owner = this };
 
             // If the user clicked "Save"
             if (dialog.ShowDialog() == true)
             {
                 // Save the new string to global settings
-                App.ExcludedApps = dialog.FinalExcludedAppsString;
-                App.SaveSettings();
+                AppGlobals.ExcludedApps = dialog.FinalExcludedAppsString;
+                AppGlobals.SaveSettings();
 
                 RefreshExcludedAppsDisplay(); // Refresh UI only when changes are confirmed saved
             }
@@ -382,7 +382,7 @@ namespace PocketDrop
 
         private async void RefreshExcludedAppsDisplay()
         {
-            if (string.IsNullOrWhiteSpace(App.ExcludedApps))
+            if (string.IsNullOrWhiteSpace(AppGlobals.ExcludedApps))
             {
                 ExcludedAppsEmptyText.Visibility = Visibility.Visible;
                 ExcludedAppsIconDisplay.ItemsSource = null;
@@ -392,7 +392,7 @@ namespace PocketDrop
             ExcludedAppsEmptyText.Visibility = Visibility.Collapsed;
 
             // Grab the raw paths from settings
-            var paths = App.ExcludedApps
+            var paths = AppGlobals.ExcludedApps
                 .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(p => p.Trim())
                 .ToList();
@@ -468,9 +468,9 @@ namespace PocketDrop
         private async void CheckUpdateBtn_Click(object sender, RoutedEventArgs e)
         {
             // 1. Open download page if background scanner found update
-            if (App.UpdateAvailable)
+            if (AppGlobals.UpdateAvailable)
             {
-                AppHelpers.OpenUrl(App.UpdateUrl);
+                AppHelpers.OpenUrl(AppGlobals.UpdateUrl);
                 return;
             }
 
@@ -504,12 +504,12 @@ namespace PocketDrop
                             // Strip the "v" from the front so it cleanly matches your internal version logic
                             string latestVersionString = latestTag.TrimStart('v', 'V');
 
-                            string currentVersionString = App.GetAppVersion().Replace(" Beta ", "-beta");
+                            string currentVersionString = AppGlobals.GetAppVersion().Replace(" Beta ", "-beta");
                             bool hasUpdate = AppHelpers.IsUpdateAvailable(currentVersionString, latestVersionString);
 
                             if (hasUpdate)
                             {
-                                App.UpdateAvailable = true;
+                                AppGlobals.UpdateAvailable = true;
 
                                 string updateTitle = (string)Application.Current.Resources["Text_UpdateAvailableTitle"] ?? "Update Available";
                                 string updateMsgTemplate = (string)Application.Current.Resources["Text_UpdateAvailableMsg"] ?? "A new version of PocketDrop ({0}) is available!\n\nWould you like to install it now? The app will restart automatically.";

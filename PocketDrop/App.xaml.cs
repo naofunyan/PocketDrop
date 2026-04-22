@@ -25,82 +25,14 @@ namespace PocketDrop
     {
 
         // ================================================ //
-        // 1. GLOBAL VARIABLES & SETTINGS
-        // ================================================ //
-
-        // Global master list to hold every file dropped during this session
-        public static ObservableRangeCollection<PocketItem> SessionHistory = new ObservableRangeCollection<PocketItem>();
-
-        // Global flag so the rest of the app knows an update is waiting
-        public static bool UpdateAvailable = false;
-        public static string UpdateUrl = "https://github.com/naofunyan/PocketDrop/releases/latest";
-
-        public static string GetAppVersion()
-        {
-            var versionAttr = System.Reflection.Assembly.GetExecutingAssembly()
-                .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
-                as System.Reflection.AssemblyInformationalVersionAttribute[];
-
-            if (versionAttr != null && versionAttr.Length > 0)
-            {
-                // Returns the clean version (e.g., "0.1.0" or "0.1.0 Beta 1")
-                return versionAttr[0].InformationalVersion.Split('+')[0].Replace("-beta-", " Beta ");
-            }
-            return "1.0.0"; // Fallback
-        }
-
-        // ================================================ //
-        // 2. USER SETTINGS & PREFERENCES
-        // ================================================ //
-
-        // General
-        public static int AppTheme = 0; // 0 = System, 1 = Light, 2 = Dark
-        public static string AppLanguage = "English";
-
-        // Pocket Activation - Hotkey Preferences
-        public static uint PocketKeyVK = 0x5A; // Z
-        public static uint ClipboardKeyVK = 0x58; // X
-        public static string PocketKeyChar = "Z";
-        public static string ClipboardKeyChar = "X";
-        public static uint PocketModifiers = MOD_WIN | MOD_SHIFT;
-        public static uint ClipboardModifiers = MOD_WIN | MOD_SHIFT;
-
-        // Pocket Activation - Mouse Shake Preferences
-        public static bool EnableMouseShake = true;
-        public static int ShakeMinimumDistance = 130;
-        public static bool DisableInGameMode = true;
-
-        // Pocket Activation - Pocket Placement
-        public static int PocketPlacement = 0; // 0 = Near mouse, 1 = Top edge,...
-
-        // Pocket Activation - App Exceptions
-        public static string ExcludedApps = "";
-
-        // Pocket Interaction - Detail View Layout
-        public static int ItemsLayoutMode = 0; // 0 = Grid, 1 = List
-
-        // Pocket Interaction - Copy Item To Destination
-        public static bool CopyItemToDestination { get; set; } = true; // Default True = Copy, False = Move
-
-        // Pocket Interaction - Auto Compress Folders When Sharing
-        public static bool AutoCompressFoldersShare { get; set; } = true;
-
-        // Pocket Interaction - Close Pocket After Action
-        public static bool CloseWhenEmptied = true;
-        public static bool CloseWhenOpenWith { get; set; } = false;
-        public static bool CloseWhenShare { get; set; } = false;
-        public static bool CloseWhenCompress = false;
-
-
-        // ================================================ //
         // 3. NATIVE WINDOWS APIS (P / INVOKE)
         // ================================================ //
 
-        // Force the My Pockets window to the absolute front of the screen
+        // Force the My Pockets window to the front of the screen
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
 
-        // Global Hotkeys - Register Win+Shift+Z and Win+Shift+X so they work even when the app is minimized
+        // Global Hotkeys - Register Win+Shift+Z and Win+Shift+X to work even when the app is minimized
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
 
@@ -108,10 +40,6 @@ namespace PocketDrop
         private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
         // Required OS constants for registering the hotkeys
-        public const uint MOD_ALT = 0x0001;
-        public const uint MOD_CTRL = 0x0002;
-        public const uint MOD_SHIFT = 0x0004;
-        public const uint MOD_WIN = 0x0008;
         private const int HOTKEY_NEW_POCKET = 9001;
         private const int HOTKEY_NEW_CLIPBOARD = 9002;
 
@@ -164,68 +92,6 @@ namespace PocketDrop
             System.Windows.Application.Current.Shutdown();
         }
 
-        // Read all user preferences from Windows
-        public static void LoadSettings()
-        {
-            try
-            {
-                using (var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\PocketDrop"))
-                {
-                    // Convert safely handles the conversion so the app never crashes on load
-                    PocketKeyChar = key.GetValue("PocketKeyChar", "Z").ToString();
-                    PocketKeyVK = Convert.ToUInt32(key.GetValue("PocketKeyVK", 0x5A));
-                    ClipboardKeyChar = key.GetValue("ClipboardKeyChar", "X").ToString();
-                    ClipboardKeyVK = Convert.ToUInt32(key.GetValue("ClipboardKeyVK", 0x58));
-                    PocketModifiers = Convert.ToUInt32(key.GetValue("PocketModifiers", MOD_WIN | MOD_SHIFT));
-                    ClipboardModifiers = Convert.ToUInt32(key.GetValue("ClipboardModifiers", MOD_WIN | MOD_SHIFT));
-
-                    EnableMouseShake = Convert.ToBoolean(key.GetValue("EnableMouseShake", true));
-                    ShakeMinimumDistance = Convert.ToInt32(key.GetValue("ShakeMinimumDistance", 100));
-                    DisableInGameMode = Convert.ToBoolean(key.GetValue("DisableInGameMode", true));
-                    ExcludedApps = key.GetValue("ExcludedApps", "").ToString();
-                    PocketPlacement = Convert.ToInt32(key.GetValue("PocketPlacement", 0));
-                    ItemsLayoutMode = Convert.ToInt32(key.GetValue("ItemsLayoutMode", 0));
-                    CloseWhenEmptied = Convert.ToBoolean(key.GetValue("CloseWhenEmptied", true));
-                    CloseWhenOpenWith = Convert.ToBoolean(key.GetValue("CloseWhenOpenWith", false));
-                    CloseWhenShare = Convert.ToBoolean(key.GetValue("CloseWhenShare", true));
-                    CloseWhenCompress = Convert.ToBoolean(key.GetValue("CloseWhenCompress", false));
-                    AppTheme = Convert.ToInt32(key.GetValue("AppTheme", 0));
-                    AppLanguage = key.GetValue("AppLanguage", "English").ToString();
-                }
-            }
-            catch { }
-        }
-
-        // Save preferences on every setting change
-        public static void SaveSettings()
-        {
-            try
-            {
-                using (var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\PocketDrop"))
-                {
-                    key.SetValue("PocketKeyChar", PocketKeyChar);
-                    key.SetValue("PocketKeyVK", (int)PocketKeyVK);
-                    key.SetValue("ClipboardKeyChar", ClipboardKeyChar);
-                    key.SetValue("ClipboardKeyVK", (int)ClipboardKeyVK);
-                    key.SetValue("PocketModifiers", (int)PocketModifiers);
-                    key.SetValue("ClipboardModifiers", (int)ClipboardModifiers);
-                    key.SetValue("EnableMouseShake", EnableMouseShake);
-                    key.SetValue("ShakeMinimumDistance", ShakeMinimumDistance);
-                    key.SetValue("DisableInGameMode", DisableInGameMode);
-                    key.SetValue("ExcludedApps", ExcludedApps);
-                    key.SetValue("PocketPlacement", PocketPlacement);
-                    key.SetValue("ItemsLayoutMode", ItemsLayoutMode);
-                    key.SetValue("CloseWhenEmptied", CloseWhenEmptied);
-                    key.SetValue("CloseWhenOpenWith", CloseWhenOpenWith);
-                    key.SetValue("CloseWhenShare", CloseWhenShare);
-                    key.SetValue("CloseWhenCompress", CloseWhenCompress);
-                    key.SetValue("AppTheme", AppTheme);
-                    key.SetValue("AppLanguage", AppLanguage);
-                }
-            }
-            catch { }
-        }
-
         // The Boot Sequence
         protected override async void OnStartup(StartupEventArgs e)
         {
@@ -239,20 +105,20 @@ namespace PocketDrop
                     if (key != null)
                     {
                         if (key.GetValue("AppLanguage") != null)
-                            AppLanguage = key.GetValue("AppLanguage").ToString();
+                            AppGlobals.AppLanguage = key.GetValue("AppLanguage").ToString();
 
                         if (key.GetValue("AppTheme") != null)
-                            AppTheme = (int)key.GetValue("AppTheme");
+                            AppGlobals.AppTheme = (int)key.GetValue("AppTheme");
                     }
                 }
             }
             catch { }
 
             // 2. Inject Language & Theme Dictionaries
-            string dictPath = AppLanguage == "Vietnamese" ? "pack://application:,,,/PocketDrop;component/Languages/Strings.vi.xaml" : "pack://application:,,,/PocketDrop;component/Languages/Strings.en.xaml";
+            string dictPath = AppGlobals.AppLanguage == "Vietnamese" ? "pack://application:,,,/PocketDrop;component/Languages/Strings.vi.xaml" : "pack://application:,,,/PocketDrop;component/Languages/Strings.en.xaml";
             System.Windows.Application.Current.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri(dictPath) });
 
-            bool useDarkMode = AppTheme == 0 ? AppHelpers.IsWindowsInDarkMode() : AppTheme == 2;
+            bool useDarkMode = AppGlobals.AppTheme == 0 ? AppHelpers.IsWindowsInDarkMode() : AppGlobals.AppTheme == 2;
             string themeFileName = useDarkMode ? "DarkTheme.xaml" : "LightTheme.xaml";
             System.Windows.Application.Current.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri($"pack://application:,,,/PocketDrop;component/Themes/{themeFileName}") });
 
@@ -345,7 +211,7 @@ namespace PocketDrop
             };
 
             // 4. Register Global Hotkeys
-            LoadSettings();
+            AppGlobals.LoadSettings();
             ReloadHotkeys();
 
             // 5. Tell WPF to listen for global Windows messages
@@ -428,14 +294,14 @@ namespace PocketDrop
                     string latestVersionString = await client.GetStringAsync(url);
 
                     // Dynamically fetch the version and format it for the GitHub comparison
-                    string currentVersionString = GetAppVersion().Replace(" Beta ", "-beta");
+                    string currentVersionString = AppGlobals.GetAppVersion().Replace(" Beta ", "-beta");
 
                     bool hasUpdate = AppHelpers.IsUpdateAvailable(currentVersionString, latestVersionString);
 
                     if (hasUpdate)
                     {
                         // 1. Flip the global flag to true
-                        UpdateAvailable = true;
+                        AppGlobals.UpdateAvailable = true;
 
                         // Fetch translations with English fallback
                         string titleTemplate = (string)System.Windows.Application.Current.TryFindResource("Text_UpdateAvailableTitle") ?? "Update Available";
@@ -453,7 +319,7 @@ namespace PocketDrop
 
                         if (result == MessageBoxResult.Yes)
                         {
-                            AppHelpers.OpenUrl(UpdateUrl);
+                            AppHelpers.OpenUrl(AppGlobals.UpdateUrl);
                         }
                     }
                 }
@@ -475,7 +341,7 @@ namespace PocketDrop
             }
 
             // Wipe all temp files when the app quits
-            foreach (var item in SessionHistory)
+            foreach (var item in AppGlobals.SessionHistory)
             {
                 try
                 {
@@ -530,7 +396,7 @@ namespace PocketDrop
             string msgTemplate = (string)System.Windows.Application.Current.TryFindResource("Text_SessionHistoryMsg") ?? "Your session history currently holds {0} items.";
 
             // 2. Inject the live count into the {0} placeholder
-            string finalMessage = string.Format(msgTemplate, SessionHistory.Count);
+            string finalMessage = string.Format(msgTemplate, AppGlobals.SessionHistory.Count);
 
             // 3. Show the message box
             System.Windows.MessageBox.Show(
@@ -550,15 +416,15 @@ namespace PocketDrop
         {
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
-                SaveSettings();
+                AppGlobals.SaveSettings();
 
                 // 1. Wipe the old keys
                 UnregisterHotKey(IntPtr.Zero, HOTKEY_NEW_POCKET);
                 UnregisterHotKey(IntPtr.Zero, HOTKEY_NEW_CLIPBOARD);
 
                 // 2. Ask Windows for the new keys, and capture its response (true = success, false = rejected)
-                bool successPocket = RegisterHotKey(IntPtr.Zero, HOTKEY_NEW_POCKET, PocketModifiers, PocketKeyVK);
-                bool successClipboard = RegisterHotKey(IntPtr.Zero, HOTKEY_NEW_CLIPBOARD, ClipboardModifiers, ClipboardKeyVK);
+                bool successPocket = RegisterHotKey(IntPtr.Zero, HOTKEY_NEW_POCKET, AppGlobals.PocketModifiers, AppGlobals.PocketKeyVK);
+                bool successClipboard = RegisterHotKey(IntPtr.Zero, HOTKEY_NEW_CLIPBOARD, AppGlobals.ClipboardModifiers, AppGlobals.ClipboardKeyVK);
 
                 // 3. If Windows says NO, alert the user!
                 if (!successPocket || !successClipboard)

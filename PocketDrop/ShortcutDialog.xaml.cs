@@ -95,10 +95,10 @@ namespace PocketDrop
                 else
                 {
                     _displayOrder.Clear();
-                    if ((mods & App.MOD_WIN) != 0) _displayOrder.Add("Win");
-                    if ((mods & App.MOD_CTRL) != 0) _displayOrder.Add("Ctrl");
-                    if ((mods & App.MOD_ALT) != 0) _displayOrder.Add("Alt");
-                    if ((mods & App.MOD_SHIFT) != 0) _displayOrder.Add("Shift");
+                    if ((mods & AppGlobals.MOD_WIN) != 0) _displayOrder.Add("Win");
+                    if ((mods & AppGlobals.MOD_CTRL) != 0) _displayOrder.Add("Ctrl");
+                    if ((mods & AppGlobals.MOD_ALT) != 0) _displayOrder.Add("Alt");
+                    if ((mods & AppGlobals.MOD_SHIFT) != 0) _displayOrder.Add("Shift");
                 }
             }
             RenderKeycaps();
@@ -117,16 +117,16 @@ namespace PocketDrop
 
             // 2. Gather all currently held modifiers
             uint mods = 0;
-            if (Keyboard.Modifiers.HasFlag(ModifierKeys.Alt) || Keyboard.IsKeyDown(Key.LeftAlt) || Keyboard.IsKeyDown(Key.RightAlt)) mods |= App.MOD_ALT;
-            if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) || Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl)) mods |= App.MOD_CTRL;
-            if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) || Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift)) mods |= App.MOD_SHIFT;
-            if (Keyboard.IsKeyDown(Key.LWin) || Keyboard.IsKeyDown(Key.RWin)) mods |= App.MOD_WIN;
+            if (Keyboard.Modifiers.HasFlag(ModifierKeys.Alt) || Keyboard.IsKeyDown(Key.LeftAlt) || Keyboard.IsKeyDown(Key.RightAlt)) mods |= AppGlobals.MOD_ALT;
+            if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) || Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl)) mods |= AppGlobals.MOD_CTRL;
+            if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) || Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift)) mods |= AppGlobals.MOD_SHIFT;
+            if (Keyboard.IsKeyDown(Key.LWin) || Keyboard.IsKeyDown(Key.RWin)) mods |= AppGlobals.MOD_WIN;
 
             // 3. Clean up the tracking list if a key was released
-            if ((mods & App.MOD_WIN) == 0) _pressedModifiers.Remove("Win");
-            if ((mods & App.MOD_CTRL) == 0) _pressedModifiers.Remove("Ctrl");
-            if ((mods & App.MOD_ALT) == 0) _pressedModifiers.Remove("Alt");
-            if ((mods & App.MOD_SHIFT) == 0) _pressedModifiers.Remove("Shift");
+            if ((mods & AppGlobals.MOD_WIN) == 0) _pressedModifiers.Remove("Win");
+            if ((mods & AppGlobals.MOD_CTRL) == 0) _pressedModifiers.Remove("Ctrl");
+            if ((mods & AppGlobals.MOD_ALT) == 0) _pressedModifiers.Remove("Alt");
+            if ((mods & AppGlobals.MOD_SHIFT) == 0) _pressedModifiers.Remove("Shift");
 
             if (isModifier)
             {

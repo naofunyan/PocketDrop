@@ -36,12 +36,12 @@ namespace PocketDrop_Tests
         {
             // Arrange
             // Backup current configuration (mocking logic)
-            var orgConfig = App.ExcludedApps;
+            var orgConfig = AppGlobals.ExcludedApps;
 
             try
             {
                 // Force an empty or null setting
-                App.ExcludedApps = null;
+                AppGlobals.ExcludedApps = null;
 
                 // Act
                 var exception = Record.Exception(() => AppHelpers.IsForegroundAppExcluded());
@@ -52,7 +52,7 @@ namespace PocketDrop_Tests
             finally
             {
                 // Restore configuration
-                App.ExcludedApps = orgConfig;
+                AppGlobals.ExcludedApps = orgConfig;
             }
         }
     }

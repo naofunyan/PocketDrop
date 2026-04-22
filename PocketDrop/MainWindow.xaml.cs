@@ -265,7 +265,7 @@ namespace PocketDrop
 
                     foreach (var newItem in validItems)
                     {
-                        if (!App.SessionHistory.Any(x => x.FilePath == newItem.FilePath)) App.SessionHistory.Add(newItem);
+                        if (!AppGlobals.SessionHistory.Any(x => x.FilePath == newItem.FilePath)) AppGlobals.SessionHistory.Add(newItem);
                     }
 
                     // Refresh UI
@@ -330,9 +330,9 @@ namespace PocketDrop
                             var safeUrlItem = new PocketItem { FileName = finalDomainName, FilePath = filePath, Icon = transparentIcon };
                             PocketedItems.Add(safeUrlItem);
 
-                            if (!App.SessionHistory.Any(x => x.FilePath == safeUrlItem.FilePath))
+                            if (!AppGlobals.SessionHistory.Any(x => x.FilePath == safeUrlItem.FilePath))
                             {
-                                App.SessionHistory.Add(safeUrlItem);
+                                AppGlobals.SessionHistory.Add(safeUrlItem);
                             }
                         }
 
@@ -388,8 +388,8 @@ namespace PocketDrop
 
                         PocketedItems.Add(textItem);
 
-                        if (!App.SessionHistory.Any(x => x.FilePath == textItem.FilePath))
-                            App.SessionHistory.Add(textItem);
+                        if (!AppGlobals.SessionHistory.Any(x => x.FilePath == textItem.FilePath))
+                            AppGlobals.SessionHistory.Add(textItem);
 
                         StatusText.Visibility = Visibility.Collapsed;
                         FileIconContainer.Visibility = Visibility.Visible;
@@ -444,9 +444,9 @@ namespace PocketDrop
                     // 1. Sync to the background global history
                     foreach (var newItem in processedItems)
                     {
-                        if (!App.SessionHistory.Any(x => x.FilePath == newItem.FilePath))
+                        if (!AppGlobals.SessionHistory.Any(x => x.FilePath == newItem.FilePath))
                         {
-                            App.SessionHistory.Add(newItem);
+                            AppGlobals.SessionHistory.Add(newItem);
                         }
                     }
 
@@ -653,7 +653,7 @@ namespace PocketDrop
                     }
 
                     // Only attach File DropEffects if there are actual physical files!
-                    byte[] dropEffect = new byte[] { (byte)(App.CopyItemToDestination ? 1 : 2), 0, 0, 0 };
+                    byte[] dropEffect = new byte[] { (byte)(AppGlobals.CopyItemToDestination ? 1 : 2), 0, 0, 0 };
                     dragData.SetData("Preferred DropEffect", new System.IO.MemoryStream(dropEffect));
                 }
 
@@ -682,7 +682,7 @@ namespace PocketDrop
                     {
                         CleanupTempFile(item.FilePath);
 
-                        if (!App.CopyItemToDestination && item.OriginalFilePath != item.FilePath)
+                        if (!AppGlobals.CopyItemToDestination && item.OriginalFilePath != item.FilePath)
                         {
                             try { if (File.Exists(item.OriginalFilePath)) File.Delete(item.OriginalFilePath); } catch { }
                         }
@@ -690,7 +690,7 @@ namespace PocketDrop
 
                     PocketedItems.Clear();
 
-                    if (App.CloseWhenEmptied)
+                    if (AppGlobals.CloseWhenEmptied)
                     {
                         ExpandButton.IsChecked = false;
                         ForceClose();
@@ -777,7 +777,7 @@ namespace PocketDrop
                     catch { }
                 }
 
-                byte[] dropEffect = new byte[] { (byte)(App.CopyItemToDestination ? 1 : 2), 0, 0, 0 };
+                byte[] dropEffect = new byte[] { (byte)(AppGlobals.CopyItemToDestination ? 1 : 2), 0, 0, 0 };
                 dragData.SetData("Preferred DropEffect", new System.IO.MemoryStream(dropEffect));
             }
 
@@ -806,7 +806,7 @@ namespace PocketDrop
                 {
                     CleanupTempFile(item.FilePath);
 
-                    if (!App.CopyItemToDestination && item.OriginalFilePath != item.FilePath)
+                    if (!AppGlobals.CopyItemToDestination && item.OriginalFilePath != item.FilePath)
                     {
                         try { if (File.Exists(item.OriginalFilePath)) File.Delete(item.OriginalFilePath); } catch { }
                     }
@@ -816,7 +816,7 @@ namespace PocketDrop
 
                 if (PocketedItems.Count == 0)
                 {
-                    if (App.CloseWhenEmptied)
+                    if (AppGlobals.CloseWhenEmptied)
                     {
                         ExpandButton.IsChecked = false;
                         ForceClose();
@@ -884,7 +884,7 @@ namespace PocketDrop
 
             // Apply layout mode before UI size calculation
             // 0 = Grid view, 1 = List view
-            this.CurrentViewMode = App.ItemsLayoutMode == 1 ? "List" : "Grid";
+            this.CurrentViewMode = AppGlobals.ItemsLayoutMode == 1 ? "List" : "Grid";
 
             this.UpdateLayout();
 
@@ -928,7 +928,7 @@ namespace PocketDrop
 
             // 4. Override placement based on user setting using decoupled math
             Point finalPos = AppHelpers.CalculateWindowPosition(
-                App.PocketPlacement,
+                AppGlobals.PocketPlacement,
                 cursorX, cursorY, w, h,
                 workAreaLeft, workAreaTop, workAreaRight, workAreaBottom);
 
@@ -1313,7 +1313,7 @@ namespace PocketDrop
             }
 
             // 4. Auto-close the pocket if the user enabled it in Settings
-            if (App.CloseWhenOpenWith)
+            if (AppGlobals.CloseWhenOpenWith)
             {
                 if (ExpandButton != null) ExpandButton.IsChecked = false; // Collapse the popup menu
                 ForceClose(); // Animate window close and free memory
@@ -1338,7 +1338,7 @@ namespace PocketDrop
             // 1. Handle folders and zipping first
             if (containsFolders)
             {
-                if (App.AutoCompressFoldersShare)
+                if (AppGlobals.AutoCompressFoldersShare)
                 {
                     try
                     {
@@ -1403,7 +1403,7 @@ namespace PocketDrop
                 interop.ShowShareUIForWindow(hwnd);
 
                 // Ensure ZIP finishes and share UI opens before closing pocket
-                if (App.CloseWhenShare)
+                if (AppGlobals.CloseWhenShare)
                 {
                     ForceClose(); // Safely animate window close and free memory
                 }
@@ -1483,7 +1483,7 @@ namespace PocketDrop
                 });
 
                 // Restore UI (if the Pocket stays open after compression based on user settings)
-                if (!App.CloseWhenCompress)
+                if (!AppGlobals.CloseWhenCompress)
                 {
                     if (StatusText != null) StatusText.Visibility = Visibility.Collapsed;
                     if (FileIconContainer != null) FileIconContainer.Visibility = Visibility.Visible;
@@ -1541,7 +1541,7 @@ namespace PocketDrop
                 }
             }
             // Close the pocket if the user enabled the Settings
-            if (App.CloseWhenCompress)
+            if (AppGlobals.CloseWhenCompress)
             {
                 if (ExpandButton != null) ExpandButton.IsChecked = false; // Collapse the popup menu
                 ForceClose(); // Safely animate window close and free memory
@@ -2217,9 +2217,9 @@ namespace PocketDrop
 
                 PocketedItems.Add(newPdfItem);
                 // ✨ FIX: Push the newly generated PDF to the global history list!
-                if (!App.SessionHistory.Any(x => x.FilePath == newPdfItem.FilePath))
+                if (!AppGlobals.SessionHistory.Any(x => x.FilePath == newPdfItem.FilePath))
                 {
-                    App.SessionHistory.Add(newPdfItem);
+                    AppGlobals.SessionHistory.Add(newPdfItem);
                 }
 
                 _ = LoadFileIconAsync(newPdfItem.FilePath).ContinueWith(t =>
@@ -2302,9 +2302,9 @@ namespace PocketDrop
             // 1. Log all current items to the Global History
             foreach (var item in PocketedItems)
             {
-                if (!App.SessionHistory.Any(x => x.FilePath == item.FilePath))
+                if (!AppGlobals.SessionHistory.Any(x => x.FilePath == item.FilePath))
                 {
-                    App.SessionHistory.Add(item);
+                    AppGlobals.SessionHistory.Add(item);
                 }
             }
 
@@ -2332,7 +2332,7 @@ namespace PocketDrop
 
             if (isLeftClickHeld)
             {
-                if (!App.EnableMouseShake) return;
+                if (!AppGlobals.EnableMouseShake) return;
 
                 // Abort if a pocket was already spawned or the shake was marked invalid
                 if (_hasSpawnedPocketThisDrag || _shakeInvalidated) return;
@@ -2363,7 +2363,7 @@ namespace PocketDrop
                 bool isShaking = _shakeDetector.CheckForShake(
                     currentMouseX: pt.X,
                     currentTimestampMs: Environment.TickCount64,
-                    minDistancePx: App.ShakeMinimumDistance,
+                    minDistancePx: AppGlobals.ShakeMinimumDistance,
                     maxTimeMs: 650,
                     requiredSwings: 4
                 );
@@ -2373,7 +2373,7 @@ namespace PocketDrop
                 {
                     try
                     {
-                        if (App.DisableInGameMode && AppHelpers.IsGameModeActive()) return;
+                        if (AppGlobals.DisableInGameMode && AppHelpers.IsGameModeActive()) return;
                         if (AppHelpers.IsForegroundAppExcluded()) return;
                     }
                     catch { /* Ignore helper errors and spawn anyway */ }
@@ -2561,7 +2561,7 @@ namespace PocketDrop
             try
             {
                 // Never delete a temp file if it's still saved in My Pockets
-                if (App.SessionHistory.Any(h => h.FilePath == filePath)) return;
+                if (AppGlobals.SessionHistory.Any(h => h.FilePath == filePath)) return;
 
                 if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
                 {
@@ -2583,7 +2583,7 @@ namespace PocketDrop
         public void RefreshPocketUI()
         {
             // 1. Find items in this Pocket that no longer exist in the global history
-            var itemsToRemove = PocketedItems.Where(p => !App.SessionHistory.Any(h => h.FilePath == p.FilePath)).ToList();
+            var itemsToRemove = PocketedItems.Where(p => !AppGlobals.SessionHistory.Any(h => h.FilePath == p.FilePath)).ToList();
 
             if (itemsToRemove.Count == 0) return; // Nothing to sync
 
@@ -2597,7 +2597,7 @@ namespace PocketDrop
             if (PocketedItems.Count == 0)
             {
                 // If deleting those files emptied the pocket completely
-                if (App.CloseWhenEmptied)
+                if (AppGlobals.CloseWhenEmptied)
                 {
                     ForceClose(); // Safely animate and close
                 }
