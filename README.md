@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="Assets/GithubBannerRM.png" width="500" alt="PocketDrop Icon" />
+  <img src="PocketDrop/Assets/GithubBannerRM.png" width="500" alt="PocketDrop Icon" />
 
 <br/>
 <br/>
@@ -108,12 +108,12 @@ Run the installer (`PocketDrop_Setup.exe`) and follow the on-screen steps to ins
 <table width="100%">
   <tr>
     <td align="center" width="48%">
-      <img src="Assets/feature1.gif" width="100%" alt="Shake to summon" />
+      <img src="PocketDrop/Assets/feature1.gif" width="100%" alt="Shake to summon" />
       <br />
       <b>1. Shake to summon</b>
     </td>
     <td align="center" width="48%">
-      <img src="Assets/feature2.gif" width="100%" alt="Access saved files in My Pocket" />
+      <img src="PocketDrop/Assets/feature2.gif" width="100%" alt="Access saved files in My Pocket" />
       <br />
       <b>2. Access saved files in My Pocket</b>
     </td>
@@ -124,12 +124,12 @@ Run the installer (`PocketDrop_Setup.exe`) and follow the on-screen steps to ins
 <table width="100%">
   <tr>
     <td align="center" width="48%">
-      <img src="Assets/feature3.gif" width="100%" alt="Open, share, and more with built-in tools" />
+      <img src="PocketDrop/Assets/feature3.gif" width="100%" alt="Open, share, and more with built-in tools" />
       <br />
       <b>3. Open, share, and more with built-in tools</b>
     </td>
     <td align="center" width="48%">
-      <img src="Assets/feature4.gif" width="100%" alt="Manage everything from the system tray" />
+      <img src="PocketDrop/Assets/feature4.gif" width="100%" alt="Manage everything from the system tray" />
       <br />
       <b>4. Manage everything from the system tray</b>
     </td>
