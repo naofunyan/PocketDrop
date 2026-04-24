@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="PocketDrop/Assets/GithubBannerRM.png" width="500" alt="PocketDrop Icon" />
+  <img src="Assets/GithubBannerRM.png" width="500" alt="PocketDrop Icon" />
 
 <br/>
 <br/>
@@ -121,7 +121,7 @@ Run the installer (`PocketDrop_Setup.exe`) and follow the on-screen steps to ins
 </table>
 <br>
 
-<table>
+<table width="100%">
   <tr>
     <td align="center" width="48%">
       <img src="Assets/feature3.gif" width="100%" alt="Open, share, and more with built-in tools" />
