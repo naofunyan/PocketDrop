@@ -100,8 +100,9 @@
 
 
     <!-- My Pockets Window -->
-    <sys:String x:Key="Text_SavedPocketsTitle">My Pockets</sys:String>
+    <sys:String x:Key="Text_MyPocketsTitle">My Pockets</sys:String>
     <sys:String x:Key="Text_EmptyPockets" xml:space="preserve">Your files appear here&#x0a;when you close Pockets.</sys:String>
+    <sys:String x:Key="Text_KeepWindowOpenTooltip">Keep window open</sys:String>
 
     <sys:String x:Key="Text_SidebarNew">New</sys:String>
     <sys:String x:Key="Text_AddPocketTooltip">Add new Pocket</sys:String>

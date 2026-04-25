@@ -100,9 +100,10 @@
 
 
     <!-- My Pockets Window -->
-    <sys:String x:Key="Text_SavedPocketsTitle">Các Pocket của bạn</sys:String>
+    <sys:String x:Key="Text_MyPocketsTitle">Các Pocket của bạn</sys:String>
     <sys:String x:Key="Text_EmptyPockets" xml:space="preserve">Các tập tin của bạn sẽ xuất hiện&#x0a;ở đây khi bạn đóng các Pocket.</sys:String>
-
+    <sys:String x:Key="Text_KeepWindowOpenTooltip">Ghim cửa sổ</sys:String>
+    
     <sys:String x:Key="Text_SidebarNew">Tạo mới</sys:String>
     <sys:String x:Key="Text_AddPocketTooltip">Thêm Pocket mới</sys:String>
     <sys:String x:Key="Text_SidebarClear">Xóa hết</sys:String>

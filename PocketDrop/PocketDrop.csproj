@@ -35,8 +35,4 @@
     <Resource Include="Assets\PocketDrop.ico" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Views\" />
-  </ItemGroup>
-
 </Project>

@@ -13,6 +13,33 @@ namespace PocketDrop
         // Global master list to hold every file dropped during this session
         public static ObservableRangeCollection<PocketItem> SessionHistory = new ObservableRangeCollection<PocketItem>();
 
+        // ✨ NEW: O(1) Fast-Lookup Cache
+        public static System.Collections.Generic.HashSet<string> SessionHistoryPaths = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // ✨ NEW: Auto-Sync Engine (The HashSet perfectly mirrors the list automatically!)
+        static AppGlobals()
+        {
+            SessionHistory.CollectionChanged += (s, e) =>
+            {
+                if (e.NewItems != null)
+                {
+                    foreach (PocketItem item in e.NewItems)
+                        if (!string.IsNullOrEmpty(item.FilePath)) SessionHistoryPaths.Add(item.FilePath);
+                }
+                if (e.OldItems != null)
+                {
+                    foreach (PocketItem item in e.OldItems)
+                        if (!string.IsNullOrEmpty(item.FilePath)) SessionHistoryPaths.Remove(item.FilePath);
+                }
+                if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Reset)
+                {
+                    SessionHistoryPaths.Clear();
+                    foreach (PocketItem item in SessionHistory)
+                        if (!string.IsNullOrEmpty(item.FilePath)) SessionHistoryPaths.Add(item.FilePath);
+                }
+            };
+        }
+
         // Global flag so the rest of the app knows an update is waiting
         public static bool UpdateAvailable = false;
         public static string UpdateUrl = "https://github.com/naofunyan/PocketDrop/releases/latest";
@@ -68,15 +95,15 @@ namespace PocketDrop
         public static int ItemsLayoutMode = 0; // 0 = Grid, 1 = List
 
         // Pocket Interaction - Copy Item To Destination
-        public static bool CopyItemToDestination { get; set; } = true; // Default True = Copy, False = Move
+        public static bool CopyItemToDestination = true; // Default True = Copy, False = Move
 
         // Pocket Interaction - Auto Compress Folders When Sharing
-        public static bool AutoCompressFoldersShare { get; set; } = true;
+        public static bool AutoCompressFoldersShare = true;
 
         // Pocket Interaction - Close Pocket After Action
         public static bool CloseWhenEmptied = true;
-        public static bool CloseWhenOpenWith { get; set; } = false;
-        public static bool CloseWhenShare { get; set; } = false;
+        public static bool CloseWhenOpenWith = false;
+        public static bool CloseWhenShare = false;
         public static bool CloseWhenCompress = false;
 
 
@@ -110,6 +137,8 @@ namespace PocketDrop
                     CloseWhenCompress = Convert.ToBoolean(key.GetValue("CloseWhenCompress", false));
                     AppTheme = Convert.ToInt32(key.GetValue("AppTheme", 0));
                     AppLanguage = key.GetValue("AppLanguage", "English").ToString();
+                    CopyItemToDestination = Convert.ToBoolean(key.GetValue("CopyItemToDestination", true));
+                    AutoCompressFoldersShare = Convert.ToBoolean(key.GetValue("AutoCompressFoldersShare", true));
                 }
             }
             catch { }
@@ -140,6 +169,8 @@ namespace PocketDrop
                     key.SetValue("CloseWhenCompress", CloseWhenCompress);
                     key.SetValue("AppTheme", AppTheme);
                     key.SetValue("AppLanguage", AppLanguage);
+                    key.SetValue("CopyItemToDestination", CopyItemToDestination);
+                    key.SetValue("AutoCompressFoldersShare", AutoCompressFoldersShare);
                 }
             }
             catch { }
@@ -148,9 +179,17 @@ namespace PocketDrop
         // ================================================ //
         // 4. CROSS-WINDOW COMMUNICATION
         // ================================================ //
-        public static Action RequestNewPocket;
-        public static Action RequestPocketsRefresh;
-        public static Action RequestPocketsForceClose;
-        public static Action RequestHistoryRefresh;
+
+        // 1. The locked-down events
+        public static event Action RequestNewPocket;
+        public static event Action RequestPocketsRefresh;
+        public static event Action RequestPocketsForceClose;
+        public static event Action RequestHistoryRefresh;
+
+        // 2. The safe trigger methods
+        public static void TriggerNewPocket() => RequestNewPocket?.Invoke();
+        public static void TriggerPocketsRefresh() => RequestPocketsRefresh?.Invoke();
+        public static void TriggerPocketsForceClose() => RequestPocketsForceClose?.Invoke();
+        public static void TriggerHistoryRefresh() => RequestHistoryRefresh?.Invoke();
     }
 }

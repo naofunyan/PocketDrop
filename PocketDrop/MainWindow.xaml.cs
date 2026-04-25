@@ -9,7 +9,6 @@
 using Microsoft.WindowsAPICodePack.Shell;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -25,7 +24,6 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using System.Xml.Linq;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
 using WinRT;
@@ -61,10 +59,6 @@ namespace PocketDrop
             public int oaUIAction;
         }
 
-        // Native Window Focus API
-        [DllImport("user32.dll")]
-        private static extern bool SetForegroundWindow(IntPtr hWnd);
-
         // Native Window Dragging
         [DllImport("user32.dll")]
         public static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
@@ -79,18 +73,6 @@ namespace PocketDrop
         [DllImport("user32.dll")]
         public static extern short GetAsyncKeyState(int vKey);
         public const int VK_LBUTTON = 0x01;
-
-        // Mouse Polling Architecture
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool GetCursorPos(out POINT lpPoint);
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct POINT
-        {
-            public int X;
-            public int Y;
-        }
 
         private static DispatcherTimer _mouseTimer;
 
@@ -265,7 +247,7 @@ namespace PocketDrop
 
                     foreach (var newItem in validItems)
                     {
-                        if (!AppGlobals.SessionHistory.Any(x => x.FilePath == newItem.FilePath)) AppGlobals.SessionHistory.Add(newItem);
+                        if (!AppGlobals.SessionHistoryPaths.Contains(newItem.FilePath)) AppGlobals.SessionHistory.Add(newItem);
                     }
 
                     // Refresh UI
@@ -330,7 +312,7 @@ namespace PocketDrop
                             var safeUrlItem = new PocketItem { FileName = finalDomainName, FilePath = filePath, Icon = transparentIcon };
                             PocketedItems.Add(safeUrlItem);
 
-                            if (!AppGlobals.SessionHistory.Any(x => x.FilePath == safeUrlItem.FilePath))
+                            if (!AppGlobals.SessionHistoryPaths.Contains(safeUrlItem.FilePath))
                             {
                                 AppGlobals.SessionHistory.Add(safeUrlItem);
                             }
@@ -344,19 +326,14 @@ namespace PocketDrop
                         {
                             UpdateItemCountDisplay(PocketedItems.Count);
                         }
-
-                        StatusText.Visibility = Visibility.Collapsed;
-                        FileIconContainer.Visibility = Visibility.Visible;
-                        UpdateStackPreview();
-
-                        if (ItemsListBox == null || ItemsListBox.SelectedItems.Count == 0)
-                        {
-                            UpdateItemCountDisplay(PocketedItems.Count);
-                        }
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Could not save URL: {ex.Message}");
+                        // 1. Tag it with the context
+                        ex.Data.Add("PocketDrop Context", "Could not save URL");
+
+                        // 2. Send it off to Sentry
+                        SentrySdk.CaptureException(ex);
                     }
                 }
                 else
@@ -388,7 +365,7 @@ namespace PocketDrop
 
                         PocketedItems.Add(textItem);
 
-                        if (!AppGlobals.SessionHistory.Any(x => x.FilePath == textItem.FilePath))
+                        if (!AppGlobals.SessionHistoryPaths.Contains(textItem.FilePath))
                             AppGlobals.SessionHistory.Add(textItem);
 
                         StatusText.Visibility = Visibility.Collapsed;
@@ -398,10 +375,64 @@ namespace PocketDrop
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Could not save text snippet: {ex.Message}");
+                        // 1. Tag it with the context
+                        ex.Data.Add("PocketDrop Context", "Could not save text snippet");
+
+                        // 2. Send it off to Sentry
+                        SentrySdk.CaptureException(ex);
                     }
                 }
             }
+        }
+
+        // Centralized Drag Payload Builder
+        private DataObject BuildDragPayload(List<PocketItem> itemsToDrag, System.IO.MemoryStream dropEffectStream)
+        {
+            DataObject dragData = new DataObject();
+            bool allSnippets = itemsToDrag.All(i => i.IsSnippet);
+
+            // Dual-format payloads for Native Apps and Web/Electron Apps
+            if (allSnippets)
+            {
+                try
+                {
+                    string combinedText = string.Join(Environment.NewLine + Environment.NewLine, itemsToDrag.Select(i => File.ReadAllText(i.FilePath)));
+
+                    // 1. Standard Windows Formats
+                    dragData.SetData(DataFormats.UnicodeText, combinedText);
+                    dragData.SetData(DataFormats.Text, combinedText);
+                    dragData.SetData(DataFormats.StringFormat, combinedText);
+
+                    // 2. Web & Electron Formats
+                    dragData.SetData("text/plain", combinedText);
+                }
+                catch { }
+            }
+            else
+            {
+                // Mixed items or physical files -> Use standard FileDrop
+                string[] paths = itemsToDrag.Select(i => i.FilePath).ToArray();
+                dragData.SetData(DataFormats.FileDrop, paths);
+
+                // Fallback: If it is a single physical .txt file, try to attach text just in case
+                if (paths.Length == 1 && Path.GetExtension(paths[0]).Equals(".txt", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        var fi = new FileInfo(paths[0]);
+                        if (fi.Length < 1024 * 1024)
+                        {
+                            dragData.SetText(File.ReadAllText(paths[0]));
+                        }
+                    }
+                    catch { }
+                }
+
+                // Attach the active memory stream
+                dragData.SetData("Preferred DropEffect", dropEffectStream);
+            }
+
+            return dragData;
         }
 
         // Handle file paste from Windows clipboard
@@ -444,7 +475,7 @@ namespace PocketDrop
                     // 1. Sync to the background global history
                     foreach (var newItem in processedItems)
                     {
-                        if (!AppGlobals.SessionHistory.Any(x => x.FilePath == newItem.FilePath))
+                        if (!AppGlobals.SessionHistoryPaths.Contains(newItem.FilePath))
                         {
                             AppGlobals.SessionHistory.Add(newItem);
                         }
@@ -461,11 +492,77 @@ namespace PocketDrop
                     UpdateItemCountDisplay(PocketedItems.Count);
 
                     // Ping the window: Notify My Pockets window to refresh in real-time
-                    AppGlobals.RequestHistoryRefresh?.Invoke(); // Broadcast the signal!
+                    AppGlobals.TriggerHistoryRefresh(); // Broadcast the signal!
+                }
+                // ✨ NEW: Catch Text and URLs from the clipboard!
+                else if (System.Windows.Clipboard.ContainsText())
+                {
+                    string pastedText = System.Windows.Clipboard.GetText();
+
+                    // 1. Is it a Web URL?
+                    if (Uri.TryCreate(pastedText, UriKind.Absolute, out Uri uriResult) &&
+                       (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps))
+                    {
+                        string domain = uriResult.Host.Replace("www.", "");
+                        string finalDomainName = AppHelpers.GetSafeDisplayName(PocketedItems, domain);
+
+                        string tempFolder = Path.GetTempPath();
+                        string fileName = $"{domain} Link_{DateTime.Now.Ticks}.url";
+                        string filePath = Path.Combine(tempFolder, fileName);
+
+                        File.WriteAllText(filePath, $"[InternetShortcut]\nURL={uriResult.AbsoluteUri}");
+
+                        using (ShellObject shellObj = ShellObject.FromParsingName(filePath))
+                        {
+                            var transparentIcon = shellObj.Thumbnail.LargeBitmapSource;
+                            transparentIcon.Freeze();
+
+                            var safeUrlItem = new PocketItem { FileName = finalDomainName, FilePath = filePath, Icon = transparentIcon };
+                            PocketedItems.Add(safeUrlItem);
+
+                            if (!AppGlobals.SessionHistoryPaths.Contains(safeUrlItem.FilePath))
+                                AppGlobals.SessionHistory.Add(safeUrlItem);
+                        }
+                    }
+                    // 2. It's a standard text snippet
+                    else
+                    {
+                        string tempFolder = Path.GetTempPath();
+                        string preview = pastedText.Length > 20 ? pastedText.Substring(0, 20).Trim() : pastedText;
+                        preview = string.Join("_", preview.Split(Path.GetInvalidFileNameChars()));
+
+                        string fileName = $"Snippet_{preview}_{Guid.NewGuid().ToString("N").Substring(0, 4)}.txt";
+                        string filePath = Path.Combine(tempFolder, fileName);
+
+                        File.WriteAllText(filePath, pastedText);
+                        var textIcon = await LoadFileIconAsync(filePath);
+
+                        var textItem = new PocketItem
+                        {
+                            FileName = fileName,
+                            FilePath = filePath,
+                            Icon = textIcon,
+                            IsSnippet = true
+                        };
+
+                        PocketedItems.Add(textItem);
+
+                        if (!AppGlobals.SessionHistoryPaths.Contains(textItem.FilePath))
+                            AppGlobals.SessionHistory.Add(textItem);
+                    }
+
+                    // Refresh UI
+                    StatusText.Visibility = Visibility.Collapsed;
+                    FileIconContainer.Visibility = Visibility.Visible;
+                    UpdateStackPreview();
+                    UpdateItemCountDisplay(PocketedItems.Count);
+
+                    // Notify My Pockets window using our new secure trigger
+                    AppGlobals.TriggerHistoryRefresh();
                 }
                 else
                 {
-                    // Show warning when clipboard has no files
+                    // Show warning when clipboard has no files or text
                     string emptyDesc = (string)Application.Current.Resources["Text_ClipboardEmpty"];
                     string emptyTitle = (string)Application.Current.Resources["Text_ClipboardEmptyTitle"];
                     MessageBox.Show(emptyDesc, emptyTitle, MessageBoxButton.OK, MessageBoxImage.Information);
@@ -473,7 +570,11 @@ namespace PocketDrop
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Clipboard error: {ex.Message}");
+                // 1. Tag the error with exactly what the app was doing
+                ex.Data.Add("PocketDrop Context", "Clipboard error");
+
+                // 2. Send the full crash report to your dashboard
+                SentrySdk.CaptureException(ex);
             }
         }
 
@@ -604,51 +705,11 @@ namespace PocketDrop
             if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
                 Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
             {
-                DataObject dragData = new DataObject();
                 var itemsToDrag = PocketedItems.ToList();
-                bool allSnippets = itemsToDrag.All(i => i.IsSnippet);
 
-                // Dual-format payloads for Native Apps and Web/Electron Apps
-                if (allSnippets)
-                {
-                    try
-                    {
-                        string combinedText = string.Join(Environment.NewLine + Environment.NewLine, itemsToDrag.Select(i => File.ReadAllText(i.FilePath)));
-
-                        // 1. Standard Windows Formats
-                        dragData.SetData(DataFormats.UnicodeText, combinedText);
-                        dragData.SetData(DataFormats.Text, combinedText);
-                        dragData.SetData(DataFormats.StringFormat, combinedText);
-
-                        // 2. Web & Electron Formats
-                        dragData.SetData("text/plain", combinedText);
-                    }
-                    catch { }
-                }
-                else
-                {
-                    // Mixed items or physical files -> Use standard FileDrop
-                    string[] pathsToDrag = itemsToDrag.Select(i => i.FilePath).ToArray();
-                    dragData.SetData(DataFormats.FileDrop, pathsToDrag);
-
-                    // Fallback: If it is a single physical .txt file, try to attach text just in case
-                    if (pathsToDrag.Length == 1 && Path.GetExtension(pathsToDrag[0]).Equals(".txt", StringComparison.OrdinalIgnoreCase))
-                    {
-                        try
-                        {
-                            var fi = new FileInfo(pathsToDrag[0]);
-                            if (fi.Length < 1024 * 1024)
-                            {
-                                dragData.SetText(File.ReadAllText(pathsToDrag[0]));
-                            }
-                        }
-                        catch { }
-                    }
-
-                    // Only attach File DropEffects if there are actual physical files!
-                    byte[] dropEffect = new byte[] { (byte)(AppGlobals.CopyItemToDestination ? 1 : 2), 0, 0, 0 };
-                    dragData.SetData("Preferred DropEffect", new System.IO.MemoryStream(dropEffect));
-                }
+                // ✨ THE REFACTOR: 45 lines of code reduced to 2!
+                using var dropEffectStream = new System.IO.MemoryStream(new byte[] { (byte)(AppGlobals.CopyItemToDestination ? 1 : 2), 0, 0, 0 });
+                DataObject dragData = BuildDragPayload(itemsToDrag, dropEffectStream);
 
                 Point tempStart = (Point)startPoint;
                 startPoint = null;
@@ -700,7 +761,7 @@ namespace PocketDrop
             }
 
             // Ping the window: Notify My Pockets window to refresh in real-time
-            var openHistoryWindow = Application.Current.Windows.OfType<SavedPocketsWindow>().FirstOrDefault();
+            var openHistoryWindow = Application.Current.Windows.OfType<MyPocketsWindow>().FirstOrDefault();
             if (openHistoryWindow != null)
             {
                 Application.Current.Dispatcher.BeginInvoke(new Action(() =>
@@ -732,47 +793,9 @@ namespace PocketDrop
             var selectedItems = ItemsListBox.SelectedItems.Cast<PocketItem>().ToList();
             if (selectedItems.Count == 0) return;
 
-            DataObject dragData = new DataObject();
-            bool allSnippets = selectedItems.All(i => i.IsSnippet);
-
-            // Dual-format payloads for Native Apps and Web/Electron Apps
-            if (allSnippets)
-            {
-                try
-                {
-                    string combinedText = string.Join(Environment.NewLine + Environment.NewLine, selectedItems.Select(i => File.ReadAllText(i.FilePath)));
-
-                    // 1. Standard Windows Formats
-                    dragData.SetData(DataFormats.UnicodeText, combinedText);
-                    dragData.SetData(DataFormats.Text, combinedText);
-                    dragData.SetData(DataFormats.StringFormat, combinedText);
-
-                    // 2. Web & Electron Formats
-                    dragData.SetData("text/plain", combinedText);
-                }
-                catch { }
-            }
-            else
-            {
-                string[] paths = selectedItems.Select(item => item.FilePath).ToArray();
-                dragData.SetData(DataFormats.FileDrop, paths);
-
-                if (paths.Length == 1 && Path.GetExtension(paths[0]).Equals(".txt", StringComparison.OrdinalIgnoreCase))
-                {
-                    try
-                    {
-                        var fi = new FileInfo(paths[0]);
-                        if (fi.Length < 1024 * 1024)
-                        {
-                            dragData.SetText(File.ReadAllText(paths[0]));
-                        }
-                    }
-                    catch { }
-                }
-
-                byte[] dropEffect = new byte[] { (byte)(AppGlobals.CopyItemToDestination ? 1 : 2), 0, 0, 0 };
-                dragData.SetData("Preferred DropEffect", new System.IO.MemoryStream(dropEffect));
-            }
+            // ✨ THE REFACTOR: Another 45 lines of code gone!
+            using var dropEffectStream = new System.IO.MemoryStream(new byte[] { (byte)(AppGlobals.CopyItemToDestination ? 1 : 2), 0, 0, 0 });
+            DataObject dragData = BuildDragPayload(selectedItems, dropEffectStream);
 
             _internalDragPayload = selectedItems.ToList();
             _internalDropHandled = false;
@@ -834,7 +857,6 @@ namespace PocketDrop
         }
 
 
-        // Dragging the window
         // Dragging the window
         private void TopBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
@@ -1257,7 +1279,11 @@ namespace PocketDrop
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Could not open folder: {ex.Message}");
+                        // 1. Tag it with the context
+                        ex.Data.Add("PocketDrop Context", "Could not open folder");
+
+                        // 2. Send it off to Sentry
+                        SentrySdk.CaptureException(ex);
                     }
                 }
                 // Show native open-with dialog for file selection
@@ -1275,7 +1301,11 @@ namespace PocketDrop
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"Could not open file picker: {ex.Message}");
+                            // 1. Tag it with the context
+                            ex.Data.Add("PocketDrop Context", "Could not open file picker");
+
+                            // 2. Send it off to Sentry
+                            SentrySdk.CaptureException(ex);
                         }
                     });
                 }
@@ -1299,7 +1329,11 @@ namespace PocketDrop
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"Could not open {item.FileName}: {ex.Message}");
+                            // 1. Tag it with the context (including the specific file name!)
+                            ex.Data.Add("PocketDrop Context", $"Could not open {item.FileName}");
+
+                            // 2. Send it off to Sentry
+                            SentrySdk.CaptureException(ex);
                         }
                     }
                 }
@@ -1403,7 +1437,11 @@ namespace PocketDrop
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Share error: {ex.Message}");
+                // 1. Tag it with the context
+                ex.Data.Add("PocketDrop Context", "Share error");
+
+                // 2. Send it off to Sentry
+                SentrySdk.CaptureException(ex);
             }
         }
 
@@ -1471,7 +1509,11 @@ namespace PocketDrop
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Could not create ZIP: {ex.Message}");
+                        // 1. Tag it with the context
+                        ex.Data.Add("PocketDrop Context", "Could not create ZIP");
+
+                        // 2. Send it off to Sentry
+                        SentrySdk.CaptureException(ex);
                     }
                 });
 
@@ -1528,7 +1570,12 @@ namespace PocketDrop
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Highlight error: {ex.Message}");
+                    // 1. Tag it with the context
+                    ex.Data.Add("PocketDrop Context", "Highlight error");
+
+                    // 2. Send it off to Sentry
+                    SentrySdk.CaptureException(ex);
+
                     // Safe fallback just in case the COM object fails
                     System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{zipPath}\"");
                 }
@@ -1593,11 +1640,11 @@ namespace PocketDrop
                         // Use a random Guid instead of DateTime so the filename doesn't leak info
                         string cleanFilePath = Path.Combine(tempFolder, $"PocketDrop_{Guid.NewGuid().ToString("N").Substring(0, 8)}_{cleanFileName}");
 
-                        byte[] fileBytes = File.ReadAllBytes(img.FilePath);
-
-                        using (var ms = new System.IO.MemoryStream(fileBytes))
+                        // ✨ THE REFACTOR: Stream directly from the disk!
+                        using (var fs = System.IO.File.OpenRead(img.FilePath))
                         {
-                            BitmapDecoder decoder = BitmapDecoder.Create(ms, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.None);
+                            // Important: Switch to 'OnLoad' so WPF reads what it needs and safely releases the file lock
+                            BitmapDecoder decoder = BitmapDecoder.Create(fs, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.OnLoad);
 
                             BitmapEncoder encoder = null;
                             if (ext == ".png") encoder = new PngBitmapEncoder();
@@ -1615,9 +1662,9 @@ namespace PocketDrop
                                 encoder.Frames.Add(BitmapFrame.Create(cleanSource, null, (BitmapMetadata)null, null));
                             }
 
-                            using (var fs = new FileStream(cleanFilePath, FileMode.Create, FileAccess.Write))
+                            using (var outStream = new FileStream(cleanFilePath, FileMode.Create, FileAccess.Write))
                             {
-                                encoder.Save(fs);
+                                encoder.Save(outStream);
                             }
                         }
 
@@ -1632,7 +1679,11 @@ namespace PocketDrop
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Could not strip EXIF from {img.FileName}: {ex.Message}");
+                        // 1. Tag it with the context (including the specific file name!)
+                        ex.Data.Add("PocketDrop Context", $"Could not strip EXIF from {img.FileName}");
+
+                        // 2. Send it off to Sentry
+                        SentrySdk.CaptureException(ex);
                     }
                 }
             });
@@ -1767,7 +1818,11 @@ namespace PocketDrop
                     }
                     catch (System.Exception ex)
                     {
-                        System.Console.WriteLine($"Could not convert {img.FileName}: {ex.Message}");
+                        // 1. Tag it with the context (including the specific file name!)
+                        ex.Data.Add("PocketDrop Context", $"Could not convert {img.FileName}");
+
+                        // 2. Send it off to Sentry
+                        SentrySdk.CaptureException(ex);
                     }
                 });
             });
@@ -1912,7 +1967,11 @@ namespace PocketDrop
                     }
                     catch (System.Exception ex)
                     {
-                        System.Console.WriteLine($"Could not rotate {img.FileName}: {ex.Message}");
+                        // 1. Tag it with the context (including the specific file name!)
+                        ex.Data.Add("PocketDrop Context", $"Could not rotate {img.FileName}");
+
+                        // 2. Send it off to Sentry
+                        SentrySdk.CaptureException(ex);
                     }
                 });
             });
@@ -2115,7 +2174,11 @@ namespace PocketDrop
                     }
                     catch (System.Exception ex)
                     {
-                        System.Console.WriteLine($"Could not resize {img.FileName}: {ex.Message}");
+                        // 1. Tag it with the context (including the specific file name!)
+                        ex.Data.Add("PocketDrop Context", $"Could not resize {img.FileName}");
+
+                        // 2. Send it off to Sentry
+                        SentrySdk.CaptureException(ex);
                     }
                 });
             });
@@ -2195,7 +2258,11 @@ namespace PocketDrop
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Could not create PDF: {ex.Message}");
+                    // 1. Tag it with the context
+                    ex.Data.Add("PocketDrop Context", "Could not create PDF");
+
+                    // 2. Send it off to Sentry
+                    SentrySdk.CaptureException(ex);
                 }
             });
 
@@ -2210,7 +2277,7 @@ namespace PocketDrop
 
                 PocketedItems.Add(newPdfItem);
                 // ✨ FIX: Push the newly generated PDF to the global history list!
-                if (!AppGlobals.SessionHistory.Any(x => x.FilePath == newPdfItem.FilePath))
+                if (!AppGlobals.SessionHistoryPaths.Contains(newPdfItem.FilePath))
                 {
                     AppGlobals.SessionHistory.Add(newPdfItem);
                 }
@@ -2295,14 +2362,14 @@ namespace PocketDrop
             // 1. Log all current items to the Global History
             foreach (var item in PocketedItems)
             {
-                if (!AppGlobals.SessionHistory.Any(x => x.FilePath == item.FilePath))
+                if (!AppGlobals.SessionHistoryPaths.Contains(item.FilePath))
                 {
                     AppGlobals.SessionHistory.Add(item);
                 }
             }
 
             // 2. Ping the My Pockets window to update in real-time
-            var openHistoryWindow = Application.Current.Windows.OfType<SavedPocketsWindow>().FirstOrDefault();
+            var openHistoryWindow = Application.Current.Windows.OfType<MyPocketsWindow>().FirstOrDefault();
             if (openHistoryWindow != null)
             {
                 openHistoryWindow.RefreshHistory();
@@ -2554,7 +2621,7 @@ namespace PocketDrop
             try
             {
                 // Never delete a temp file if it's still saved in My Pockets
-                if (AppGlobals.SessionHistory.Any(h => h.FilePath == filePath)) return;
+                if (AppGlobals.SessionHistoryPaths.Contains(filePath)) return;
 
                 if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
                 {
@@ -2568,7 +2635,11 @@ namespace PocketDrop
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Could not clean up temp file: {ex.Message}");
+                // 1. Tag it with the context
+                ex.Data.Add("PocketDrop Context", "Could not clean up temp file");
+
+                // 2. Send it off to Sentry
+                SentrySdk.CaptureException(ex);
             }
         }
 
@@ -2576,7 +2647,7 @@ namespace PocketDrop
         public void RefreshPocketUI()
         {
             // 1. Find items in this Pocket that no longer exist in the global history
-            var itemsToRemove = PocketedItems.Where(p => !AppGlobals.SessionHistory.Any(h => h.FilePath == p.FilePath)).ToList();
+            var itemsToRemove = PocketedItems.Where(p => !AppGlobals.SessionHistoryPaths.Contains(p.FilePath)).ToList();
 
             if (itemsToRemove.Count == 0) return; // Nothing to sync
 
@@ -2709,23 +2780,30 @@ namespace PocketDrop
                         }
                         else
                         {
-                            ShellObject shellObj = ShellObject.FromParsingName(filePath);
-                            var thumb = shellObj.Thumbnail.LargeBitmapSource;
-
-                            thumb.Freeze();
-
-                            // Save to cache for next time
-                            if (!isUnique)
+                            // ✨ FIX: Wrapped the native COM object in a using statement so it gets destroyed!
+                            using (ShellObject shellObj = ShellObject.FromParsingName(filePath))
                             {
-                                _iconCache.TryAdd(cacheKey, thumb);
-                            }
+                                var thumb = shellObj.Thumbnail.LargeBitmapSource;
 
-                            return (System.Windows.Media.ImageSource)thumb;
+                                thumb.Freeze();
+
+                                // Save to cache for next time
+                                if (!isUnique)
+                                {
+                                    _iconCache.TryAdd(cacheKey, thumb);
+                                }
+
+                                return (System.Windows.Media.ImageSource)thumb;
+                            }
                         }
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Icon error: {ex.Message}");
+                        // 1. Tag it with the context
+                        ex.Data.Add("PocketDrop Context", "Icon error");
+
+                        // 2. Send it off to Sentry
+                        SentrySdk.CaptureException(ex);
                         return null;
                     }
                 });

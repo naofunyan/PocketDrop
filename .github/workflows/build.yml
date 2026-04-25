@@ -52,8 +52,18 @@ jobs:
     - name: Compile Inno Setup
       run: iscc /DMyAppArch="${{ matrix.arch }}" ./Setup.iss
 
-    # 3. THE MAGIC STEP: This pushes the .exe directly to the release you just created!
+    # ✨ NEW: The automated security step ✨
+    - name: Generate SHA256 Checksum
+      run: |
+        $exeFile = Get-ChildItem -Path "Output" -Filter "*.exe" | Select-Object -First 1
+        $hash = (Get-FileHash $exeFile.FullName -Algorithm SHA256).Hash.ToLower()
+        "$hash  $($exeFile.Name)" | Out-File -FilePath "Output\checksums-${{ matrix.arch }}.txt" -Encoding ascii
+      shell: pwsh
+
+    # 3. THE MAGIC STEP: This pushes the .exe AND the checksum directly to the release
     - name: Upload directly to GitHub Release
       uses: softprops/action-gh-release@v2
       with:
-        files: Output/*.exe
+        files: |
+          Output/*.exe
+          Output/checksums-*.txt

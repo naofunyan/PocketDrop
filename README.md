@@ -42,7 +42,7 @@ Here's what you can do with PocketDrop:
 - **Accepts everything:** Works seamlessly with folders, images, videos, audio files, URLs, and even text snippets.
 - **Seamless control:** Preview, reorder, or remove items directly inside the Pocket so you never lose your focus.
 - **Powerful built-in tools:** Compress to ZIP, resize, convert formats, and instantly open or share items directly from the Pocket.
-- **Always at your fingertips:** Use keyboard shortcuts, access My Pocket, and explore more features via the system tray so the app is always ready when you need it.
+- **Always at your fingertips:** Use keyboard shortcuts, access My Pockets, and explore more features via the system tray so the app is always ready when you need it.
 
 ### 🗃️ Supported file formats:
 
@@ -51,7 +51,7 @@ PocketDrop supports most file formats, such as these popular types:
 | Format | Support |
 | --- | --- |
 | 📄 Text formats | .doc / .docx / .txt / .rtf / .msg / .csv / .pdf / .epub / .azw / .mobi|
-| 🖼️ Image formats | .jpg / .png / .raw / .heif / .webp / .svg / .avif / .gif / .tiff / .bmp / .eps |
+| 🖼️ Image formats | .jpg / .png / .dng / .heif / .webp / .svg / .avif / .gif / .tiff / .bmp / .eps |
 | 🎵 Audio formats | .mp3 / .m4a / .flac / .wav / .wma / .aac |
 | 🎬 Video formats | .mp4 / .avi / .mpg / .mov / .wmv |
 | 💻 Programming formats | .c / .cpp / .java / .py / .js / .ts / .cs / .swift / .sh / .bat / .md / .ipynb / .html / .htm / .xhtml / .css / .rss / .exe / .msi |
@@ -115,7 +115,7 @@ Run the installer (`PocketDrop_Setup.exe`) and follow the on-screen steps to ins
     <td align="center" width="48%">
       <img src="PocketDrop/Assets/feature2.gif" width="100%" alt="Access saved files in My Pocket" />
       <br />
-      <b>2. Access saved files in My Pocket</b>
+      <b>2. Access saved files in My Pockets</b>
     </td>
   </tr>
 </table>

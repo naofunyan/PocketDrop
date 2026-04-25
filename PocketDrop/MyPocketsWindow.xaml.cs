@@ -19,7 +19,7 @@ using System.Windows.Media.Animation;
 
 namespace PocketDrop
 {
-    public partial class SavedPocketsWindow : Window
+    public partial class MyPocketsWindow : Window
     {
         // ================================================ //
         // 1. STATE & VARIABLES
@@ -37,7 +37,7 @@ namespace PocketDrop
         // 2. WINDOW LIFECYCLE & ANIMATIONS
         // ================================================ //
 
-        public SavedPocketsWindow()
+        public MyPocketsWindow()
         {
             InitializeComponent();
 
@@ -92,8 +92,30 @@ namespace PocketDrop
             WindowTranslate.BeginAnimation(TranslateTransform.YProperty, slideOut);
         }
 
-        // Light dismiss: Close automatically if the user clicks away
-        private void Window_Deactivated(object sender, EventArgs e) => AnimateClose();
+        // 1. Add this variable near the top of your class
+        private bool isPinned = false;
+
+        // 2. Update your deactivated event to respect the pin
+        private void Window_Deactivated(object sender, EventArgs e)
+        {
+            // Only close if the user hasn't pinned the window
+            if (!isPinned)
+            {
+                AnimateClose();
+            }
+        }
+
+        // 3. Add the click event for our new Pin button
+        private void PinWindowBtn_Click(object sender, RoutedEventArgs e)
+        {
+            isPinned = !isPinned;
+
+            // Keep the window layered above others when pinned so it doesn't get lost
+            this.Topmost = isPinned;
+
+            // Visual feedback: dim the button when not pinned, full opacity when pinned
+            PinWindowBtn.Opacity = isPinned ? 1.0 : 0.5;
+        }
 
         // Make the window draggable
         protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
@@ -163,7 +185,7 @@ namespace PocketDrop
         // Spawn a new Pocket
         private void AddPocket_Click(object sender, RoutedEventArgs e)
         {
-            AppGlobals.RequestNewPocket?.Invoke(); // Broadcast the signal!
+            AppGlobals.TriggerNewPocket(); // Broadcast the signal!
         }
 
         private void TabHome_Click(object sender, RoutedEventArgs e)
@@ -476,7 +498,7 @@ namespace PocketDrop
             RefreshHistory();
 
             // 4. Only close Pockets that are visible on screen.
-            AppGlobals.RequestPocketsForceClose?.Invoke();
+            AppGlobals.TriggerPocketsForceClose();
         }
 
         private void DeleteSelected_Click(object sender, RoutedEventArgs e)
@@ -515,7 +537,7 @@ namespace PocketDrop
             RefreshHistory();
 
             // Notify any open floating Pockets to refresh visuals
-            AppGlobals.RequestPocketsRefresh?.Invoke();
+            AppGlobals.TriggerPocketsRefresh();
         }
     }
 }

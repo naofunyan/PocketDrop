@@ -1,4 +1,4 @@
-﻿// PocketDrop
+// PocketDrop
 // Copyright (C) 2026 Naofunyan
 //
 // This program is free software: you can redistribute it and/or modify
@@ -9,14 +9,11 @@
 using Microsoft.Win32;
 using Sentry;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
-using System.Windows.Input;
 using static PocketDrop.AppHelpers;
 
 namespace PocketDrop
@@ -28,9 +25,7 @@ namespace PocketDrop
         // 3. NATIVE WINDOWS APIS (P / INVOKE)
         // ================================================ //
 
-        // Force the My Pockets window to the front of the screen
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        private static extern bool SetForegroundWindow(IntPtr hWnd);
+        
 
         // Global Hotkeys - Register Win+Shift+Z and Win+Shift+X to work even when the app is minimized
         [System.Runtime.InteropServices.DllImport("user32.dll")]
@@ -42,20 +37,6 @@ namespace PocketDrop
         // Required OS constants for registering the hotkeys
         private const int HOTKEY_NEW_POCKET = 9001;
         private const int HOTKEY_NEW_CLIPBOARD = 9002;
-
-        // Mouse Tracking
-        // Find the exact pixel location of the mouse cursor to spawn the Pocket
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-        internal static extern bool GetCursorPos(ref Win32Point pt);
-
-        // Required OS struct to hold the X/Y coordinates from GetCursorPos
-        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-        internal struct Win32Point
-        {
-            public int X;
-            public int Y;
-        };
 
 
         // ================================================ //
@@ -141,7 +122,7 @@ namespace PocketDrop
             {
                 System.Windows.Application.Current.Dispatcher.Invoke(() =>
                 {
-                    var openHistoryWindow = System.Windows.Application.Current.Windows.OfType<SavedPocketsWindow>().FirstOrDefault();
+                    var openHistoryWindow = System.Windows.Application.Current.Windows.OfType<MyPocketsWindow>().FirstOrDefault();
                     if (openHistoryWindow != null) openHistoryWindow.RefreshHistory();
                 });
             };
@@ -204,11 +185,11 @@ namespace PocketDrop
                 newPocket.PasteFromClipboard();
             };
 
-            TraySavedPocketsItem = new System.Windows.Forms.ToolStripMenuItem("Saved Pockets");
+            TraySavedPocketsItem = new System.Windows.Forms.ToolStripMenuItem("My Pockets");
             TraySavedPocketsItem.Click += (s, ev) =>
             {
                 // Check if the window is already open
-                var existingWindow = System.Windows.Application.Current.Windows.OfType<SavedPocketsWindow>().FirstOrDefault();
+                var existingWindow = System.Windows.Application.Current.Windows.OfType<MyPocketsWindow>().FirstOrDefault();
 
                 if (existingWindow != null)
                 {
@@ -217,7 +198,7 @@ namespace PocketDrop
                 else
                 {
                     // Spawn new window if no instance is running
-                    var historyWindow = new SavedPocketsWindow();
+                    var historyWindow = new MyPocketsWindow();
                     historyWindow.Show();
                     historyWindow.Activate();
                 }
@@ -283,10 +264,12 @@ namespace PocketDrop
 
             // 1. Grab icon from the Assets folder
             var iconUri = new Uri("pack://application:,,,/Assets/PocketDrop.ico", UriKind.Absolute);
-            var iconStream = System.Windows.Application.GetResourceStream(iconUri).Stream;
 
-            // 2. Feed it directly to the tray icon
-            _trayIcon.Icon = new System.Drawing.Icon(iconStream);
+            // 2. Feed it directly to the tray icon (wrapped in a using block to free memory)
+            using (var iconStream = System.Windows.Application.GetResourceStream(iconUri).Stream)
+            {
+                _trayIcon.Icon = new System.Drawing.Icon(iconStream);
+            }
 
             _trayIcon.ContextMenuStrip = trayMenu;
             _trayIcon.Visible = true;
@@ -301,8 +284,8 @@ namespace PocketDrop
                     // Fire fake Escape keypress to break hover lock and close tray menu
                     System.Windows.Forms.SendKeys.SendWait("{ESC}");
 
-                    var existingWindow = System.Windows.Application.Current.Windows.OfType<SavedPocketsWindow>().FirstOrDefault();
-                    SavedPocketsWindow targetWindow;
+                    var existingWindow = System.Windows.Application.Current.Windows.OfType<MyPocketsWindow>().FirstOrDefault();
+                    MyPocketsWindow targetWindow;
 
                     if (existingWindow != null)
                     {
@@ -311,7 +294,7 @@ namespace PocketDrop
                     }
                     else
                     {
-                        targetWindow = new SavedPocketsWindow();
+                        targetWindow = new MyPocketsWindow();
                         targetWindow.Show(); // Spawn a new one instantly
                     }
 
@@ -334,42 +317,27 @@ namespace PocketDrop
         {
             try
             {
-                using (HttpClient client = new HttpClient())
+                string url = "https://raw.githubusercontent.com/naofunyan/PocketDrop/main/version.txt";
+
+                // ✨ FIX: Use the shared global client!
+                string latestVersionString = await AppHelpers.GlobalClient.GetStringAsync(url);
+
+                string currentVersionString = AppGlobals.GetAppVersion().Replace(" Beta ", "-beta");
+                bool hasUpdate = AppHelpers.IsUpdateAvailable(currentVersionString, latestVersionString);
+
+                if (hasUpdate)
                 {
-                    client.Timeout = TimeSpan.FromSeconds(5);
-                    client.DefaultRequestHeaders.CacheControl = new System.Net.Http.Headers.CacheControlHeaderValue { NoCache = true };
+                    AppGlobals.UpdateAvailable = true;
 
-                    string url = "https://raw.githubusercontent.com/naofunyan/PocketDrop/main/version.txt";
-                    string latestVersionString = await client.GetStringAsync(url);
+                    string titleTemplate = (string)System.Windows.Application.Current.TryFindResource("Text_UpdateAvailableTitle") ?? "Update Available";
+                    string msgTemplate = (string)System.Windows.Application.Current.TryFindResource("Text_UpdateAvailableMsg") ?? "A new version of PocketDrop ({0}) is available!\n\nWould you like to download it now?";
+                    string finalMessage = string.Format(msgTemplate, latestVersionString.Trim());
 
-                    // Dynamically fetch the version and format it for the GitHub comparison
-                    string currentVersionString = AppGlobals.GetAppVersion().Replace(" Beta ", "-beta");
+                    MessageBoxResult result = System.Windows.MessageBox.Show(finalMessage, titleTemplate, MessageBoxButton.YesNo, MessageBoxImage.Information);
 
-                    bool hasUpdate = AppHelpers.IsUpdateAvailable(currentVersionString, latestVersionString);
-
-                    if (hasUpdate)
+                    if (result == MessageBoxResult.Yes)
                     {
-                        // 1. Flip the global flag to true
-                        AppGlobals.UpdateAvailable = true;
-
-                        // Fetch translations with English fallback
-                        string titleTemplate = (string)System.Windows.Application.Current.TryFindResource("Text_UpdateAvailableTitle") ?? "Update Available";
-                        string msgTemplate = (string)System.Windows.Application.Current.TryFindResource("Text_UpdateAvailableMsg") ?? "A new version of PocketDrop ({0}) is available!\n\nWould you like to download it now?";
-
-                        // Inject the version number into the {0} placeholder
-                        string finalMessage = string.Format(msgTemplate, latestVersionString.Trim());
-
-                        // 2. Alert the user immediately with a localized prompt
-                        MessageBoxResult result = System.Windows.MessageBox.Show(
-                            finalMessage,
-                            titleTemplate,
-                            MessageBoxButton.YesNo,
-                            MessageBoxImage.Information);
-
-                        if (result == MessageBoxResult.Yes)
-                        {
-                            AppHelpers.OpenUrl(AppGlobals.UpdateUrl);
-                        }
+                        AppHelpers.OpenUrl(AppGlobals.UpdateUrl);
                     }
                 }
             }
@@ -437,24 +405,6 @@ namespace PocketDrop
             if (_trayIcon != null) _trayIcon.Text = "PocketDrop";
         }
 
-        // Triggered when the user clicks the tray icon
-        private void TrayIcon_Click(object? sender, EventArgs e)
-        {
-            // 1. Fetch raw translated strings with English fallback
-            string titleTemplate = (string)System.Windows.Application.Current.TryFindResource("Text_SessionHistoryTitle") ?? "Session History";
-            string msgTemplate = (string)System.Windows.Application.Current.TryFindResource("Text_SessionHistoryMsg") ?? "Your session history currently holds {0} items.";
-
-            // 2. Inject the live count into the {0} placeholder
-            string finalMessage = string.Format(msgTemplate, AppGlobals.SessionHistory.Count);
-
-            // 3. Show the message box
-            System.Windows.MessageBox.Show(
-                finalMessage,
-                titleTemplate,
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
-        }
-
 
         // ================================================ //
         // 6. GLOBAL INPUT HANDLING (HOTKEYS & MOUSE)
@@ -520,8 +470,7 @@ namespace PocketDrop
         private void SpawnPocketAtCursor(bool pasteFromClipboard)
         {
             // 1. Find exactly where the mouse is right now
-            Win32Point mousePos = new Win32Point();
-            GetCursorPos(ref mousePos);
+            GetCursorPos(out POINT mousePos);
 
             // 2. Find a sleeping pocket, or spawn a fresh one
             var hiddenPocket = System.Windows.Application.Current.Windows.OfType<MainWindow>().FirstOrDefault(w => !w.IsHitTestVisible);

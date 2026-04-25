@@ -5,3 +5,19 @@
 # Build results
 bin/
 obj/
+
+# NuGet
+*.nupkg
+packages/
+
+# Publish output
+publish/
+Output/
+
+# JetBrains Rider
+.idea/
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store

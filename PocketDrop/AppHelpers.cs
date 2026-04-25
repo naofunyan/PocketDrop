@@ -1,4 +1,4 @@
-﻿// PocketDrop
+// PocketDrop
 // Copyright (C) 2026 Naofunyan
 //
 // This program is free software: you can redistribute it and/or modify
@@ -13,22 +13,36 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Windows;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace PocketDrop
 {
     public static class AppHelpers
     {
         // ================================================ //
+        // Global HTTP Client (Prevents Socket Exhaustion)
+        // ================================================ //
+        public static readonly System.Net.Http.HttpClient GlobalClient = new System.Net.Http.HttpClient();
+
+        // Static constructor to configure the client once when the app starts
+        static AppHelpers()
+        {
+            GlobalClient.Timeout = TimeSpan.FromSeconds(5);
+            GlobalClient.DefaultRequestHeaders.CacheControl = new System.Net.Http.Headers.CacheControlHeaderValue { NoCache = true };
+            GlobalClient.DefaultRequestHeaders.Add("User-Agent", "PocketDrop-App");
+        }
+
+        // ================================================ //
         // File size calculation
         // ================================================ //
         public static string FormatBytes(long bytes)
         {
-            if (bytes == 0) return "0 B";
+            // ✨ FIX: Handle negative inputs and zero safely to prevent Math.Log crashes
+            if (bytes <= 0) return "0 B";
+
             string[] suffixes = { "B", "KB", "MB", "GB", "TB" };
             int place = Convert.ToInt32(Math.Floor(Math.Log(bytes, 1024)));
             double num = Math.Round(bytes / Math.Pow(1024, place), 1);
-            return $"{num.ToString("0.0", CultureInfo.InvariantCulture)} {suffixes[place]}";
+            return $"{num.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)} {suffixes[place]}";
         }
 
         // ================================================ //
@@ -286,7 +300,11 @@ namespace PocketDrop
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"URL Error: {ex.Message}"); // Log the error
+                // 1. Tag it with the context
+                ex.Data.Add("PocketDrop Context", "URL Error");
+
+                // 2. Send it off to Sentry
+                SentrySdk.CaptureException(ex);
             }
         }
 
@@ -332,6 +350,21 @@ namespace PocketDrop
 
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+        // --- CENTRALIZED NATIVE APIS ---
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        public static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        public static extern bool GetCursorPos(out POINT lpPoint);
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        public struct POINT
+        {
+            public int X;
+            public int Y;
+        }
 
         // --- NEW NATIVE APIS (Blazing Fast) ---
         [System.Runtime.InteropServices.DllImport("kernel32.dll")]
@@ -433,6 +466,23 @@ namespace PocketDrop
 
                 // 2. Fire a single "Reset" flare to tell the WPF UI to draw the new items exactly once
                 OnCollectionChanged(new System.Collections.Specialized.NotifyCollectionChangedEventArgs(System.Collections.Specialized.NotifyCollectionChangedAction.Reset));
+            }
+        }
+
+        // ================================================ //
+        // Security Utilities
+        // ================================================ //
+        public static bool VerifyFileHash(string filePath, string expectedHash)
+        {
+            // Opt-in security: pass if no hash file was found on GitHub
+            if (string.IsNullOrWhiteSpace(expectedHash)) return true;
+
+            using (var sha256 = System.Security.Cryptography.SHA256.Create())
+            using (var stream = System.IO.File.OpenRead(filePath))
+            {
+                byte[] hashBytes = sha256.ComputeHash(stream);
+                string computedHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                return computedHash == expectedHash.ToLowerInvariant().Trim();
             }
         }
     }
