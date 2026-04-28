@@ -138,7 +138,7 @@ namespace PocketDrop
                 string url = "https://raw.githubusercontent.com/naofunyan/PocketDrop/main/version.txt";
                 string latestVersionString = await AppHelpers.GlobalClient.GetStringAsync(url);
 
-                string currentVersionString = AppGlobals.GetAppVersion().Replace(" Beta ", "-beta");
+                string currentVersionString = AppHelpers.GetAppVersion().Replace(" Beta ", "-beta");
                 bool hasUpdate = AppHelpers.IsUpdateAvailable(currentVersionString, latestVersionString);
 
                 if (hasUpdate)

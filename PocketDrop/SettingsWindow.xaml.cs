@@ -1,4 +1,4 @@
-﻿// PocketDrop
+// PocketDrop
 // Copyright (C) 2026 Naofunyan
 //
 // This program is free software: you can redistribute it and/or modify
@@ -58,7 +58,7 @@ namespace PocketDrop
             RefreshExcludedAppsDisplay();
 
             // 4. Pull the clean version from our new central source
-            AppVersionText.Text = $"Version {AppGlobals.GetAppVersion()}";
+            AppVersionText.Text = $"Version {AppHelpers.GetAppVersion()}";
 
             // 5. Load and apply the Theme
             ThemeCombo.SelectedIndex = AppGlobals.AppTheme;
@@ -282,10 +282,10 @@ namespace PocketDrop
         {
             container.Children.Clear();
 
-            if ((mods & AppGlobals.MOD_WIN) != 0) AddKeycap(container, "Win");
-            if ((mods & AppGlobals.MOD_CTRL) != 0) AddKeycap(container, "Ctrl");
-            if ((mods & AppGlobals.MOD_ALT) != 0) AddKeycap(container, "Alt");
-            if ((mods & AppGlobals.MOD_SHIFT) != 0) AddKeycap(container, "Shift");
+            if ((mods & AppHelpers.MOD_WIN) != 0) AddKeycap(container, "Win");
+            if ((mods & AppHelpers.MOD_CTRL) != 0) AddKeycap(container, "Ctrl");
+            if ((mods & AppHelpers.MOD_ALT) != 0) AddKeycap(container, "Alt");
+            if ((mods & AppHelpers.MOD_SHIFT) != 0) AddKeycap(container, "Shift");
 
             AddKeycap(container, letter);
         }
@@ -335,7 +335,7 @@ namespace PocketDrop
             string dialogTitle = (string)this.FindResource("Text_NewPocketShortcut");
 
             // Pass current and factory-reset keys to shortcut handler
-            var dialog = new ShortcutDialog(dialogTitle, AppGlobals.PocketKeyChar, AppGlobals.PocketModifiers, "Z", AppGlobals.MOD_WIN | AppGlobals.MOD_SHIFT) { Owner = this };
+            var dialog = new ShortcutDialog(dialogTitle, AppGlobals.PocketKeyChar, AppGlobals.PocketModifiers, "Z", AppHelpers.MOD_WIN | AppHelpers.MOD_SHIFT) { Owner = this };
             if (dialog.ShowDialog() == true)
             {
                 AppGlobals.PocketKeyChar = dialog.SelectedLetter;
@@ -350,7 +350,7 @@ namespace PocketDrop
         {
             string dialogTitle = (string)this.FindResource("Text_ClipboardShortcut");
 
-            var dialog = new ShortcutDialog(dialogTitle, AppGlobals.ClipboardKeyChar, AppGlobals.ClipboardModifiers, "X", AppGlobals.MOD_WIN | AppGlobals.MOD_SHIFT) { Owner = this };
+            var dialog = new ShortcutDialog(dialogTitle, AppGlobals.ClipboardKeyChar, AppGlobals.ClipboardModifiers, "X", AppHelpers.MOD_WIN | AppHelpers.MOD_SHIFT) { Owner = this };
             if (dialog.ShowDialog() == true)
             {
                 AppGlobals.ClipboardKeyChar = dialog.SelectedLetter;
@@ -454,7 +454,7 @@ namespace PocketDrop
 
         private void ShowUpdateAvailableButton()
         {
-            // ✨ FIX: Bind dynamically instead of hardcoding
+            // ? FIX: Bind dynamically instead of hardcoding
             CheckUpdateBtn.SetResourceReference(Button.ContentProperty, "Text_UpdateAvailableBtn");
             CheckUpdateBtn.Style = (Style)FindResource("SuccessButtonStyle");
         }
@@ -469,7 +469,7 @@ namespace PocketDrop
             }
 
             CheckUpdateBtn.IsEnabled = false;
-            // ✨ FIX: Bind dynamically
+            // ? FIX: Bind dynamically
             CheckUpdateBtn.SetResourceReference(Button.ContentProperty, "Text_CheckingUpdate");
             CheckUpdateBtn.Style = (Style)FindResource("PrimaryButtonStyle");
 
@@ -486,7 +486,7 @@ namespace PocketDrop
                     {
                         string latestTag = root[0].GetProperty("tag_name").GetString();
                         string latestVersionString = latestTag.TrimStart('v', 'V');
-                        string currentVersionString = AppGlobals.GetAppVersion().Replace(" Beta ", "-beta");
+                        string currentVersionString = AppHelpers.GetAppVersion().Replace(" Beta ", "-beta");
                         bool hasUpdate = AppHelpers.IsUpdateAvailable(currentVersionString, latestVersionString);
 
                         if (hasUpdate)
@@ -503,7 +503,7 @@ namespace PocketDrop
                             {
                                 try
                                 {
-                                    // ✨ FIX: Bind downloading state dynamically
+                                    // ? FIX: Bind downloading state dynamically
                                     CheckUpdateBtn.SetResourceReference(Button.ContentProperty, "Text_DownloadingUpdate");
                                     CheckUpdateBtn.IsEnabled = false;
 
@@ -584,13 +584,13 @@ namespace PocketDrop
 
                                     MessageBox.Show($"{errorMsgBase}\n\n{ex.Message}", errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
 
-                                    // ✨ FIX: Bind fail state dynamically
+                                    // ? FIX: Bind fail state dynamically
                                     CheckUpdateBtn.SetResourceReference(Button.ContentProperty, "Text_UpdateFailedBtn");
                                 }
                             }
                             else
                             {
-                                // ✨ FIX: Safely revert to Update Available if user clicks No
+                                // ? FIX: Safely revert to Update Available if user clicks No
                                 CheckUpdateBtn.SetResourceReference(Button.ContentProperty, "Text_UpdateAvailableBtn");
                                 CheckUpdateBtn.Style = (Style)FindResource("SuccessButtonStyle");
                             }
@@ -602,7 +602,7 @@ namespace PocketDrop
 
                             MessageBox.Show(upToDateMsg, upToDateTitle, MessageBoxButton.OK, MessageBoxImage.Information);
 
-                            // ✨ FIX: Safely set Up To Date state dynamically
+                            // ? FIX: Safely set Up To Date state dynamically
                             CheckUpdateBtn.SetResourceReference(Button.ContentProperty, "Text_UpdateUpToDateTitle");
                             CheckUpdateBtn.Style = (Style)FindResource("SuccessButtonStyle");
                         }
@@ -616,7 +616,7 @@ namespace PocketDrop
 
                 MessageBox.Show($"{failMsgBase}\n\n{ex.Message}", failTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
 
-                // ✨ FIX: Safely revert to original Check for Updates state dynamically
+                // ? FIX: Safely revert to original Check for Updates state dynamically
                 CheckUpdateBtn.SetResourceReference(Button.ContentProperty, "Text_CheckUpdatesBtn");
                 CheckUpdateBtn.Style = (Style)FindResource("PrimaryButtonStyle");
             }

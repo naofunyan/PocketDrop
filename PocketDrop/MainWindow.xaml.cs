@@ -1,4 +1,4 @@
-﻿// PocketDrop
+// PocketDrop
 // Copyright (C) 2026 Naofunyan
 //
 // This program is free software: you can redistribute it and/or modify
@@ -135,7 +135,7 @@ namespace PocketDrop
             InitializeComponent();
             this.DataContext = this;
 
-            // Start hidden — shake to reveal
+            // Start hidden � shake to reveal
             this.Opacity = 0;
             this.IsHitTestVisible = false;
 
@@ -184,7 +184,7 @@ namespace PocketDrop
         // Drag hover effects
         private void Window_DragEnter(object sender, DragEventArgs e)
         {
-            // ✨ NEW: If we are just reordering or dragging files out, ignore the glow!
+            // ? NEW: If we are just reordering or dragging files out, ignore the glow!
             if (_isDraggingFromApp) return;
 
             if (e.Data.GetDataPresent(DataFormats.FileDrop) || e.Data.GetDataPresent(DataFormats.Text))
@@ -497,7 +497,7 @@ namespace PocketDrop
                     // Ping the window: Notify My Pockets window to refresh in real-time
                     AppGlobals.TriggerHistoryRefresh(); // Broadcast the signal!
                 }
-                // ✨ NEW: Catch Text and URLs from the clipboard!
+                // ? NEW: Catch Text and URLs from the clipboard!
                 else if (System.Windows.Clipboard.ContainsText())
                 {
                     string pastedText = System.Windows.Clipboard.GetText();
@@ -661,7 +661,7 @@ namespace PocketDrop
                     : LogicalTreeHelper.GetParent(hit);
             }
 
-            // If all checks pass, the click is on empty space or a file — safe to drag
+            // If all checks pass, the click is on empty space or a file � safe to drag
             startPoint = pos;
         }
 
@@ -710,7 +710,7 @@ namespace PocketDrop
             {
                 var itemsToDrag = PocketedItems.ToList();
 
-                // ✨ NEW: Match standard Windows drag behavior!
+                // ? NEW: Match standard Windows drag behavior!
                 bool isShiftDown = Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
                 bool isCtrlDown = Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl);
 
@@ -721,7 +721,7 @@ namespace PocketDrop
                 if (isShiftDown) isCopy = false;      // Shift forces a Move
                 else if (isCtrlDown) isCopy = true;   // Ctrl forces a Copy
 
-                // ✨ THE REFACTOR: 45 lines of code reduced to 2!
+                // ? THE REFACTOR: 45 lines of code reduced to 2!
                 using var dropEffectStream = new System.IO.MemoryStream(new byte[] { (byte)(AppGlobals.CopyItemToDestination ? 1 : 2), 0, 0, 0 });
                 DataObject dragData = BuildDragPayload(itemsToDrag, dropEffectStream);
 
@@ -807,7 +807,7 @@ namespace PocketDrop
             var selectedItems = ItemsListBox.SelectedItems.Cast<PocketItem>().ToList();
             if (selectedItems.Count == 0) return;
 
-            // ✨ NEW: Match standard Windows drag behavior!
+            // ? NEW: Match standard Windows drag behavior!
             bool isShiftDown = Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
             bool isCtrlDown = Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl);
 
@@ -818,7 +818,7 @@ namespace PocketDrop
             if (isShiftDown) isCopy = false;      // Shift forces a Move
             else if (isCtrlDown) isCopy = true;   // Ctrl forces a Copy
 
-            // ✨ THE REFACTOR: Another 45 lines of code gone!
+            // ? THE REFACTOR: Another 45 lines of code gone!
             using var dropEffectStream = new System.IO.MemoryStream(new byte[] { (byte)(AppGlobals.CopyItemToDestination ? 1 : 2), 0, 0, 0 });
             DataObject dragData = BuildDragPayload(selectedItems, dropEffectStream);
 
@@ -1045,7 +1045,7 @@ namespace PocketDrop
             // 4. Defer UI cleanup until close animation completes
             fadeOut.Completed += (s, e) =>
             {
-                // ✨ FIX: Delete any lingering temp files created by tools before wiping the list!
+                // ? FIX: Delete any lingering temp files created by tools before wiping the list!
                 foreach (var item in PocketedItems)
                 {
                     CleanupTempFile(item.FilePath);
@@ -1665,7 +1665,7 @@ namespace PocketDrop
                         // Use a random Guid instead of DateTime so the filename doesn't leak info
                         string cleanFilePath = Path.Combine(tempFolder, $"PocketDrop_{Guid.NewGuid().ToString("N").Substring(0, 8)}_{cleanFileName}");
 
-                        // ✨ THE REFACTOR: Stream directly from the disk!
+                        // ? THE REFACTOR: Stream directly from the disk!
                         using (var fs = System.IO.File.OpenRead(img.FilePath))
                         {
                             // Important: Switch to 'OnLoad' so WPF reads what it needs and safely releases the file lock
@@ -2301,7 +2301,7 @@ namespace PocketDrop
                 };
 
                 PocketedItems.Add(newPdfItem);
-                // ✨ FIX: Push the newly generated PDF to the global history list!
+                // ? FIX: Push the newly generated PDF to the global history list!
                 if (!AppGlobals.SessionHistoryPaths.Contains(newPdfItem.FilePath))
                 {
                     AppGlobals.SessionHistory.Add(newPdfItem);
@@ -2381,7 +2381,7 @@ namespace PocketDrop
             ExpandButton.IsChecked = false;
         }
 
-        // Closing the window — clears items and hides
+        // Closing the window � clears items and hides
         private void CloseButton_Click(object sender, MouseButtonEventArgs e)
         {
             // 1. Log all current items to the Global History
@@ -2810,7 +2810,7 @@ namespace PocketDrop
                             {
                                 var unmanagedThumb = shellObj.Thumbnail.LargeBitmapSource;
 
-                                // ✨ THE FATAL FLAW FIX: 
+                                // ? THE FATAL FLAW FIX: 
                                 // Deep-copy the unmanaged COM image into safe, managed WPF memory
                                 var wpfBmp = new BitmapImage();
                                 using (var ms = new System.IO.MemoryStream())
@@ -2874,7 +2874,7 @@ namespace PocketDrop
             return null;
         }
 
-        // Drag & drop adorner — draws the insertion line above the UI
+        // Drag & drop adorner � draws the insertion line above the UI
         public class DropLineAdorner : System.Windows.Documents.Adorner
         {
             private bool _isTopOrLeft;
@@ -2946,7 +2946,7 @@ namespace PocketDrop
                 ? pos.X < (targetItem.ActualWidth / 2)
                 : pos.Y < (targetItem.ActualHeight / 2);
 
-            // ✨ NEW: THE WRAP-AROUND FIX ✨
+            // ? NEW: THE WRAP-AROUND FIX ?
             // Only jump to the next item if it's on the SAME physical row
             if (!insertBefore)
             {
@@ -3019,13 +3019,13 @@ namespace PocketDrop
 
         private void ItemsListBox_Drop(object sender, DragEventArgs e)
         {
-            // ✨ FIX: Capture the exact target where the blue line was drawn BEFORE clearing it
+            // ? FIX: Capture the exact target where the blue line was drawn BEFORE clearing it
             var finalTargetItem = _lastHoveredItem;
             bool finalInsertAbove = _insertAbove;
 
             ClearDragHighlight();
 
-            // ✨ NEW: Force the main window glow to hide, just in case!
+            // ? NEW: Force the main window glow to hide, just in case!
             DragGlowBorder.Visibility = Visibility.Collapsed;
 
             if (_internalDragPayload != null)

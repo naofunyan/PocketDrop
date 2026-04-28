@@ -15,7 +15,7 @@ namespace PocketDrop
     public static class AppGlobals
     {
         // ================================================ //
-        // 1. GLOBAL VARIABLES
+        // 1. GLOBAL STATE & SESSION
         // ================================================ //
 
         // Track all files dropped in the current session
@@ -52,28 +52,9 @@ namespace PocketDrop
         public static bool UpdateAvailable = false;
         public static string UpdateUrl = "https://github.com/naofunyan/PocketDrop/releases/latest";
 
-        public static string GetAppVersion()
-        {
-            var versionAttr = System.Reflection.Assembly.GetExecutingAssembly()
-                .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
-                as System.Reflection.AssemblyInformationalVersionAttribute[];
-
-            if (versionAttr != null && versionAttr.Length > 0)
-            {
-                return versionAttr[0].InformationalVersion.Split('+')[0].Replace("-beta-", " Beta ");
-            }
-            return "1.0.0"; // Fallback
-        }
-
-        // Add required OS constants for hotkey registration
-        public const uint MOD_ALT = 0x0001;
-        public const uint MOD_CTRL = 0x0002;
-        public const uint MOD_SHIFT = 0x0004;
-        public const uint MOD_WIN = 0x0008;
-
 
         // ================================================ //
-        // 2. USER SETTINGS & PREFERENCES
+        // 2. USER PREFERENCES
         // ================================================ //
 
         // General
@@ -117,7 +98,7 @@ namespace PocketDrop
 
 
         // ================================================ //
-        // 3. REGISTRY SAVE & LOAD LOGIC
+        // 3. REGISTRY STORAGE
         // ================================================ //
 
         // Load all user preferences from the registry

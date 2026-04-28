@@ -18,7 +18,11 @@ namespace PocketDrop
 {
     public static class AppHelpers
     {
-        // 1. Shared HTTP client instance to prevent socket exhaustion
+        // ================================================ //
+        // 1. NETWORK & SYSTEM
+        // ================================================ //
+
+        // Shared HTTP client instance to prevent socket exhaustion
         public static readonly System.Net.Http.HttpClient GlobalClient = new System.Net.Http.HttpClient();
 
         // Configure the HTTP client once on startup
@@ -29,8 +33,115 @@ namespace PocketDrop
             GlobalClient.DefaultRequestHeaders.Add("User-Agent", "PocketDrop-App");
         }
 
+        // Detect Windows dark mode
+        public static bool IsWindowsInDarkMode()
+        {
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"))
+                {
+                    if (key?.GetValue("AppsUseLightTheme") != null)
+                    {
+                        return (int)key.GetValue("AppsUseLightTheme") == 0;
+                    }
+                }
+            }
+            catch { }
 
-        // 2. File size calculation
+            return false;
+        }
+
+        // Run at startup
+        public static bool IsRunAtStartupEnabled()
+        {
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", false))
+                {
+                    return key?.GetValue("PocketDrop") != null;
+                }
+            }
+            catch { }
+            return false;
+        }
+
+        public static bool SetRunAtStartup(bool enable, string exePath)
+        {
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true))
+                {
+                    if (key != null)
+                    {
+                        if (enable)
+                        {
+                            key.SetValue("PocketDrop", $"\"{exePath}\"");
+                        }
+                        else
+                        {
+                            key.DeleteValue("PocketDrop", false);
+                        }
+                        return true; // Success
+                    }
+                }
+            }
+            catch { }
+            return false; // Failed
+        }
+
+        // Version check
+        public static string GetAppVersion()
+        {
+            var versionAttr = System.Reflection.Assembly.GetExecutingAssembly()
+                .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+                as System.Reflection.AssemblyInformationalVersionAttribute[];
+
+            if (versionAttr != null && versionAttr.Length > 0)
+            {
+                return versionAttr[0].InformationalVersion.Split('+')[0].Replace("-beta-", " Beta ");
+            }
+            return "1.0.0"; // Fallback
+        }
+
+        public static void OpenUrl(string url)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                ex.Data.Add("PocketDrop Context", "URL Error");
+                SentrySdk.CaptureException(ex);
+            }
+        }
+
+        public static bool IsUpdateAvailable(string currentVersionText, string onlineVersionText)
+        {
+            // Trim whitespace and newlines from the version string
+            string currentClean = currentVersionText?.Trim() ?? "";
+            string onlineClean = onlineVersionText?.Trim() ?? "";
+
+            if (Version.TryParse(currentClean, out Version current) &&
+                Version.TryParse(onlineClean, out Version latest))
+            {
+                return latest > current;
+            }
+
+            // Return false if the version string is malformed or an error
+            return false;
+        }
+
+
+        // ================================================ //
+        // 2. FILE & DATA MANAGEMENT
+        // ================================================ //
+
+        // File size calculation
         public static string FormatBytes(long bytes)
         {
             // Guard against zero and negative inputs to avoid Math.Log errors
@@ -43,7 +154,7 @@ namespace PocketDrop
         }
 
 
-        // 3. Duplicate detection
+        // Duplicate detection
         public static bool IsDuplicate(IEnumerable<PocketItem> currentItems, string newFilePath)
         {
             if (string.IsNullOrEmpty(newFilePath)) return false;
@@ -52,7 +163,7 @@ namespace PocketDrop
         }
 
 
-        // 4. Remove dead files
+        // Remove dead files
         public static bool RemoveDeadFiles(IList<PocketItem> currentItems)
         {
             bool removedAny = false;
@@ -72,68 +183,7 @@ namespace PocketDrop
             return removedAny;
         }
 
-
-        // 5. Shake detection
-        public class ShakeDetector
-        {
-            private Queue<long> _swingTimestamps = new Queue<long>();
-            private int _lastX = 0;
-            private int _swingOriginX = 0;
-            private int _currentDir = 0; // 1 for right, -1 for left
-            private bool _isFirstMove = true;
-
-            public bool CheckForShake(int currentMouseX, long currentTimestampMs, int minDistancePx, int maxTimeMs, int requiredSwings = 3)
-            {
-                if (_isFirstMove)
-                {
-                    _lastX = currentMouseX;
-                    _swingOriginX = currentMouseX;
-                    _isFirstMove = false;
-                    return false;
-                }
-
-                int deltaX = currentMouseX - _lastX;
-                if (deltaX == 0) return false;
-
-                int newDir = deltaX > 0 ? 1 : -1;
-
-                // Detect direction change for shake detection
-                if (_currentDir != 0 && newDir != _currentDir)
-                {
-                    // Calculate distance traveled between direction changes
-                    int swingDistance = Math.Abs(_lastX - _swingOriginX);
-
-                    if (swingDistance >= minDistancePx)
-                    {
-                        _swingTimestamps.Enqueue(currentTimestampMs); // Record timestamp when a valid swing is detected
-                    }
-
-                    _swingOriginX = _lastX; // Reset origin for the next swing
-                }
-
-                _currentDir = newDir;
-                _lastX = currentMouseX;
-
-                // Dismiss swings outside the time window
-                while (_swingTimestamps.Count > 0 && (currentTimestampMs - _swingTimestamps.Peek()) > maxTimeMs)
-                {
-                    _swingTimestamps.Dequeue();
-                }
-
-                // Check if swing count meets shake threshold
-                if (_swingTimestamps.Count >= requiredSwings)
-                {
-                    _swingTimestamps.Clear(); // Reset state to prevent re-triggering
-                    _isFirstMove = true;
-                    return true;
-                }
-
-                return false;
-            }
-        }
-
-
-        // 6. Collision renamer 
+        // Collision renamer 
         public static string GetSafeDisplayName(IEnumerable<PocketItem> currentItems, string originalPath)
         {
             string originalName = Path.GetFileName(originalPath);
@@ -153,8 +203,27 @@ namespace PocketDrop
             return finalDisplayName;
         }
 
+        // Security Utilities
+        public static bool VerifyFileHash(string filePath, string expectedHash)
+        {
+            // Skip hash check if no hash file exists on GitHub
+            if (string.IsNullOrWhiteSpace(expectedHash)) return true;
 
-        // 7. Pocket placement
+            using (var sha256 = System.Security.Cryptography.SHA256.Create())
+            using (var stream = System.IO.File.OpenRead(filePath))
+            {
+                byte[] hashBytes = sha256.ComputeHash(stream);
+                string computedHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                return computedHash == expectedHash.ToLowerInvariant().Trim();
+            }
+        }
+
+
+        // ================================================ //
+        // 3. WINDOW & UI CALCULATIONS
+        // ================================================ //
+
+        // Pocket placement
         public static Point CalculateWindowPosition(int placementMode, double cursorX, double cursorY, double w, double h, double workAreaLeft, double workAreaTop, double workAreaRight, double workAreaBottom)
         {
             // Default position (Near Mouse)
@@ -204,8 +273,7 @@ namespace PocketDrop
             return new Point(targetLeft, targetTop);
         }
 
-
-        // 8. Calculate My Pocket position
+        // Calculate My Pocket position
         public static Point CalculateTaskbarSnapPosition(double windowWidth, double windowHeight, double workAreaWidth, double workAreaHeight, double shadowMargin)
         {
             double targetLeft = workAreaWidth - windowWidth + shadowMargin;
@@ -215,100 +283,11 @@ namespace PocketDrop
         }
 
 
-        // 9. Detect Windows dark mode
-        public static bool IsWindowsInDarkMode()
-        {
-            try
-            {
-                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"))
-                {
-                    if (key?.GetValue("AppsUseLightTheme") != null)
-                    {
-                        return (int)key.GetValue("AppsUseLightTheme") == 0;
-                    }
-                }
-            }
-            catch { }
+        // ================================================ //
+        // 4. NATIVE WINDOWS APIS
+        // ================================================ //
 
-            return false;
-        }
-
-
-        // 10. Run at startup
-        public static bool IsRunAtStartupEnabled()
-        {
-            try
-            {
-                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", false))
-                {
-                    return key?.GetValue("PocketDrop") != null;
-                }
-            }
-            catch { }
-            return false;
-        }
-
-        public static bool SetRunAtStartup(bool enable, string exePath)
-        {
-            try
-            {
-                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true))
-                {
-                    if (key != null)
-                    {
-                        if (enable)
-                        {
-                            key.SetValue("PocketDrop", $"\"{exePath}\"");
-                        }
-                        else
-                        {
-                            key.DeleteValue("PocketDrop", false);
-                        }
-                        return true; // Success
-                    }
-                }
-            }
-            catch { }
-            return false; // Failed
-        }
-
-
-        // 11. Version check
-        public static void OpenUrl(string url)
-        {
-            try
-            {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = url,
-                    UseShellExecute = true
-                });
-            }
-            catch (Exception ex)
-            {
-                ex.Data.Add("PocketDrop Context", "URL Error");
-                SentrySdk.CaptureException(ex);
-            }
-        }
-
-        public static bool IsUpdateAvailable(string currentVersionText, string onlineVersionText)
-        {
-            // Trim whitespace and newlines from the version string
-            string currentClean = currentVersionText?.Trim() ?? "";
-            string onlineClean = onlineVersionText?.Trim() ?? "";
-
-            if (Version.TryParse(currentClean, out Version current) &&
-                Version.TryParse(onlineClean, out Version latest))
-            {
-                return latest > current;
-            }
-
-            // Return false if the version string is malformed or an error
-            return false;
-        }
-
-
-        // 12. Game mode detection
+        // Game mode detection
         [System.Runtime.InteropServices.DllImport("shell32.dll")]
         private static extern int SHQueryUserNotificationState(out int pquns);
 
@@ -324,10 +303,14 @@ namespace PocketDrop
             catch { return false; }
         }
 
-
-        // 13. Foreground window detection
+        // Foreground window detection
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern IntPtr GetForegroundWindow();
+        // Add required OS constants for hotkey registration
+        public const uint MOD_ALT = 0x0001;
+        public const uint MOD_CTRL = 0x0002;
+        public const uint MOD_SHIFT = 0x0004;
+        public const uint MOD_WIN = 0x0008;
         // Register Win+Shift+Z and Win+Shift+X as global hotkeys
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         public static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
@@ -423,39 +406,6 @@ namespace PocketDrop
             catch { }
 
             return false;
-        }
-
-
-        // 14. High-Performance UI Collection
-        public class ObservableRangeCollection<T> : System.Collections.ObjectModel.ObservableCollection<T>
-        {
-            public void AddRange(IEnumerable<T> collection)
-            {
-                if (collection == null) throw new ArgumentNullException(nameof(collection));
-
-                foreach (var item in collection)
-                {
-                    Items.Add(item);
-                }
-
-                OnCollectionChanged(new System.Collections.Specialized.NotifyCollectionChangedEventArgs(System.Collections.Specialized.NotifyCollectionChangedAction.Reset));
-            }
-        }
-
-
-        // 15. Security Utilities
-        public static bool VerifyFileHash(string filePath, string expectedHash)
-        {
-            // Skip hash check if no hash file exists on GitHub
-            if (string.IsNullOrWhiteSpace(expectedHash)) return true;
-
-            using (var sha256 = System.Security.Cryptography.SHA256.Create())
-            using (var stream = System.IO.File.OpenRead(filePath))
-            {
-                byte[] hashBytes = sha256.ComputeHash(stream);
-                string computedHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
-                return computedHash == expectedHash.ToLowerInvariant().Trim();
-            }
-        }
+        }        
     }
 }

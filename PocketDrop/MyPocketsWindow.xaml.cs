@@ -1,4 +1,4 @@
-﻿// PocketDrop
+// PocketDrop
 // Copyright (C) 2026 Naofunyan
 //
 // This program is free software: you can redistribute it and/or modify
@@ -372,7 +372,7 @@ namespace PocketDrop
 
                     if (filePaths.Length > 0)
                     {
-                        // ✨ NEW: Match standard Windows drag behavior!
+                        // ? NEW: Match standard Windows drag behavior!
                         bool isShiftDown = Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
                         bool isCtrlDown = Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl);
 
@@ -385,7 +385,7 @@ namespace PocketDrop
 
                         DataObject dragData = new DataObject(DataFormats.FileDrop, filePaths);
 
-                        // ✨ NEW: Tell Windows File Explorer what to do using the DropEffect Stream
+                        // ? NEW: Tell Windows File Explorer what to do using the DropEffect Stream
                         using (var dropEffectStream = new System.IO.MemoryStream(new byte[] { (byte)(isCopy ? 1 : 2), 0, 0, 0 }))
                         {
                             dragData.SetData("Preferred DropEffect", dropEffectStream);
@@ -397,7 +397,7 @@ namespace PocketDrop
 
                         DragDropEffects result = DragDrop.DoDragDrop(element, dragData, DragDropEffects.All);
 
-                        // ✨ NEW: If it was a successful move, clean up the original file and the History UI
+                        // ? NEW: If it was a successful move, clean up the original file and the History UI
                         if (result != DragDropEffects.None && !isCopy)
                         {
                             foreach (var item in selectedItems)
@@ -515,11 +515,11 @@ namespace PocketDrop
             // 2. Remove only unpinned items from memory on clear
             var itemsToDelete = AppGlobals.SessionHistory.Cast<PocketItem>().Where(p => !p.IsPinned).ToList();
 
-            string tempFolder = System.IO.Path.GetTempPath(); // ✨ Grab the temp path
+            string tempFolder = System.IO.Path.GetTempPath(); // ? Grab the temp path
 
             foreach (var item in itemsToDelete)
             {
-                // ✨ FIX: Delete the physical file ONLY if it lives inside the Temp folder
+                // ? FIX: Delete the physical file ONLY if it lives inside the Temp folder
                 try
                 {
                     if (!string.IsNullOrEmpty(item.FilePath) && item.FilePath.StartsWith(tempFolder, StringComparison.OrdinalIgnoreCase))
@@ -547,12 +547,12 @@ namespace PocketDrop
             // 2. Grab a snapshot of the highlighted items
             var itemsToDelete = HistoryListBox.SelectedItems.Cast<PocketItem>().ToList();
 
-            string tempFolder = System.IO.Path.GetTempPath(); // ✨ Grab the temp path
+            string tempFolder = System.IO.Path.GetTempPath(); // ? Grab the temp path
 
             // 3. Remove them from the global history AND the hard drive
             foreach (var item in itemsToDelete)
             {
-                // ✨ FIX: Delete the physical file ONLY if it lives inside the Temp folder
+                // ? FIX: Delete the physical file ONLY if it lives inside the Temp folder
                 try
                 {
                     if (!string.IsNullOrEmpty(item.FilePath) && item.FilePath.StartsWith(tempFolder, StringComparison.OrdinalIgnoreCase))
