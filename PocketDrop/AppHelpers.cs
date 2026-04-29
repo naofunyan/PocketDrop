@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows;
 
 namespace PocketDrop
@@ -345,6 +346,43 @@ namespace PocketDrop
 
         private static string _lastExcludedAppsRaw = null;
         private static HashSet<string> _cachedExcludedApps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // Add native interop for Windows Share UI
+        [ComImport]
+        [Guid("3A3DCD6C-3EAB-43DC-BCDE-45671CE800C8")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        public interface IDataTransferManagerInterop
+        {
+            IntPtr GetForWindow([In] IntPtr appWindow, [In] ref Guid riid);
+            void ShowShareUIForWindow(IntPtr appWindow);
+        }
+
+        // Native File Picker
+        [System.Runtime.InteropServices.DllImport("shell32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        public static extern int SHOpenWithDialog(IntPtr hwndParent, ref OPENASINFO poainfo);
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential, CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        public struct OPENASINFO
+        {
+            public string pcszFile;
+            public string pcszClass;
+            public int oaUIAction;
+        }
+
+        // Native Window Dragging
+        [DllImport("user32.dll")]
+        public static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
+
+        [DllImport("user32.dll")]
+        public static extern bool ReleaseCapture();
+
+        public const int WM_NCLBUTTONDOWN = 0xA1;
+        public const int HT_CAPTION = 0x2;
+
+        // Hardware Mouse State API
+        [DllImport("user32.dll")]
+        public static extern short GetAsyncKeyState(int vKey);
+        public const int VK_LBUTTON = 0x01;
 
         // Update the cache only when settings change
         private static void UpdateExcludedAppsCache()

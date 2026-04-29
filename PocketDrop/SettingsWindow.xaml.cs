@@ -24,8 +24,7 @@ namespace PocketDrop
         // 1. STATE & VARIABLES
         // ================================================ //
 
-        // Prevents language change event during window initialization
-        private bool _isLanguageLoaded = false;
+        private bool _isLanguageLoaded = false; // Skip language change events during initialization
 
 
         // ================================================ //
@@ -60,11 +59,10 @@ namespace PocketDrop
             // 4. Pull the clean version from our new central source
             AppVersionText.Text = $"Version {AppHelpers.GetAppVersion()}";
 
-            // 5. Load and apply the Theme
+            // 5. Load and apply the Theme and Language
             ThemeCombo.SelectedIndex = AppGlobals.AppTheme;
             ApplyTheme(AppGlobals.AppTheme);
 
-            // 6. Load and apply the Language
             if (AppGlobals.AppLanguage == "Vietnamese")
             {
                 LanguageCombo.SelectedIndex = 1;
@@ -73,14 +71,13 @@ namespace PocketDrop
             {
                 LanguageCombo.SelectedIndex = 0;
             }
-            // Mark as loaded so the event doesn't trigger during window creation
+
             _isLanguageLoaded = true;
 
-            // 7. Check if background scanner already found an update
+            // 6. Check if background scanner already found an update
             if (AppGlobals.UpdateAvailable)
             {
-                CheckUpdateBtn.Content = "Update Available!";
-                CheckUpdateBtn.Style = (Style)FindResource("SuccessButtonStyle");
+                ShowUpdateAvailableButton();
             }
         }
 
@@ -109,7 +106,7 @@ namespace PocketDrop
             var newThemeDict = new ResourceDictionary { Source = themeUri };
             dictionaries.Add(newThemeDict);
 
-            // Remove old theme files to prevent conflicts and memory leaks
+            // Clean up any old theme files sitting in memory
             var oldThemes = new List<ResourceDictionary>();
             foreach (var dict in dictionaries)
             {
@@ -160,10 +157,7 @@ namespace PocketDrop
                 dictionaries.Remove(oldLang);
             }
 
-            // Wait 50ms for WPF to finish loading resource dictionary
             await System.Threading.Tasks.Task.Delay(50);
-
-            // Trigger tray menu to fetch updated translations
             App.UpdateTrayMenuLanguage();
         }
 
@@ -183,7 +177,7 @@ namespace PocketDrop
                 string errorMsg = (string)Application.Current.Resources["Text_StartupErrorMsg"] ?? "Could not update startup settings.";
 
                 MessageBox.Show(errorMsg, errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
-                StartupToggle.IsChecked = !enable; // Revert UI
+                StartupToggle.IsChecked = !enable;
             }
         }
 
@@ -355,7 +349,7 @@ namespace PocketDrop
             {
                 AppGlobals.ClipboardKeyChar = dialog.SelectedLetter;
                 AppGlobals.ClipboardKeyVK = dialog.SelectedVK;
-                AppGlobals.ClipboardModifiers = dialog.SelectedModifiers; // Save the new modifiers
+                AppGlobals.ClipboardModifiers = dialog.SelectedModifiers;
                 RenderKeycaps(ClipboardKeysContainer, AppGlobals.ClipboardModifiers, AppGlobals.ClipboardKeyChar);
                 App.ReloadHotkeys();
             }
@@ -454,7 +448,6 @@ namespace PocketDrop
 
         private void ShowUpdateAvailableButton()
         {
-            // ? FIX: Bind dynamically instead of hardcoding
             CheckUpdateBtn.SetResourceReference(Button.ContentProperty, "Text_UpdateAvailableBtn");
             CheckUpdateBtn.Style = (Style)FindResource("SuccessButtonStyle");
         }
@@ -469,7 +462,6 @@ namespace PocketDrop
             }
 
             CheckUpdateBtn.IsEnabled = false;
-            // ? FIX: Bind dynamically
             CheckUpdateBtn.SetResourceReference(Button.ContentProperty, "Text_CheckingUpdate");
             CheckUpdateBtn.Style = (Style)FindResource("PrimaryButtonStyle");
 
@@ -503,7 +495,6 @@ namespace PocketDrop
                             {
                                 try
                                 {
-                                    // ? FIX: Bind downloading state dynamically
                                     CheckUpdateBtn.SetResourceReference(Button.ContentProperty, "Text_DownloadingUpdate");
                                     CheckUpdateBtn.IsEnabled = false;
 
@@ -584,13 +575,11 @@ namespace PocketDrop
 
                                     MessageBox.Show($"{errorMsgBase}\n\n{ex.Message}", errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
 
-                                    // ? FIX: Bind fail state dynamically
                                     CheckUpdateBtn.SetResourceReference(Button.ContentProperty, "Text_UpdateFailedBtn");
                                 }
                             }
                             else
                             {
-                                // ? FIX: Safely revert to Update Available if user clicks No
                                 CheckUpdateBtn.SetResourceReference(Button.ContentProperty, "Text_UpdateAvailableBtn");
                                 CheckUpdateBtn.Style = (Style)FindResource("SuccessButtonStyle");
                             }
@@ -602,7 +591,6 @@ namespace PocketDrop
 
                             MessageBox.Show(upToDateMsg, upToDateTitle, MessageBoxButton.OK, MessageBoxImage.Information);
 
-                            // ? FIX: Safely set Up To Date state dynamically
                             CheckUpdateBtn.SetResourceReference(Button.ContentProperty, "Text_UpdateUpToDateTitle");
                             CheckUpdateBtn.Style = (Style)FindResource("SuccessButtonStyle");
                         }
@@ -616,7 +604,6 @@ namespace PocketDrop
 
                 MessageBox.Show($"{failMsgBase}\n\n{ex.Message}", failTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
 
-                // ? FIX: Safely revert to original Check for Updates state dynamically
                 CheckUpdateBtn.SetResourceReference(Button.ContentProperty, "Text_CheckUpdatesBtn");
                 CheckUpdateBtn.Style = (Style)FindResource("PrimaryButtonStyle");
             }
@@ -628,8 +615,6 @@ namespace PocketDrop
 
         private void ShowWelcomeGuide_Click(object sender, RoutedEventArgs e)
         {
-            // Use .ShowDialog() instead of .Show() so it acts as a modal 
-            // and blocks the Settings window until they finish the guide!
             WelcomeWindow welcome = new WelcomeWindow();
             welcome.Owner = this;
             welcome.ShowDialog();

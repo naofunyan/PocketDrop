@@ -7,6 +7,7 @@
 // any later version.
 
 using Microsoft.WindowsAPICodePack.Shell;
+using PdfSharp.Pdf.Content.Objects;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -14,6 +15,7 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -28,58 +30,17 @@ using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
 using WinRT;
 using static PocketDrop.AppHelpers;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
 namespace PocketDrop
 {
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
         // ================================================ //
-        // 1. NATIVE WINDOWS APIS (P/INVOKE)
+        // 1. STATE & VARIABLES
         // ================================================ //
-
-        // Add native interop for Windows Share UI
-        [ComImport]
-        [Guid("3A3DCD6C-3EAB-43DC-BCDE-45671CE800C8")]
-        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-        public interface IDataTransferManagerInterop
-        {
-            IntPtr GetForWindow([In] IntPtr appWindow, [In] ref Guid riid);
-            void ShowShareUIForWindow(IntPtr appWindow);
-        }
-
-        // Native File Picker
-        [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
-        private static extern int SHOpenWithDialog(IntPtr hwndParent, ref OPENASINFO poainfo);
-
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        private struct OPENASINFO
-        {
-            public string pcszFile;
-            public string pcszClass;
-            public int oaUIAction;
-        }
-
-        // Native Window Dragging
-        [DllImport("user32.dll")]
-        public static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
-
-        [DllImport("user32.dll")]
-        public static extern bool ReleaseCapture();
-
-        public const int WM_NCLBUTTONDOWN = 0xA1;
-        public const int HT_CAPTION = 0x2;
-
-        // Hardware Mouse State API
-        [DllImport("user32.dll")]
-        public static extern short GetAsyncKeyState(int vKey);
-        public const int VK_LBUTTON = 0x01;
 
         private static DispatcherTimer _mouseTimer;
-
-
-        // ================================================ //
-        // 2. STATE & VARIABLES
-        // ================================================ //
 
         // Mouse Tracking & Shake
         private static ShakeDetector _shakeDetector = new ShakeDetector();
@@ -112,7 +73,7 @@ namespace PocketDrop
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
-        // Thread-safe icon cache & concurrency bouncer
+        // Thread-safe icon cache with concurrency guard
         private static System.Collections.Concurrent.ConcurrentDictionary<string, System.Windows.Media.ImageSource> _iconCache = new System.Collections.Concurrent.ConcurrentDictionary<string, System.Windows.Media.ImageSource>(StringComparer.OrdinalIgnoreCase);
         private static readonly System.Threading.SemaphoreSlim _iconThrottle = new System.Threading.SemaphoreSlim(4, 4);
 
@@ -128,7 +89,7 @@ namespace PocketDrop
         private DropLineAdorner _currentAdorner = null;
 
         // ================================================ //
-        // 3. LIFECYCLE (STARTUP & SHUTDOWN)
+        // 2. LIFECYCLE (STARTUP & SHUTDOWN)
         // ================================================ //
         public MainWindow()
         {
@@ -151,13 +112,12 @@ namespace PocketDrop
             // Clean up heavy temp files from previous sessions
             System.Threading.Tasks.Task.Run(() => CleanupOldShareZips());
 
-            // Synchronously capture the exact moment the menu closes, bypassing WPF's fade-out animation delay
+            // Capture menu close immediately, bypassing the fade-out delay
             if (MoreButton.ContextMenu != null)
             {
                 var dpd = System.ComponentModel.DependencyPropertyDescriptor.FromProperty(ContextMenu.IsOpenProperty, typeof(ContextMenu));
                 dpd.AddValueChanged(MoreButton.ContextMenu, (s, e) =>
                 {
-                    // Update the guard the moment the menu is told to close
                     if (MoreButton.ContextMenu.IsOpen == false)
                     {
                         _lastMoreMenuCloseTime = Environment.TickCount64;
@@ -171,7 +131,6 @@ namespace PocketDrop
         {
             IsGhost = true;
 
-            // Let HidePocketDrop handle all the cleanup and closing
             bool isLastWindow = Application.Current.Windows.OfType<MainWindow>().Count() <= 1;
             HidePocketDrop(!isLastWindow);
         }
@@ -184,24 +143,23 @@ namespace PocketDrop
         // Drag hover effects
         private void Window_DragEnter(object sender, DragEventArgs e)
         {
-            // ? NEW: If we are just reordering or dragging files out, ignore the glow!
             if (_isDraggingFromApp) return;
 
             if (e.Data.GetDataPresent(DataFormats.FileDrop) || e.Data.GetDataPresent(DataFormats.Text))
             {
-                DragGlowBorder.Visibility = Visibility.Visible; // Activate overlay on drag enter
+                DragGlowBorder.Visibility = Visibility.Visible;
             }
         }
 
         private void Window_DragLeave(object sender, DragEventArgs e)
         {
-            DragGlowBorder.Visibility = Visibility.Collapsed; // Deactivate overlay on drag leave
+            DragGlowBorder.Visibility = Visibility.Collapsed;
         }
 
         // Handle file drop event
         private async void Window_Drop(object sender, DragEventArgs e)
         {
-            // Reset glow and margin on file drop
+
             DragGlowBorder.Visibility = Visibility.Collapsed;
 
             // Cancel drop if files dropped back onto the app
@@ -303,10 +261,10 @@ namespace PocketDrop
                         string fileName = $"{domain} Link_{DateTime.Now.Ticks}.url";
                         string filePath = Path.Combine(tempFolder, fileName);
 
-                        // Create the physical file before asking Windows for its icon
+                        // Write the file to disk before requesting its icon from Windows
                         File.WriteAllText(filePath, $"[InternetShortcut]\nURL={uriResult.AbsoluteUri}");
 
-                        // Grab the native WPF BitmapSource directly to preserve transparency
+                        // Get the native WPF BitmapSource to preserve transparency
                         using (ShellObject shellObj = ShellObject.FromParsingName(filePath))
                         {
                             var transparentIcon = shellObj.Thumbnail.LargeBitmapSource;
@@ -332,10 +290,7 @@ namespace PocketDrop
                     }
                     catch (Exception ex)
                     {
-                        // 1. Tag it with the context
                         ex.Data.Add("PocketDrop Context", "Could not save URL");
-
-                        // 2. Send it off to Sentry
                         SentrySdk.CaptureException(ex);
                     }
                 }
@@ -348,14 +303,13 @@ namespace PocketDrop
 
                         // Create a preview for the filename (first 20 chars)
                         string preview = droppedText.Length > 20 ? droppedText.Substring(0, 20).Trim() : droppedText;
-                        preview = string.Join("_", preview.Split(Path.GetInvalidFileNameChars())); // Clean filename
+                        preview = string.Join("_", preview.Split(Path.GetInvalidFileNameChars()));
 
                         string fileName = $"Snippet_{preview}_{Guid.NewGuid().ToString("N").Substring(0, 4)}.txt";
                         string filePath = Path.Combine(tempFolder, fileName);
 
                         File.WriteAllText(filePath, droppedText);
 
-                        // Use a standard text icon for snippets
                         var textIcon = await LoadFileIconAsync(filePath);
 
                         var textItem = new PocketItem
@@ -363,7 +317,7 @@ namespace PocketDrop
                             FileName = fileName,
                             FilePath = filePath,
                             Icon = textIcon,
-                            IsSnippet = true // Tell the app this is pure text
+                            IsSnippet = true // Mark the item as plain text
                         };
 
                         PocketedItems.Add(textItem);
@@ -378,10 +332,7 @@ namespace PocketDrop
                     }
                     catch (Exception ex)
                     {
-                        // 1. Tag it with the context
                         ex.Data.Add("PocketDrop Context", "Could not save text snippet");
-
-                        // 2. Send it off to Sentry
                         SentrySdk.CaptureException(ex);
                     }
                 }
@@ -394,30 +345,28 @@ namespace PocketDrop
             DataObject dragData = new DataObject();
             bool allSnippets = itemsToDrag.All(i => i.IsSnippet);
 
-            // Dual-format payloads for Native Apps and Web/Electron Apps
+            // Provide both native and web-compatible clipboard formats
             if (allSnippets)
             {
                 try
                 {
                     string combinedText = string.Join(Environment.NewLine + Environment.NewLine, itemsToDrag.Select(i => File.ReadAllText(i.FilePath)));
 
-                    // 1. Standard Windows Formats
                     dragData.SetData(DataFormats.UnicodeText, combinedText);
                     dragData.SetData(DataFormats.Text, combinedText);
                     dragData.SetData(DataFormats.StringFormat, combinedText);
 
-                    // 2. Web & Electron Formats
                     dragData.SetData("text/plain", combinedText);
                 }
                 catch { }
             }
             else
             {
-                // Mixed items or physical files -> Use standard FileDrop
+                // Use FileDrop for mixed items or physical files
                 string[] paths = itemsToDrag.Select(i => i.FilePath).ToArray();
                 dragData.SetData(DataFormats.FileDrop, paths);
 
-                // Fallback: If it is a single physical .txt file, try to attach text just in case
+                // Fallback: also attach text content if the item is a single .txt file
                 if (paths.Length == 1 && Path.GetExtension(paths[0]).Equals(".txt", StringComparison.OrdinalIgnoreCase))
                 {
                     try
@@ -431,7 +380,6 @@ namespace PocketDrop
                     catch { }
                 }
 
-                // Attach the active memory stream
                 dragData.SetData("Preferred DropEffect", dropEffectStream);
             }
 
@@ -484,25 +432,23 @@ namespace PocketDrop
                         }
                     }
 
-                    // Add to the UI all at once
                     PocketedItems.AddRange(processedItems);
 
-                    // Refresh UI after paste load
                     StatusText.Visibility = Visibility.Collapsed;
                     FileIconContainer.Visibility = Visibility.Visible;
                     UpdateStackPreview();
 
                     UpdateItemCountDisplay(PocketedItems.Count);
 
-                    // Ping the window: Notify My Pockets window to refresh in real-time
-                    AppGlobals.TriggerHistoryRefresh(); // Broadcast the signal!
+                    // Notify My Pockets window to refresh in real-time
+                    AppGlobals.TriggerHistoryRefresh();
                 }
-                // ? NEW: Catch Text and URLs from the clipboard!
+                // Catch Text and URLs from the clipboard
                 else if (System.Windows.Clipboard.ContainsText())
                 {
                     string pastedText = System.Windows.Clipboard.GetText();
 
-                    // 1. Is it a Web URL?
+                    // 1. Check if the item is a web URL
                     if (Uri.TryCreate(pastedText, UriKind.Absolute, out Uri uriResult) &&
                        (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps))
                     {
@@ -527,7 +473,7 @@ namespace PocketDrop
                                 AppGlobals.SessionHistory.Add(safeUrlItem);
                         }
                     }
-                    // 2. It's a standard text snippet
+                    // 2. Standard text snippet
                     else
                     {
                         string tempFolder = Path.GetTempPath();
@@ -560,7 +506,7 @@ namespace PocketDrop
                     UpdateStackPreview();
                     UpdateItemCountDisplay(PocketedItems.Count);
 
-                    // Notify My Pockets window using our new secure trigger
+                    // Notify My Pockets window to refresh in real-time
                     AppGlobals.TriggerHistoryRefresh();
                 }
                 else
@@ -573,10 +519,7 @@ namespace PocketDrop
             }
             catch (Exception ex)
             {
-                // 1. Tag the error with exactly what the app was doing
                 ex.Data.Add("PocketDrop Context", "Clipboard error");
-
-                // 2. Send the full crash report to your dashboard
                 SentrySdk.CaptureException(ex);
             }
         }
@@ -584,8 +527,7 @@ namespace PocketDrop
         // Track click to prepare file drag-out
         private void Window_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            // Tell the Global Mouse Hook to abort shake detection
-            _hasSpawnedPocketThisDrag = true;
+            _hasSpawnedPocketThisDrag = true; // Tell the Global Mouse Hook to abort shake detection
 
             Point pos = e.GetPosition(this); // Get exact mouse coordinates relative to the window
 
@@ -601,7 +543,7 @@ namespace PocketDrop
                 // 2. If the menu closed less than 200 milliseconds ago, ignore this click
                 if (Environment.TickCount64 - _lastMoreMenuCloseTime < 200)
                 {
-                    e.Handled = true; // Destroy the ghost click
+                    e.Handled = true;
                     return;
                 }
 
@@ -629,7 +571,7 @@ namespace PocketDrop
                 if (ExpandButton.IsChecked == true)
                 {
                     ExpandButton.IsChecked = false;
-                    e.Handled = true; // Destroy the click so the ToggleButton doesn't get stuck
+                    e.Handled = true;
                     return;
                 }
 
@@ -679,8 +621,7 @@ namespace PocketDrop
             }
             catch
             {
-                // Safely fail if the element is inside a Popup
-                return false;
+                return false; // Safely fail if the element is inside a Popup
             }
         }
 
@@ -710,7 +651,7 @@ namespace PocketDrop
             {
                 var itemsToDrag = PocketedItems.ToList();
 
-                // ? NEW: Match standard Windows drag behavior!
+                // Match standard Windows drag behavior!
                 bool isShiftDown = Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
                 bool isCtrlDown = Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl);
 
@@ -721,7 +662,6 @@ namespace PocketDrop
                 if (isShiftDown) isCopy = false;      // Shift forces a Move
                 else if (isCtrlDown) isCopy = true;   // Ctrl forces a Copy
 
-                // ? THE REFACTOR: 45 lines of code reduced to 2!
                 using var dropEffectStream = new System.IO.MemoryStream(new byte[] { (byte)(AppGlobals.CopyItemToDestination ? 1 : 2), 0, 0, 0 });
                 DataObject dragData = BuildDragPayload(itemsToDrag, dropEffectStream);
 
@@ -733,7 +673,7 @@ namespace PocketDrop
                 DragDropEffects result = DragDrop.DoDragDrop((DependencyObject)sender, dragData, DragDropEffects.All);
                 _isDraggingFromApp = false;
 
-                // Check if they dropped a URL/Snippet into a browser (which returns 'None')
+                // Detect if the drop target is a browser
                 bool forceClear = false;
                 if (result == DragDropEffects.None && Mouse.LeftButton == MouseButtonState.Released)
                 {
@@ -743,7 +683,7 @@ namespace PocketDrop
                     }
                 }
 
-                // Always clear Pocket after successful drop OR if it's a forced web clear
+                // Clear the Pocket after a successful drop or a forced web clear
                 if (result != DragDropEffects.None || forceClear)
                 {
                     foreach (var item in PocketedItems)
@@ -774,7 +714,7 @@ namespace PocketDrop
                 }
             }
 
-            // Ping the window: Notify My Pockets window to refresh in real-time
+            // Notify My Pockets window to refresh in real-time
             var openHistoryWindow = Application.Current.Windows.OfType<MyPocketsWindow>().FirstOrDefault();
             if (openHistoryWindow != null)
             {
@@ -807,7 +747,7 @@ namespace PocketDrop
             var selectedItems = ItemsListBox.SelectedItems.Cast<PocketItem>().ToList();
             if (selectedItems.Count == 0) return;
 
-            // ? NEW: Match standard Windows drag behavior!
+            // Match standard Windows drag behavior
             bool isShiftDown = Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
             bool isCtrlDown = Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl);
 
@@ -818,7 +758,6 @@ namespace PocketDrop
             if (isShiftDown) isCopy = false;      // Shift forces a Move
             else if (isCtrlDown) isCopy = true;   // Ctrl forces a Copy
 
-            // ? THE REFACTOR: Another 45 lines of code gone!
             using var dropEffectStream = new System.IO.MemoryStream(new byte[] { (byte)(AppGlobals.CopyItemToDestination ? 1 : 2), 0, 0, 0 });
             DataObject dragData = BuildDragPayload(selectedItems, dropEffectStream);
 
@@ -830,7 +769,7 @@ namespace PocketDrop
 
             _isDraggingFromApp = false;
 
-            // Check if they dropped a URL/Snippet into a browser
+            // Detect if the drop target is a browser
             bool forceClear = false;
             if (result == DragDropEffects.None && Mouse.LeftButton == MouseButtonState.Released)
             {
@@ -840,7 +779,7 @@ namespace PocketDrop
                 }
             }
 
-            // Proceed if it was a valid OS drop OR a forced web clear
+            // Proceed if the drop was valid or forced by a web clear
             if (!_internalDropHandled && (result != DragDropEffects.None || forceClear))
             {
                 foreach (var item in selectedItems)
@@ -891,20 +830,18 @@ namespace PocketDrop
 
             if (e.LeftButton == MouseButtonState.Pressed)
             {
-                // 1. Animate the handle expanding (e.g., Width 40 -> 60, Opacity 0.5 -> 0.8)
+                // 1. Animate the handle expanding
                 var expandAnim = new DoubleAnimation(50, TimeSpan.FromMilliseconds(100)) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
                 var opacityAnim = new DoubleAnimation(0.8, TimeSpan.FromMilliseconds(100));
                 DragHandle.BeginAnimation(WidthProperty, expandAnim);
                 DragHandle.BeginAnimation(OpacityProperty, opacityAnim);
 
-                // 2. Bypass WPF and use GPU-accelerated OS-level dragging
-                ReleaseCapture();
+                AppHelpers.ReleaseCapture();
                 var hwnd = new WindowInteropHelper(this).Handle;
 
-                // This line blocks the thread until the user drops the window!
-                SendMessage(hwnd, WM_NCLBUTTONDOWN, HT_CAPTION, 0);
+                AppHelpers.SendMessage(hwnd, WM_NCLBUTTONDOWN, HT_CAPTION, 0);
 
-                // 3. The user dropped the window! Animate the handle shrinking back to 40
+                // 2. Animate the handle back to 40px on window drop
                 var shrinkAnim = new DoubleAnimation(30, TimeSpan.FromMilliseconds(100)) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
                 var fadeAnim = new DoubleAnimation(0.5, TimeSpan.FromMilliseconds(100));
                 DragHandle.BeginAnimation(WidthProperty, shrinkAnim);
@@ -1045,7 +982,6 @@ namespace PocketDrop
             // 4. Defer UI cleanup until close animation completes
             fadeOut.Completed += (s, e) =>
             {
-                // ? FIX: Delete any lingering temp files created by tools before wiping the list!
                 foreach (var item in PocketedItems)
                 {
                     CleanupTempFile(item.FilePath);
@@ -1146,7 +1082,7 @@ namespace PocketDrop
         // Select-all logic
         private void SelectAll_Checked(object sender, RoutedEventArgs e)
         {
-            if (_isUpdatingSelectAll) return; // Ignore if triggered by code
+            if (_isUpdatingSelectAll) return;
 
             if (ItemsListBox != null)
                 ItemsListBox.SelectAll();
@@ -1154,7 +1090,7 @@ namespace PocketDrop
 
         private void SelectAll_Unchecked(object sender, RoutedEventArgs e)
         {
-            if (_isUpdatingSelectAll) return; // Ignore if triggered by code
+            if (_isUpdatingSelectAll) return;
 
             if (ItemsListBox != null)
                 ItemsListBox.UnselectAll();
@@ -1168,7 +1104,7 @@ namespace PocketDrop
 
             if (SelectAllCheckBox != null)
             {
-                _isUpdatingSelectAll = true; // Lock the events
+                _isUpdatingSelectAll = true;
 
                 if (selectedCount == 0 || selectedCount < totalCount)
                 {
@@ -1176,10 +1112,10 @@ namespace PocketDrop
                 }
                 else if (selectedCount == totalCount && totalCount > 0)
                 {
-                    SelectAllCheckBox.IsChecked = true; // Check whether the user has manually selected all items
+                    SelectAllCheckBox.IsChecked = true; // Check if all items are manually selected
                 }
 
-                _isUpdatingSelectAll = false; // Unlock the events
+                _isUpdatingSelectAll = false;
             }
             
             if (selectedCount > 0)
@@ -1191,7 +1127,6 @@ namespace PocketDrop
                         totalBytes += new FileInfo(item.FilePath).Length;
                 }
 
-                // Update the separated UI elements for the popup
                 if (PopupCountNumberText != null) PopupCountNumberText.Text = selectedCount.ToString();
                 if (PopupCountSizeText != null) PopupCountSizeText.Text = $"({AppHelpers.FormatBytes(totalBytes)})";
 
@@ -1222,7 +1157,8 @@ namespace PocketDrop
             foreach (var item in selectedItems)
             {
                 PocketedItems.Remove(item);
-                CleanupTempFile(item.FilePath); // Delete if error
+                CleanupTempFile(item.FilePath);
+                AppGlobals.SessionHistory.Remove(item);
             }
 
             // Refresh background stack preview after popup closes
@@ -1235,10 +1171,7 @@ namespace PocketDrop
                 UpdateStackPreview();
             }
 
-            // Update item counter dynamically
             UpdateItemCountDisplay(PocketedItems.Count);
-
-            // Hide delete button when selection is cleared
             DeleteSelectedButton.Visibility = Visibility.Collapsed;
         }
 
@@ -1252,7 +1185,7 @@ namespace PocketDrop
                     ? ItemsListBox.SelectedItems.Count
                     : PocketedItems.Count;
 
-                // 2. Dynamically link to the translation resources!
+                // 2. Dynamically link to the translation resources
                 if (selectedCount > 1)
                 {
                     Menu_DynamicOpen.SetResourceReference(MenuItem.HeaderProperty, "Text_MenuOpen");
@@ -1279,14 +1212,14 @@ namespace PocketDrop
             // JUST-IN-TIME check
             if (CheckForMissingFiles()) return;
 
-            // 1. Gather the selected files (or all of them if none are selected)
+            // 1. Collect selected files, or all files if none are selected
             var itemsToOpen = (ItemsListBox != null && ItemsListBox.SelectedItems.Count > 0)
                 ? ItemsListBox.SelectedItems.Cast<PocketItem>().ToList()
                 : PocketedItems.ToList();
 
             if (itemsToOpen.Count == 0) return;
 
-            // 2. Scenario A: Differentiate folder and file handling for single selection
+            // 2. Scenario A: Handle folders and files differently for single selections
             if (itemsToOpen.Count == 1)
             {
                 string targetFilePath = itemsToOpen[0].FilePath;
@@ -1304,32 +1237,26 @@ namespace PocketDrop
                     }
                     catch (Exception ex)
                     {
-                        // 1. Tag it with the context
                         ex.Data.Add("PocketDrop Context", "Could not open folder");
-
-                        // 2. Send it off to Sentry
                         SentrySdk.CaptureException(ex);
                     }
                 }
-                // Show native open-with dialog for file selection
+                // Open the native open-with dialog for file selection
                 else if (!string.IsNullOrEmpty(targetFilePath) && File.Exists(targetFilePath))
                 {
                     System.Threading.Tasks.Task.Run(() =>
                     {
                         try
                         {
-                            OPENASINFO info = new OPENASINFO();
+                            AppHelpers.OPENASINFO info = new AppHelpers.OPENASINFO();
                             info.pcszFile = targetFilePath;
                             info.pcszClass = null;
                             info.oaUIAction = 7;
-                            SHOpenWithDialog(IntPtr.Zero, ref info);
+                            AppHelpers.SHOpenWithDialog(IntPtr.Zero, ref info);
                         }
                         catch (Exception ex)
                         {
-                            // 1. Tag it with the context
                             ex.Data.Add("PocketDrop Context", "Could not open file picker");
-
-                            // 2. Send it off to Sentry
                             SentrySdk.CaptureException(ex);
                         }
                     });
@@ -1340,12 +1267,12 @@ namespace PocketDrop
             {
                 foreach (var item in itemsToOpen)
                 {
-                    // Check both directory and file existence before openin
+                    // Verify both the directory and file exist before opening
                     if (Directory.Exists(item.FilePath) || File.Exists(item.FilePath))
                     {
                         try
                         {
-                            // Use ShellExecute to open items like Explorer double-click
+                            // Use ShellExecute to open items
                             Process.Start(new ProcessStartInfo
                             {
                                 FileName = item.FilePath,
@@ -1354,21 +1281,18 @@ namespace PocketDrop
                         }
                         catch (Exception ex)
                         {
-                            // 1. Tag it with the context (including the specific file name!)
                             ex.Data.Add("PocketDrop Context", $"Could not open {item.FileName}");
-
-                            // 2. Send it off to Sentry
                             SentrySdk.CaptureException(ex);
                         }
                     }
                 }
             }
 
-            // 4. Auto-close the pocket if the user enabled it in Settings
+            // 4. Close the Pocket after opening if the setting is enabled
             if (AppGlobals.CloseWhenOpenWith)
             {
-                if (ExpandButton != null) ExpandButton.IsChecked = false; // Collapse the popup menu
-                ForceClose(); // Animate window close and free memory
+                if (ExpandButton != null) ExpandButton.IsChecked = false; 
+                ForceClose(); 
             }
         }
 
@@ -1383,7 +1307,7 @@ namespace PocketDrop
                 : PocketedItems.ToList();
 
             if (itemsToShare.Count == 0) return;
-            if (ExpandButton != null) ExpandButton.IsChecked = false; // Collapse the popup menu
+            if (ExpandButton != null) ExpandButton.IsChecked = false;
 
             bool containsFolders = itemsToShare.Any(item => Directory.Exists(item.FilePath));
 
@@ -1434,7 +1358,7 @@ namespace PocketDrop
             }
             else
             {
-                // Use standard file paths when no folders are present
+                // Use standard file paths if no folders are in the selection
                 _filesToSharePaths = itemsToShare.Select(item => item.FilePath).ToList();
             }
 
@@ -1443,7 +1367,7 @@ namespace PocketDrop
             {
                 IntPtr hwnd = new WindowInteropHelper(this).Handle;
                 var factory = WinRT.ActivationFactory.Get("Windows.ApplicationModel.DataTransfer.DataTransferManager");
-                var interop = (IDataTransferManagerInterop)Marshal.GetObjectForIUnknown(factory.ThisPtr);
+                var interop = (AppHelpers.IDataTransferManagerInterop)Marshal.GetObjectForIUnknown(factory.ThisPtr);
 
                 Guid guid = Guid.Parse("a5caee9b-8708-49d1-8d36-67d25a8da00c");
                 IntPtr ptr = interop.GetForWindow(hwnd, ref guid);
@@ -1457,15 +1381,12 @@ namespace PocketDrop
                 // Ensure ZIP finishes and share UI opens before closing pocket
                 if (AppGlobals.CloseWhenShare)
                 {
-                    ForceClose(); // Safely animate window close and free memory
+                    ForceClose();
                 }
             }
             catch (Exception ex)
             {
-                // 1. Tag it with the context
                 ex.Data.Add("PocketDrop Context", "Share error");
-
-                // 2. Send it off to Sentry
                 SentrySdk.CaptureException(ex);
             }
         }
@@ -1497,7 +1418,7 @@ namespace PocketDrop
                 string zipPath = saveDialog.FileName;
 
                 // Show loading state
-                if (ExpandButton != null) ExpandButton.IsChecked = false; // Collapse the menu immediately
+                if (ExpandButton != null) ExpandButton.IsChecked = false;
 
                 if (FileIconContainer != null) FileIconContainer.Visibility = Visibility.Collapsed;
                 if (StatusText != null)
@@ -1534,15 +1455,12 @@ namespace PocketDrop
                     }
                     catch (Exception ex)
                     {
-                        // 1. Tag it with the context
                         ex.Data.Add("PocketDrop Context", "Could not create ZIP");
-
-                        // 2. Send it off to Sentry
                         SentrySdk.CaptureException(ex);
                     }
                 });
 
-                // Restore UI (if the Pocket stays open after compression based on user settings)
+                // Restore the UI if the Pocket stays open after compression
                 if (!AppGlobals.CloseWhenCompress)
                 {
                     if (StatusText != null) StatusText.Visibility = Visibility.Collapsed;
@@ -1587,7 +1505,6 @@ namespace PocketDrop
                         }
                     }
 
-                    // If no existing tab had that folder open, safely spawn a new one
                     if (!windowFound)
                     {
                         System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{zipPath}\"");
@@ -1595,21 +1512,16 @@ namespace PocketDrop
                 }
                 catch (Exception ex)
                 {
-                    // 1. Tag it with the context
                     ex.Data.Add("PocketDrop Context", "Highlight error");
-
-                    // 2. Send it off to Sentry
                     SentrySdk.CaptureException(ex);
-
-                    // Safe fallback just in case the COM object fails
                     System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{zipPath}\"");
                 }
             }
-            // Close the pocket if the user enabled the Settings
+            // Close the Pocket after compress if the setting is enabled
             if (AppGlobals.CloseWhenCompress)
             {
-                if (ExpandButton != null) ExpandButton.IsChecked = false; // Collapse the popup menu
-                ForceClose(); // Safely animate window close and free memory
+                if (ExpandButton != null) ExpandButton.IsChecked = false;
+                ForceClose();
             }
         }
 
@@ -1657,57 +1569,20 @@ namespace PocketDrop
                 {
                     try
                     {
-                        string ext = Path.GetExtension(img.FilePath).ToLower();
-                        string filename = Path.GetFileNameWithoutExtension(img.FilePath);
+                        string newPath = ImageProcessor.StripMetadata(img.FilePath, tempFolder);
+                        if (newPath == null) continue;
 
-                        string cleanFileName = $"{filename}_Clean{ext}";
-
-                        // Use a random Guid instead of DateTime so the filename doesn't leak info
-                        string cleanFilePath = Path.Combine(tempFolder, $"PocketDrop_{Guid.NewGuid().ToString("N").Substring(0, 8)}_{cleanFileName}");
-
-                        // ? THE REFACTOR: Stream directly from the disk!
-                        using (var fs = System.IO.File.OpenRead(img.FilePath))
-                        {
-                            // Important: Switch to 'OnLoad' so WPF reads what it needs and safely releases the file lock
-                            BitmapDecoder decoder = BitmapDecoder.Create(fs, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.OnLoad);
-
-                            BitmapEncoder encoder = null;
-                            if (ext == ".png") encoder = new PngBitmapEncoder();
-                            else if (ext == ".jpg" || ext == ".jpeg") encoder = new JpegBitmapEncoder { QualityLevel = 100 };
-                            else if (ext == ".bmp") encoder = new BmpBitmapEncoder();
-                            else if (ext == ".gif") encoder = new GifBitmapEncoder();
-
-                            if (encoder == null) continue;
-
-                            foreach (BitmapFrame frame in decoder.Frames)
-                            {
-                                var cleanSource = new FormatConvertedBitmap(frame, frame.Format, frame.Palette, 0);
-
-                                // Explicitly force metadata to NULL to guarantee EXIF destruction
-                                encoder.Frames.Add(BitmapFrame.Create(cleanSource, null, (BitmapMetadata)null, null));
-                            }
-
-                            using (var outStream = new FileStream(cleanFilePath, FileMode.Create, FileAccess.Write))
-                            {
-                                encoder.Save(outStream);
-                            }
-                        }
-
-                        // Point the PocketItem to the new clean file
                         Application.Current.Dispatcher.Invoke(() =>
                         {
-                            img.FilePath = cleanFilePath;
-                            img.FileName = cleanFileName;
+                            img.FilePath = newPath;
+                            img.FileName = Path.GetFileName(newPath);
                         });
 
                         successCount++;
                     }
                     catch (Exception ex)
                     {
-                        // 1. Tag it with the context (including the specific file name!)
                         ex.Data.Add("PocketDrop Context", $"Could not strip EXIF from {img.FileName}");
-
-                        // 2. Send it off to Sentry
                         SentrySdk.CaptureException(ex);
                     }
                 }
@@ -1750,7 +1625,7 @@ namespace PocketDrop
             // Processing in parallel
             await System.Threading.Tasks.Task.Run(() =>
             {
-                // PDFsharp requires this once per app lifecycle in modern .NET for proper font handling
+                // Register PDFsharp font resolver once for proper font handling in .NET
                 System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 
                 string tempFolder = System.IO.Path.GetTempPath();
@@ -1759,94 +1634,19 @@ namespace PocketDrop
                 {
                     try
                     {
-                        string originalExt = System.IO.Path.GetExtension(img.FilePath).ToLower();
-
-                        // Thread-safe skip if the image is already the correct format
-                        if (originalExt == targetExt) return;
-
-                        string filename = System.IO.Path.GetFileNameWithoutExtension(img.FilePath);
-                        string newFileName = $"{filename}{targetExt}";
-                        string targetFilePath = System.IO.Path.Combine(tempFolder, newFileName);
-
-                        // Safe Collision Check: Adds (1), (2) if the file already exists
-                        int fileCounter = 1;
-                        while (System.IO.File.Exists(targetFilePath))
-                        {
-                            string nameOnly = System.IO.Path.GetFileNameWithoutExtension(newFileName);
-                            string extension = System.IO.Path.GetExtension(newFileName);
-                            targetFilePath = System.IO.Path.Combine(tempFolder, $"{nameOnly} ({fileCounter}){extension}");
-                            fileCounter++;
-                        }
-
-                        // Update the UI name to match the final path
-                        newFileName = System.IO.Path.GetFileName(targetFilePath);
-
-                        using (var fs = System.IO.File.OpenRead(img.FilePath))
-                        {
-                            // Route A: Native WPF for PNG / JPG
-                            if (targetExt == ".png" || targetExt == ".jpg")
-                            {
-                                // Changed to OnLoad for active stream reading
-                                BitmapDecoder decoder = BitmapDecoder.Create(fs, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.OnLoad);
-
-                                BitmapEncoder encoder = targetExt == ".png" ? (BitmapEncoder)new PngBitmapEncoder() : new JpegBitmapEncoder { QualityLevel = 100 };
-
-                                var standardizedFrame = new FormatConvertedBitmap(decoder.Frames[0], System.Windows.Media.PixelFormats.Bgra32, null, 0);
-                                encoder.Frames.Add(BitmapFrame.Create(standardizedFrame));
-
-                                using (var outStream = new System.IO.FileStream(targetFilePath, System.IO.FileMode.Create, System.IO.FileAccess.Write))
-                                {
-                                    encoder.Save(outStream);
-                                }
-                            }
-                            // Route B: SkiaSharp for WEBP
-                            else if (targetExt == ".webp")
-                            {
-                                using (var originalBitmap = SkiaSharp.SKBitmap.Decode(fs))
-                                using (var image = SkiaSharp.SKImage.FromBitmap(originalBitmap))
-                                using (var data = image.Encode(SkiaSharp.SKEncodedImageFormat.Webp, 100))
-                                using (var outStream = new System.IO.FileStream(targetFilePath, System.IO.FileMode.Create, System.IO.FileAccess.Write))
-                                {
-                                    data.SaveTo(outStream);
-                                }
-                            }
-                            // Route C: PDFsharp for Individual PDFs
-                            else if (targetExt == ".pdf")
-                            {
-                                using (var document = new PdfSharp.Pdf.PdfDocument())
-                                {
-                                    var page = document.AddPage();
-                                    using (var xImage = PdfSharp.Drawing.XImage.FromStream(fs))
-                                    {
-                                        page.Width = xImage.PointWidth;
-                                        page.Height = xImage.PointHeight;
-
-                                        using (var gfx = PdfSharp.Drawing.XGraphics.FromPdfPage(page))
-                                        {
-                                            gfx.DrawImage(xImage, 0, 0, page.Width, page.Height);
-                                        }
-                                    }
-                                    document.Save(targetFilePath);
-                                }
-                            }
-                        }
-
+                        string newPath = ImageProcessor.ConvertFormat(img.FilePath, targetExt, tempFolder);
+                        if (newPath == null) return; // Skip conversion if already in the correct format
                         Application.Current.Dispatcher.Invoke(() =>
                         {
-                            img.FilePath = targetFilePath;
-                            img.FileName = newFileName;
+                            img.FilePath = newPath;
+                            img.FileName = System.IO.Path.GetFileName(newPath);
                             img.Icon = null;
                         });
-
-                        // Thread-safe counting
                         System.Threading.Interlocked.Increment(ref successCount);
                     }
                     catch (System.Exception ex)
                     {
-                        // 1. Tag it with the context (including the specific file name!)
                         ex.Data.Add("PocketDrop Context", $"Could not convert {img.FileName}");
-
-                        // 2. Send it off to Sentry
                         SentrySdk.CaptureException(ex);
                     }
                 });
@@ -1907,95 +1707,19 @@ namespace PocketDrop
                 {
                     try
                     {
-                        string ext = System.IO.Path.GetExtension(img.FilePath).ToLower();
-                        string filename = System.IO.Path.GetFileNameWithoutExtension(img.FilePath);
-                        string newFileName = $"{filename}{rotatedSuffix}{ext}";
-                        string targetFilePath = System.IO.Path.Combine(tempFolder, newFileName);
-
-                        int fileCounter = 1;
-                        while (System.IO.File.Exists(targetFilePath))
-                        {
-                            string nameOnly = System.IO.Path.GetFileNameWithoutExtension(newFileName);
-                            string extension = System.IO.Path.GetExtension(newFileName);
-                            targetFilePath = System.IO.Path.Combine(tempFolder, $"{nameOnly} ({fileCounter}){extension}");
-                            fileCounter++;
-                        }
-                        newFileName = System.IO.Path.GetFileName(targetFilePath);
-
-                        using (var fs = System.IO.File.OpenRead(img.FilePath))
-                        using (var codec = SkiaSharp.SKCodec.Create(fs))
-                        {
-                            if (codec == null) return;
-
-                            using (var rawBitmap = SkiaSharp.SKBitmap.Decode(codec))
-                            {
-                                if (rawBitmap == null) return;
-
-                                int exifDegrees = 0;
-                                switch (codec.EncodedOrigin)
-                                {
-                                    case SkiaSharp.SKEncodedOrigin.BottomRight: exifDegrees = 180; break;
-                                    case SkiaSharp.SKEncodedOrigin.RightTop: exifDegrees = 90; break;
-                                    case SkiaSharp.SKEncodedOrigin.LeftBottom: exifDegrees = 270; break;
-                                }
-
-                                int safeUserDegrees = userDegrees < 0 ? userDegrees + 360 : userDegrees;
-                                int totalDegrees = (exifDegrees + safeUserDegrees) % 360;
-
-                                SkiaSharp.SKEncodedImageFormat format = SkiaSharp.SKEncodedImageFormat.Jpeg;
-                                if (ext == ".png") format = SkiaSharp.SKEncodedImageFormat.Png;
-                                else if (ext == ".webp") format = SkiaSharp.SKEncodedImageFormat.Webp;
-                                else if (ext == ".bmp") format = SkiaSharp.SKEncodedImageFormat.Bmp;
-
-                                if (totalDegrees == 0)
-                                {
-                                    using (var image = SkiaSharp.SKImage.FromBitmap(rawBitmap))
-                                    using (var data = image.Encode(format, 100))
-                                    using (var outStream = new System.IO.FileStream(targetFilePath, System.IO.FileMode.Create, System.IO.FileAccess.Write))
-                                    {
-                                        data.SaveTo(outStream);
-                                    }
-                                }
-                                else
-                                {
-                                    int newW = (totalDegrees == 90 || totalDegrees == 270) ? rawBitmap.Height : rawBitmap.Width;
-                                    int newH = (totalDegrees == 90 || totalDegrees == 270) ? rawBitmap.Width : rawBitmap.Height;
-
-                                    using (var rotatedBitmap = new SkiaSharp.SKBitmap(new SkiaSharp.SKImageInfo(newW, newH)))
-                                    using (var canvas = new SkiaSharp.SKCanvas(rotatedBitmap))
-                                    {
-                                        canvas.Clear(SkiaSharp.SKColors.Transparent);
-                                        canvas.Translate(newW / 2f, newH / 2f);
-                                        canvas.RotateDegrees(totalDegrees);
-                                        canvas.Translate(-rawBitmap.Width / 2f, -rawBitmap.Height / 2f);
-                                        canvas.DrawBitmap(rawBitmap, 0, 0);
-
-                                        using (var image = SkiaSharp.SKImage.FromBitmap(rotatedBitmap))
-                                        using (var data = image.Encode(format, 100))
-                                        using (var outStream = new System.IO.FileStream(targetFilePath, System.IO.FileMode.Create, System.IO.FileAccess.Write))
-                                        {
-                                            data.SaveTo(outStream);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
+                        string newPath = ImageProcessor.RotateImage(img.FilePath, userDegrees, rotatedSuffix, tempFolder);
+                        if (newPath == null) return;
                         Application.Current.Dispatcher.Invoke(() =>
                         {
-                            img.FilePath = targetFilePath;
-                            img.FileName = newFileName;
+                            img.FilePath = newPath;
+                            img.FileName = System.IO.Path.GetFileName(newPath);
                             img.Icon = null;
                         });
-
                         System.Threading.Interlocked.Increment(ref successCount);
                     }
                     catch (System.Exception ex)
                     {
-                        // 1. Tag it with the context (including the specific file name!)
                         ex.Data.Add("PocketDrop Context", $"Could not rotate {img.FileName}");
-
-                        // 2. Send it off to Sentry
                         SentrySdk.CaptureException(ex);
                     }
                 });
@@ -2070,139 +1794,19 @@ namespace PocketDrop
                 {
                     try
                     {
-                        string ext = System.IO.Path.GetExtension(img.FilePath).ToLower();
-                        string filename = System.IO.Path.GetFileNameWithoutExtension(img.FilePath);
-                        string newFileName = $"{filename}{resizedSuffix}{ext}";
-                        string targetFilePath = System.IO.Path.Combine(tempFolder, newFileName);
-
-                        int fileCounter = 1;
-                        while (System.IO.File.Exists(targetFilePath))
-                        {
-                            string nameOnly = System.IO.Path.GetFileNameWithoutExtension(newFileName);
-                            string extension = System.IO.Path.GetExtension(newFileName);
-                            targetFilePath = System.IO.Path.Combine(tempFolder, $"{nameOnly} ({fileCounter}){extension}");
-                            fileCounter++;
-                        }
-                        newFileName = System.IO.Path.GetFileName(targetFilePath);
-
-                        using (var fs = System.IO.File.OpenRead(img.FilePath))
-                        using (var originalBitmap = SkiaSharp.SKBitmap.Decode(fs))
-                        {
-                            if (originalBitmap == null) return;
-
-                            int originalW = originalBitmap.Width;
-                            int originalH = originalBitmap.Height;
-
-                            // Step A: Convert user inputs to a Target Pixel Box based on the specific image
-                            double targetBoxW = 0;
-                            double targetBoxH = 0;
-
-                            if (unit == ImageResizeUnit.Pixels)
-                            {
-                                targetBoxW = inputW;
-                                targetBoxH = inputH;
-                            }
-                            else if (unit == ImageResizeUnit.Percentages)
-                            {
-                                targetBoxW = originalW * (inputW / 100.0);
-                                targetBoxH = originalH * (inputH / 100.0);
-                            }
-                            else if (unit == ImageResizeUnit.Centimeters)
-                            {
-                                targetBoxW = (inputW / 2.54) * standardDpi;
-                                targetBoxH = (inputH / 2.54) * standardDpi;
-                            }
-
-                            // Step B: If one box is 0 (blank), auto-calculate it to maintain ratio
-                            if (targetBoxW > 0 && targetBoxH <= 0)
-                            {
-                                targetBoxH = originalH * (targetBoxW / originalW);
-                            }
-                            else if (targetBoxH > 0 && targetBoxW <= 0)
-                            {
-                                targetBoxW = originalW * (targetBoxH / originalH);
-                            }
-
-                            // Step C: Calculate actual Skia resize dimensions based on Mode
-                            int scaleW = originalW;
-                            int scaleH = originalH;
-
-                            if (targetBoxW > 0 && targetBoxH > 0)
-                            {
-                                if (mode == ImageResizeMode.Stretch)
-                                {
-                                    scaleW = (int)targetBoxW;
-                                    scaleH = (int)targetBoxH;
-                                }
-                                else // Fit or Fill
-                                {
-                                    double ratioX = targetBoxW / originalW;
-                                    double ratioY = targetBoxH / originalH;
-
-                                    // Fit = Min ratio (stops at edges), Fill = Max ratio (bleeds over edges)
-                                    double ratio = (mode == ImageResizeMode.Fit)
-                                        ? System.Math.Min(ratioX, ratioY)
-                                        : System.Math.Max(ratioX, ratioY);
-
-                                    scaleW = (int)(originalW * ratio);
-                                    scaleH = (int)(originalH * ratio);
-                                }
-                            }
-
-                            // Ensure the image has non-zero dimensions before rendering
-                            if (scaleW <= 0 || scaleH <= 0) return;
-
-                            // Step D: Perform High-Quality Skia Resize
-                            using (var resizedBitmap = originalBitmap.Resize(new SkiaSharp.SKImageInfo(scaleW, scaleH), SkiaSharp.SKFilterQuality.High))
-                            using (var scaledImage = SkiaSharp.SKImage.FromBitmap(resizedBitmap))
-                            {
-                                SkiaSharp.SKImage finalImage = scaledImage;
-
-                                // Step E: If 'Fill', perform a center-crop to cut off the bleeding edges
-                                if (mode == ImageResizeMode.Fill && inputW > 0 && inputH > 0)
-                                {
-                                    int cropBoxW = (int)targetBoxW;
-                                    int cropBoxH = (int)targetBoxH;
-
-                                    int left = (scaleW - cropBoxW) / 2;
-                                    int top = (scaleH - cropBoxH) / 2;
-
-                                    finalImage = scaledImage.Subset(new SkiaSharp.SKRectI(left, top, left + cropBoxW, top + cropBoxH));
-                                }
-
-                                // Step F: Encode to match the original file format
-                                SkiaSharp.SKEncodedImageFormat format = SkiaSharp.SKEncodedImageFormat.Jpeg;
-                                if (ext == ".png") format = SkiaSharp.SKEncodedImageFormat.Png;
-                                else if (ext == ".webp") format = SkiaSharp.SKEncodedImageFormat.Webp;
-                                else if (ext == ".bmp") format = SkiaSharp.SKEncodedImageFormat.Bmp;
-
-                                using (var data = finalImage.Encode(format, 95))
-                                using (var outStream = new System.IO.FileStream(targetFilePath, System.IO.FileMode.Create, System.IO.FileAccess.Write))
-                                {
-                                    data.SaveTo(outStream);
-                                }
-
-                                if (finalImage != scaledImage) finalImage.Dispose();
-                            }
-                        }
-
-                        // Update the UI item
+                        string newPath = ImageProcessor.ResizeImage(img.FilePath, inputW, inputH, mode, unit, resizedSuffix, tempFolder);
+                        if (newPath == null) return;
                         Application.Current.Dispatcher.Invoke(() =>
                         {
-                            img.FilePath = targetFilePath;
-                            img.FileName = newFileName;
+                            img.FilePath = newPath;
+                            img.FileName = System.IO.Path.GetFileName(newPath);
                             img.Icon = null;
                         });
-
-                        // This forces the cores to line up and count perfectly
                         System.Threading.Interlocked.Increment(ref successCount);
                     }
                     catch (System.Exception ex)
                     {
-                        // 1. Tag it with the context (including the specific file name!)
                         ex.Data.Add("PocketDrop Context", $"Could not resize {img.FileName}");
-
-                        // 2. Send it off to Sentry
                         SentrySdk.CaptureException(ex);
                     }
                 });
@@ -2256,37 +1860,13 @@ namespace PocketDrop
             {
                 try
                 {
-                    System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
-
-                    using (var document = new PdfSharp.Pdf.PdfDocument())
-                    {
-                        foreach (var img in imagesToProcess)
-                        {
-                            var page = document.AddPage();
-
-                            using (var fs = File.OpenRead(img.FilePath))
-                            using (var xImage = PdfSharp.Drawing.XImage.FromStream(fs))
-                            {
-                                page.Width = xImage.PointWidth;
-                                page.Height = xImage.PointHeight;
-
-                                using (var gfx = PdfSharp.Drawing.XGraphics.FromPdfPage(page))
-                                {
-                                    gfx.DrawImage(xImage, 0, 0, page.Width, page.Height);
-                                }
-                            }
-                        }
-
-                        document.Save(targetFilePath);
-                        success = true;
-                    }
+                    var imagePaths = imagesToProcess.Select(img => img.FilePath).ToList();
+                    ImageProcessor.CreatePdfFromImages(imagePaths, targetFilePath);
+                    success = true;
                 }
                 catch (Exception ex)
                 {
-                    // 1. Tag it with the context
                     ex.Data.Add("PocketDrop Context", "Could not create PDF");
-
-                    // 2. Send it off to Sentry
                     SentrySdk.CaptureException(ex);
                 }
             });
@@ -2301,7 +1881,7 @@ namespace PocketDrop
                 };
 
                 PocketedItems.Add(newPdfItem);
-                // ? FIX: Push the newly generated PDF to the global history list!
+                // Push the newly generated PDF to the global history list
                 if (!AppGlobals.SessionHistoryPaths.Contains(newPdfItem.FilePath))
                 {
                     AppGlobals.SessionHistory.Add(newPdfItem);
@@ -2333,7 +1913,7 @@ namespace PocketDrop
 
             if (existingSettings != null)
             {
-                existingSettings.Activate(); // Bring it to the front
+                existingSettings.Activate();
             }
             else
             {
@@ -2353,8 +1933,7 @@ namespace PocketDrop
             // 2. Plan A: Spawn below the app
             double yBelow = targetSize.Height + 0;
 
-            // 3. Plan B: Spawn above the app
-            // Increase bottom margin to clear invisible border and drop shadow
+            // 3. Plan B: Spawn above the app - Increase bottom margin to clear invisible border and drop shadow
             double yAbove = -popupSize.Height - 40;
 
             return new[]
@@ -2370,7 +1949,7 @@ namespace PocketDrop
             // 1. Unselect all files so they don't stay highlighted
             ItemsListBox.UnselectAll();
 
-            // 2. Scroll back to the very top for the next time it opens!
+            // 2. Scroll back to the very top for the next time it opens
             var scrollViewer = GetScrollViewer(ItemsListBox);
             if (scrollViewer != null)
             {
@@ -2413,7 +1992,7 @@ namespace PocketDrop
         private static void MouseTimer_Tick(object sender, EventArgs e)
         {
             // 1. Physically check the hardware switch on the left mouse button
-            bool isLeftClickHeld = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
+            bool isLeftClickHeld = (AppHelpers.GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
 
             if (isLeftClickHeld)
             {
@@ -2436,8 +2015,8 @@ namespace PocketDrop
                     int driftX = Math.Abs(pt.X - _shakeAnchor.Value.X);
                     int driftY = Math.Abs(pt.Y - _shakeAnchor.Value.Y);
 
-                    // If the mouse drifts more than 350px wide or 250px tall, treat it as a drag or selection and invalidate the shake
-                    if (driftX > 350 || driftY > 250)
+                    // If the mouse drifts more than the designated threshold, treat it as a drag or selection and invalidate the shake
+                    if (driftX > 280 || driftY > 200)
                     {
                         _shakeInvalidated = true;
                         return;
@@ -2449,8 +2028,8 @@ namespace PocketDrop
                     currentMouseX: pt.X,
                     currentTimestampMs: Environment.TickCount64,
                     minDistancePx: AppGlobals.ShakeMinimumDistance,
-                    maxTimeMs: 650,
-                    requiredSwings: 4
+                    maxTimeMs: 500,
+                    requiredSwings: 3
                 );
 
                 // 4. Spawn the pocket
@@ -2660,10 +2239,7 @@ namespace PocketDrop
             }
             catch (Exception ex)
             {
-                // 1. Tag it with the context
                 ex.Data.Add("PocketDrop Context", "Could not clean up temp file");
-
-                // 2. Send it off to Sentry
                 SentrySdk.CaptureException(ex);
             }
         }
@@ -2688,11 +2264,11 @@ namespace PocketDrop
                 // If deleting those files emptied the pocket completely
                 if (AppGlobals.CloseWhenEmptied)
                 {
-                    ForceClose(); // Safely animate and close
+                    ForceClose();
                 }
                 else
                 {
-                    // Or just reset it to the "Drop files here" state
+                    // Reset it to the "Drop files here" state
                     StatusText.Visibility = Visibility.Visible;
                     FileIconContainer.Visibility = Visibility.Collapsed;
                     StackContainer.Children.Clear();
@@ -2884,13 +2460,13 @@ namespace PocketDrop
             {
                 _isTopOrLeft = isTopOrLeft;
                 _isGrid = isGrid;
-                IsHitTestVisible = false; // Lets the mouse pass directly through the line
+                IsHitTestVisible = false;
             }
 
             protected override void OnRender(DrawingContext drawingContext)
             {
                 var pen = new Pen(System.Windows.Media.Brushes.DodgerBlue, 3);
-                pen.Freeze(); // Optimizes performance
+                pen.Freeze();
 
                 double width = AdornedElement.RenderSize.Width;
                 double height = AdornedElement.RenderSize.Height;
@@ -2946,8 +2522,7 @@ namespace PocketDrop
                 ? pos.X < (targetItem.ActualWidth / 2)
                 : pos.Y < (targetItem.ActualHeight / 2);
 
-            // ? NEW: THE WRAP-AROUND FIX ?
-            // Only jump to the next item if it's on the SAME physical row
+            // Only jump to the next item if it's on the same physical row
             if (!insertBefore)
             {
                 int index = ItemsListBox.ItemContainerGenerator.IndexFromContainer(targetItem);
@@ -2965,8 +2540,6 @@ namespace PocketDrop
                                 Point targetUiPos = targetItem.TransformToAncestor(ItemsListBox).Transform(new Point(0, 0));
                                 Point nextUiPos = nextItem.TransformToAncestor(ItemsListBox).Transform(new Point(0, 0));
 
-                                // If they share the same Y line (with a 10px margin of error), they are on the same row.
-                                // If true, snap the line to the left of the next item to close the gap.
                                 if (Math.Abs(targetUiPos.Y - nextUiPos.Y) < 10)
                                 {
                                     targetItem = nextItem;
@@ -3016,16 +2589,15 @@ namespace PocketDrop
                 _lastHoveredItem = null;
             }
         }
-
         private void ItemsListBox_Drop(object sender, DragEventArgs e)
         {
-            // ? FIX: Capture the exact target where the blue line was drawn BEFORE clearing it
+            // Capture the exact target where the blue line was drawn before clearing it
             var finalTargetItem = _lastHoveredItem;
             bool finalInsertAbove = _insertAbove;
 
             ClearDragHighlight();
 
-            // ? NEW: Force the main window glow to hide, just in case!
+            // Force-hide the main window glow
             DragGlowBorder.Visibility = Visibility.Collapsed;
 
             if (_internalDragPayload != null)
@@ -3043,10 +2615,8 @@ namespace PocketDrop
                     var targetData = finalTargetItem.DataContext as PocketItem;
                     insertIndex = PocketedItems.IndexOf(targetData);
 
-                    // If the blue line was drawn on the right/bottom (this only happens on the very last item now)
                     if (!finalInsertAbove) insertIndex++;
 
-                    // Adjust the index only if the item being moved came from above the drop target
                     int originalIndex = PocketedItems.IndexOf(draggedItems[0]);
                     if (originalIndex < insertIndex) insertIndex--;
                 }
@@ -3091,7 +2661,7 @@ namespace PocketDrop
             var validImages = itemsToProcess.Where(item =>
                 validExts.Contains(Path.GetExtension(item.FilePath).ToLower()) &&
                 File.Exists(item.FilePath) &&
-                new FileInfo(item.FilePath).Length > 0 // Explicitly reject 0-byte files here!
+                new FileInfo(item.FilePath).Length > 0 // Explicitly reject 0-byte files
             ).ToList();
 
             // 4. Show a warning if no valid images remain
@@ -3105,54 +2675,5 @@ namespace PocketDrop
 
             return validImages;
         }
-    }
-
-    public class PocketItem : System.ComponentModel.INotifyPropertyChanged
-    {
-        private string _fileName;
-        public string FileName
-        {
-            get => _fileName;
-            set
-            {
-                _fileName = value;
-                PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(FileName)));
-            }
-        }
-
-        // Stores the file's original source path
-        private string _originalFilePath;
-        public string OriginalFilePath => _originalFilePath;
-
-        private string _filePath;
-        public string FilePath
-        {
-            get => _filePath;
-            set
-            {
-                _filePath = value;
-
-                // Automatically capture the original path on first assignment
-                if (string.IsNullOrEmpty(_originalFilePath)) _originalFilePath = value;
-
-                PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(FilePath)));
-            }
-        }
-
-        public bool IsPinned { get; set; }
-        public bool IsSnippet { get; set; } = false;
-
-        private System.Windows.Media.ImageSource _icon;
-        public System.Windows.Media.ImageSource Icon
-        {
-            get => _icon;
-            set
-            {
-                _icon = value;
-                PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(Icon)));
-            }
-        }
-
-        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
     }
 }

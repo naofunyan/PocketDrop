@@ -25,7 +25,7 @@ namespace PocketDrop
         // 1. STATE & VARIABLES
         // ================================================ //
 
-        // Variables to track drag-and-drop math and multi-select snapshots
+        // Track drag-and-drop offsets and multi-select state
         private Point? _listDragStart = null;
         private List<PocketItem> _dragCandidates = null;
 
@@ -36,34 +36,30 @@ namespace PocketDrop
         // ================================================ //
         // 2. WINDOW LIFECYCLE & ANIMATIONS
         // ================================================ //
-
         public MyPocketsWindow()
         {
             InitializeComponent();
 
             HistoryListBox.ItemsSource = AppGlobals.SessionHistory;
             RefreshHistory();
-            // Tell this window to automatically run RefreshHistory() anytime the background data changes
+            // Tell this to auto run RefreshHistory() to background data changes
             AppGlobals.SessionHistory.CollectionChanged += (s, e) =>
             {
                 Application.Current.Dispatcher.Invoke(() => RefreshHistory());
             };
         }
 
-        // Snap window seamlessly to taskbar
+        // Snap the window to the taskbar
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            // Fetch the decoupled math
             Point snapPos = AppHelpers.CalculateTaskbarSnapPosition(
                 this.Width, this.Height,
                 SystemParameters.WorkArea.Width, SystemParameters.WorkArea.Height,
                 shadowMargin: 13);
 
-            // Apply the coordinates
             this.Left = snapPos.X;
             this.Top = snapPos.Y;
 
-            // The entance animation
             var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200));
             var slideIn = new DoubleAnimation(40, 0, TimeSpan.FromMilliseconds(250))
             {
@@ -92,37 +88,29 @@ namespace PocketDrop
             WindowTranslate.BeginAnimation(TranslateTransform.YProperty, slideOut);
         }
 
-        // 1. Add this variable near the top of your class
+        // Pin My Pockets
         private bool isPinned = false;
 
-        // 2. Update your deactivated event to respect the pin
         private void Window_Deactivated(object sender, EventArgs e)
         {
-            // Only close if the user hasn't pinned the window
             if (!isPinned)
             {
                 AnimateClose();
             }
         }
 
-        // 3. Add the click event for our new Pin button
         private void PinWindowBtn_Click(object sender, RoutedEventArgs e)
         {
             isPinned = !isPinned;
-
-            // Keep the window layered above others when pinned so it doesn't get lost
             this.Topmost = isPinned;
-
-            // Visual feedback: dim the button when not pinned, full opacity when pinned
             PinWindowBtn.Opacity = isPinned ? 1.0 : 0.5;
         }
 
-        // Make the window draggable
+        // Enable window dragging
         protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
         {
             base.OnMouseLeftButtonDown(e);
 
-            // Allow dragging the window anywhere user clicks
             if (e.ButtonState == MouseButtonState.Pressed)
             {
                 this.DragMove();
@@ -133,10 +121,7 @@ namespace PocketDrop
         {
             ToastText.Text = message;
 
-            // Fade in
             var fadeIn = new System.Windows.Media.Animation.DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200));
-
-            // Wait 1.5 seconds, then fade out
             var fadeOut = new System.Windows.Media.Animation.DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(300))
             {
                 BeginTime = TimeSpan.FromSeconds(1.5)
@@ -158,8 +143,6 @@ namespace PocketDrop
         // ================================================ //
         // 3. CORE DATA & UI SYNC
         // ================================================ //
-
-        // Checks the RAM and updates the UI
         public void RefreshHistory()
         {
             if (AppGlobals.SessionHistory.Count > 0)
@@ -182,10 +165,10 @@ namespace PocketDrop
         // 4. SIDEBAR ACTIONS & NAVIGATION
         // ================================================ //
 
-        // Spawn a new Pocket
+        // Create a new Pocket
         private void AddPocket_Click(object sender, RoutedEventArgs e)
         {
-            AppGlobals.TriggerNewPocket(); // Broadcast the signal!
+            AppGlobals.TriggerNewPocket();
         }
 
         private void TabHome_Click(object sender, RoutedEventArgs e)
@@ -195,19 +178,18 @@ namespace PocketDrop
 
             if (view != null)
             {
-                // 2. Clear the filter to show EVERYTHING
+                // 2. Clear the filter to show all items
                 view.Filter = null;
             }
         }
 
         private void TabPinned_Click(object sender, RoutedEventArgs e)
         {
-            // 1. Get the current view of the ListBox
             ICollectionView view = CollectionViewSource.GetDefaultView(HistoryListBox.ItemsSource);
 
             if (view != null)
             {
-                // 2. Apply a filter to only show items where IsPinned == true
+                // Filter to show only pinned items
                 view.Filter = item =>
                 {
                     if (item is PocketItem pocket)
@@ -221,10 +203,9 @@ namespace PocketDrop
 
         private void PinButton_Click(object sender, RoutedEventArgs e)
         {
-            // 1. Get the current view of the ListBox
             ICollectionView view = CollectionViewSource.GetDefaultView(HistoryListBox.ItemsSource);
 
-            // 2. Force the view to re-evaluate its filter immediately
+            // Refresh the view filter immediately
             if (view != null)
             {
                 view.Refresh();
@@ -271,28 +252,25 @@ namespace PocketDrop
         // Open Settings
         private void Settings_Click(object sender, RoutedEventArgs e)
         {
-            // 1. Check if a Settings window is already open anywhere in the app
             var existingSettings = System.Windows.Application.Current.Windows.OfType<SettingsWindow>().FirstOrDefault();
 
             if (existingSettings != null)
             {
-                // If it is minimized, restore it
                 if (existingSettings.WindowState == WindowState.Minimized)
                 {
                     existingSettings.WindowState = WindowState.Normal;
                 }
 
-                existingSettings.Activate(); // Bring it to the foreground
+                existingSettings.Activate();
             }
             else
             {
-                // Create new window instance if none exists
                 var settingsWindow = new SettingsWindow();
                 settingsWindow.Show();
                 settingsWindow.Activate();
             }
 
-            this.Close(); // Close the My Pockets popup
+            this.Close();
         }
 
 
@@ -372,11 +350,11 @@ namespace PocketDrop
 
                     if (filePaths.Length > 0)
                     {
-                        // ? NEW: Match standard Windows drag behavior!
+                        // Match standard Windows drag behavior
                         bool isShiftDown = Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
                         bool isCtrlDown = Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl);
 
-                        // Start with the user's default setting
+                        // Initialize with the user's saved setting
                         bool isCopy = AppGlobals.CopyItemToDestination;
 
                         // Apply Windows overrides
@@ -385,35 +363,32 @@ namespace PocketDrop
 
                         DataObject dragData = new DataObject(DataFormats.FileDrop, filePaths);
 
-                        // ? NEW: Tell Windows File Explorer what to do using the DropEffect Stream
                         using (var dropEffectStream = new System.IO.MemoryStream(new byte[] { (byte)(isCopy ? 1 : 2), 0, 0, 0 }))
                         {
                             dragData.SetData("Preferred DropEffect", dropEffectStream);
                         }
 
-                        // Reset the trackers before the drag locks the thread
+                        // Reset drag trackers before starting the drag operation
                         _listDragStart = null;
                         _dragCandidates = null;
 
                         DragDropEffects result = DragDrop.DoDragDrop(element, dragData, DragDropEffects.All);
 
-                        // ? NEW: If it was a successful move, clean up the original file and the History UI
+                        // On successful move, remove the source file and update history
                         if (result != DragDropEffects.None && !isCopy)
                         {
                             foreach (var item in selectedItems)
                             {
-                                // If the dragged file was a modified temp file (like a resized image), 
-                                // we must also delete the original file to complete the illusion of a full move.
+                                // If the source was a modified temp file, delete the original to complete the move.
                                 if (item.OriginalFilePath != item.FilePath)
                                 {
                                     try { if (System.IO.File.Exists(item.OriginalFilePath)) System.IO.File.Delete(item.OriginalFilePath); } catch { }
                                 }
 
-                                // Remove it from the global RAM
                                 AppGlobals.SessionHistory.Remove(item);
                             }
 
-                            // Instantly update the UI to show the file is gone
+                            // Remove the file from the UI immediately
                             RefreshHistory();
                             AppGlobals.TriggerPocketsRefresh();
                         }
@@ -428,10 +403,8 @@ namespace PocketDrop
             {
                 if (sender is FrameworkElement element && element.DataContext is PocketItem clickedItem)
                 {
-                    // If the user clicked a file that was already-selected in the blue group...
                     if (_dragCandidates != null)
                     {
-                        // Toggle it off
                         if (HistoryListBox.SelectedItems.Contains(clickedItem))
                         {
                             HistoryListBox.SelectedItems.Remove(clickedItem);
@@ -441,11 +414,10 @@ namespace PocketDrop
                             HistoryListBox.SelectedItems.Add(clickedItem);
                         }
 
-                        e.Handled = true; // Suppress click event to prevent ListBox from instantly reselecting item
+                        e.Handled = true;
                     }
                 }
 
-                // Clean up the trackers for the next click
                 _listDragStart = null;
                 _dragCandidates = null;
             }
@@ -506,6 +478,27 @@ namespace PocketDrop
             DeleteConfirmPopup.IsOpen = false;
         }
 
+        private void DeletePocketItems(List<PocketItem> itemsToDelete)
+        {
+            string tempFolder = System.IO.Path.GetTempPath();
+
+            foreach (var item in itemsToDelete)
+            {
+                try
+                {
+                    // Delete the physical file only if it lives inside the Temp folder
+                    if (!string.IsNullOrEmpty(item.FilePath) && item.FilePath.StartsWith(tempFolder, StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (System.IO.File.Exists(item.FilePath)) System.IO.File.Delete(item.FilePath);
+                    }
+                }
+                catch { }
+
+                // Remove it from the UI list and global RAM
+                AppGlobals.SessionHistory.Remove(item);
+            }
+        }
+
         // Delete command: Confirmation box
         private void ConfirmDelete_Click(object sender, RoutedEventArgs e)
         {
@@ -515,22 +508,7 @@ namespace PocketDrop
             // 2. Remove only unpinned items from memory on clear
             var itemsToDelete = AppGlobals.SessionHistory.Cast<PocketItem>().Where(p => !p.IsPinned).ToList();
 
-            string tempFolder = System.IO.Path.GetTempPath(); // ? Grab the temp path
-
-            foreach (var item in itemsToDelete)
-            {
-                // ? FIX: Delete the physical file ONLY if it lives inside the Temp folder
-                try
-                {
-                    if (!string.IsNullOrEmpty(item.FilePath) && item.FilePath.StartsWith(tempFolder, StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (System.IO.File.Exists(item.FilePath)) System.IO.File.Delete(item.FilePath);
-                    }
-                }
-                catch { }
-
-                AppGlobals.SessionHistory.Remove(item); // Now remove it from the UI list
-            }
+            DeletePocketItems(itemsToDelete);
 
             // 3. Refresh the UI to reflect the remaining items
             RefreshHistory();
@@ -547,23 +525,7 @@ namespace PocketDrop
             // 2. Grab a snapshot of the highlighted items
             var itemsToDelete = HistoryListBox.SelectedItems.Cast<PocketItem>().ToList();
 
-            string tempFolder = System.IO.Path.GetTempPath(); // ? Grab the temp path
-
-            // 3. Remove them from the global history AND the hard drive
-            foreach (var item in itemsToDelete)
-            {
-                // ? FIX: Delete the physical file ONLY if it lives inside the Temp folder
-                try
-                {
-                    if (!string.IsNullOrEmpty(item.FilePath) && item.FilePath.StartsWith(tempFolder, StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (System.IO.File.Exists(item.FilePath)) System.IO.File.Delete(item.FilePath);
-                    }
-                }
-                catch { }
-
-                AppGlobals.SessionHistory.Remove(item);
-            }
+            DeletePocketItems(itemsToDelete);
 
             // 4. Uncheck the "Select all" box
             if (SelectAllCheckBox != null)
