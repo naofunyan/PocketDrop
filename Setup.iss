@@ -12,6 +12,7 @@ AppName=PocketDrop
 AppVersion={#MyAppVersion}
 AppPublisher=Naofunyan
 AppCopyright=Copyright (C) 2026 Naofunyan
+CloseApplications=yes
 
 DisableDirPage=no
 
@@ -64,17 +65,45 @@ Name: "{autoprograms}\PocketDrop"; Filename: "{app}\PocketDrop.exe"
 Name: "{autodesktop}\PocketDrop"; Filename: "{app}\PocketDrop.exe"; Tasks: desktopicon
 
 [Registry]
-; Register PocketDrop to run at Windows startup
+; Register PocketDrop to run silently at Windows startup
 Root: HKCU; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Run"; \
     ValueType: string; ValueName: "PocketDrop"; \
-    ValueData: """{app}\PocketDrop.exe"""; \
+    ValueData: """{app}\PocketDrop.exe"" -startup"; \
     Flags: uninsdeletevalue
 
-; Reset the welcome screen flag on every install/reinstall
-; This ensures the welcome screen always shows after a fresh install
+; Only set the welcome screen flag to False if it doesn't already exist
+; This prevents the welcome screen from annoying existing users during an update
 Root: HKCU; Subkey: "Software\PocketDrop"; \
     ValueType: string; ValueName: "HasSeenWelcome"; \
-    ValueData: "False";
+    ValueData: "False"; \
+    Flags: createvalueifdoesntexist uninsdeletevalue
 
 [Run]
 Filename: "{app}\PocketDrop.exe"; Description: "{cm:LaunchProgram,PocketDrop}"; Flags: nowait postinstall skipifsilent
+
+[UninstallDelete]
+; This forcefully deletes the entire PocketDrop folder and everything inside it when the user uninstalls.
+Type: filesandordirs; Name: "{app}"
+
+[Code]
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  AppDataFolder: String;
+begin
+  // Trigger this only AFTER the main uninstallation is completely finished
+  if CurUninstallStep = usPostUninstall then
+  begin
+    // Ask the user if they want to nuke their data
+    if MsgBox('PocketDrop has been uninstalled.' + #13#10 + #13#10 + 'Would you also like to delete your personal settings, saved preferences, and PocketDrop AppData?', mbConfirmation, MB_YESNO) = idYes then
+    begin
+      // If they click Yes, find their specific AppData\Local\PocketDrop folder
+      AppDataFolder := ExpandConstant('{localappdata}\PocketDrop');
+      
+      // Delete the folder and everything inside it permanently
+      if DirExists(AppDataFolder) then
+      begin
+        DelTree(AppDataFolder, True, True, True);
+      end;
+    end;
+  end;
+end;
