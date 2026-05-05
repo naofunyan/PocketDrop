@@ -287,20 +287,43 @@ namespace PocketDrop
             {
                 if (sender is FrameworkElement element && element.DataContext is PocketItem pocket)
                 {
+                    // SAFETY NET 1: Verify the file actually still exists on the hard drive
+                    if (!System.IO.File.Exists(pocket.FilePath))
+                    {
+                        string notFoundTitle = (string)Application.Current.Resources["Text_ErrorTitle"] ?? "File Missing";
+                        MessageBox.Show("This file no longer exists in the Temp folder. It may have been moved or deleted.", notFoundTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
                     try
                     {
+                        // THE STANDARD WAY: Ask Windows to open the file with the default app
                         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo()
                         {
                             FileName = pocket.FilePath,
                             UseShellExecute = true
                         });
                     }
-                    catch (Exception ex)
+                    catch
                     {
-                        string errorTitle = (string)Application.Current.Resources["Text_ErrorTitle"] ?? "Error";
-                        string errorPrefix = (string)Application.Current.Resources["Text_OpenFileError"] ?? "Could not open file:";
+                        try
+                        {
+                            // THE FALLBACK: If the default Photos app is broken (UWP bug), force it to open in MS Paint!
+                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo()
+                            {
+                                FileName = "mspaint.exe",
+                                Arguments = $"\"{pocket.FilePath}\"",
+                                UseShellExecute = true
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            // Only show an error if even MS Paint fails
+                            string errorTitle = (string)Application.Current.Resources["Text_ErrorTitle"] ?? "Error";
+                            string errorPrefix = (string)Application.Current.Resources["Text_OpenFileError"] ?? "Could not open file:";
 
-                        MessageBox.Show($"{errorPrefix}\n\n{ex.Message}", errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show($"{errorPrefix}\n\n{ex.Message}", errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
                     }
                 }
                 e.Handled = true;

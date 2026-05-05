@@ -1606,6 +1606,8 @@ namespace PocketDrop
 
                         Application.Current.Dispatcher.Invoke(() =>
                         {
+                            AppGlobals.SessionHistoryPaths.Remove(img.FilePath);
+                            AppGlobals.SessionHistoryPaths.Add(newPath);
                             img.FilePath = newPath;
                             img.FileName = Path.GetFileName(newPath);
                         });
@@ -1687,6 +1689,8 @@ namespace PocketDrop
                         if (newPath == null) return; // Skip conversion if already in the correct format
                         Application.Current.Dispatcher.Invoke(() =>
                         {
+                            AppGlobals.SessionHistoryPaths.Remove(img.FilePath);
+                            AppGlobals.SessionHistoryPaths.Add(newPath);
                             img.FilePath = newPath;
                             img.FileName = System.IO.Path.GetFileName(newPath);
                             img.Icon = null;
@@ -1778,11 +1782,15 @@ namespace PocketDrop
                         if (newPath == null) return;
                         Application.Current.Dispatcher.Invoke(() =>
                         {
+                            AppGlobals.SessionHistoryPaths.Remove(img.FilePath);
+                            AppGlobals.SessionHistoryPaths.Add(newPath);
+
                             img.FilePath = newPath;
                             img.FileName = System.IO.Path.GetFileName(newPath);
                             img.Icon = null;
                         });
                         System.Threading.Interlocked.Increment(ref successCount);
+
                     }
                     catch (System.Exception ex)
                     {
@@ -1879,11 +1887,15 @@ namespace PocketDrop
                         if (newPath == null) return;
                         Application.Current.Dispatcher.Invoke(() =>
                         {
+                            AppGlobals.SessionHistoryPaths.Remove(img.FilePath);
+                            AppGlobals.SessionHistoryPaths.Add(newPath);
+
                             img.FilePath = newPath;
                             img.FileName = System.IO.Path.GetFileName(newPath);
                             img.Icon = null;
                         });
                         System.Threading.Interlocked.Increment(ref successCount);
+
                     }
                     catch (System.Exception ex)
                     {
@@ -2457,26 +2469,21 @@ namespace PocketDrop
                     {
                         if (isImage)
                         {
-                            // For images, Windows extracts the embedded EXIF thumbnail directly, bypassing WPF's full 4K decoding overhead
                             using (ShellObject shellObj = ShellObject.FromParsingName(filePath))
                             {
+                                var unmanagedThumb = shellObj.Thumbnail.LargeBitmapSource;
                                 var wpfBmp = new BitmapImage();
-
-                                using (var drawingBmp = shellObj.Thumbnail.Bitmap)
+                                using (var ms = new System.IO.MemoryStream())
                                 {
-                                    using (var ms = new System.IO.MemoryStream())
-                                    {
-                                        // Bounce the tiny OS thumbnail through RAM
-                                        drawingBmp.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
-                                        ms.Position = 0;
-
-                                        wpfBmp.BeginInit();
-                                        wpfBmp.CacheOption = BitmapCacheOption.OnLoad;
-                                        wpfBmp.StreamSource = ms;
-                                        wpfBmp.EndInit();
-                                    }
+                                    var encoder = new PngBitmapEncoder();
+                                    encoder.Frames.Add(BitmapFrame.Create(unmanagedThumb));
+                                    encoder.Save(ms);
+                                    ms.Position = 0;
+                                    wpfBmp.BeginInit();
+                                    wpfBmp.CacheOption = BitmapCacheOption.OnLoad;
+                                    wpfBmp.StreamSource = ms;
+                                    wpfBmp.EndInit();
                                 }
-
                                 wpfBmp.Freeze();
                                 return (System.Windows.Media.ImageSource)wpfBmp;
                             }
@@ -2488,7 +2495,6 @@ namespace PocketDrop
                             {
                                 var unmanagedThumb = shellObj.Thumbnail.LargeBitmapSource;
 
-                                // ? THE FATAL FLAW FIX: 
                                 // Deep-copy the unmanaged COM image into safe, managed WPF memory
                                 var wpfBmp = new BitmapImage();
                                 using (var ms = new System.IO.MemoryStream())
@@ -2502,12 +2508,12 @@ namespace PocketDrop
 
                                     // Load it back into a purely managed BitmapImage
                                     wpfBmp.BeginInit();
-                                    wpfBmp.CacheOption = BitmapCacheOption.OnLoad; // CRITICAL: Copies pixels to RAM
+                                    wpfBmp.CacheOption = BitmapCacheOption.OnLoad;
                                     wpfBmp.StreamSource = ms;
                                     wpfBmp.EndInit();
                                 }
 
-                                wpfBmp.Freeze(); // Lock it so it can be shared across the UI thread
+                                wpfBmp.Freeze();
 
                                 // Save to cache for next time
                                 if (!isUnique)
