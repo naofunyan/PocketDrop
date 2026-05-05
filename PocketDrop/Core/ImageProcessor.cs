@@ -283,8 +283,16 @@ namespace PocketDrop
                             ? Math.Min(ratioX, ratioY)
                             : Math.Max(ratioX, ratioY);
 
-                        scaleW = (int)(originalW * ratio);
-                        scaleH = (int)(originalH * ratio);
+                        // Use Math.Ceiling to prevent floating-point truncation (e.g. 1699.999 -> 1700)
+                        scaleW = (int)Math.Ceiling(originalW * ratio);
+                        scaleH = (int)Math.Ceiling(originalH * ratio);
+
+                        // Safety Net: Ensure the scaled image is NEVER smaller than the target crop box
+                        if (mode == ImageResizeMode.Fill)
+                        {
+                            scaleW = Math.Max(scaleW, (int)targetBoxW);
+                            scaleH = Math.Max(scaleH, (int)targetBoxH);
+                        }
                     }
                 }
 
@@ -301,10 +309,22 @@ namespace PocketDrop
                     {
                         int cropBoxW = (int)targetBoxW;
                         int cropBoxH = (int)targetBoxH;
-                        int left = (scaleW - cropBoxW) / 2;
-                        int top = (scaleH - cropBoxH) / 2;
 
-                        finalImage = scaledImage.Subset(new SkiaSharp.SKRectI(left, top, left + cropBoxW, top + cropBoxH));
+                        // Prevent negative coordinates just in case
+                        int left = Math.Max(0, (scaleW - cropBoxW) / 2);
+                        int top = Math.Max(0, (scaleH - cropBoxH) / 2);
+
+                        // Prevent the crop box from exceeding the right/bottom boundaries
+                        int right = Math.Min(scaleW, left + cropBoxW);
+                        int bottom = Math.Min(scaleH, top + cropBoxH);
+
+                        var croppedImage = scaledImage.Subset(new SkiaSharp.SKRectI(left, top, right, bottom));
+
+                        // Final safety check: if Subset fails, fallback to the uncropped scaled image instead of crashing
+                        if (croppedImage != null)
+                        {
+                            finalImage = croppedImage;
+                        }
                     }
 
                     // Step F: Encode to match original format
