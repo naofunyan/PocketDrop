@@ -91,11 +91,11 @@ function InitializeUninstall(): Boolean;
 var
   ResultCode: Integer;
 begin
-  // Fire the taskkill command before the uninstaller even looks at the folder
-  Exec('taskkill.exe', '/F /IM PocketDrop.exe /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  // Use {cmd} to guarantee Windows finds the taskkill command perfectly
+  Exec(ExpandConstant('{cmd}'), '/C taskkill /F /IM PocketDrop.exe /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   
   // Give Windows 1 second to fully release the file handles from memory
-  Sleep(1000); 
+  Sleep(1000);
   
   Result := True;
 end;
