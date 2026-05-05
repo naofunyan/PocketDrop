@@ -81,15 +81,26 @@ Root: HKCU; Subkey: "Software\PocketDrop"; \
 [Run]
 Filename: "{app}\PocketDrop.exe"; Description: "{cm:LaunchProgram,PocketDrop}"; Flags: nowait postinstall skipifsilent
 
-[UninstallRun]
-; Forcefully kill the PocketDrop process silently before uninstallation begins
-Filename: "{cmd}"; Parameters: "/C taskkill /F /IM PocketDrop.exe /T"; Flags: runhidden
-
 [UninstallDelete]
 ; This forcefully deletes the entire PocketDrop folder and everything inside it when the user uninstalls.
 Type: filesandordirs; Name: "{app}"
 
 [Code]
+// 1. This runs the absolute millisecond the user clicks "Uninstall"
+function InitializeUninstall(): Boolean;
+var
+  ResultCode: Integer;
+begin
+  // Fire the taskkill command before the uninstaller even looks at the folder
+  Exec('taskkill.exe', '/F /IM PocketDrop.exe /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  
+  // Give Windows 1 second to fully release the file handles from memory
+  Sleep(1000); 
+  
+  Result := True;
+end;
+
+// 2. Your existing cleanup code that runs at the very end
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
   AppDataFolder: String;
