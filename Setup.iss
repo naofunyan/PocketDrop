@@ -81,6 +81,10 @@ Root: HKCU; Subkey: "Software\PocketDrop"; \
 [Run]
 Filename: "{app}\PocketDrop.exe"; Description: "{cm:LaunchProgram,PocketDrop}"; Flags: nowait postinstall skipifsilent
 
+[UninstallRun]
+; Forcefully kill the PocketDrop process silently before uninstallation begins
+Filename: "{cmd}"; Parameters: "/C taskkill /F /IM PocketDrop.exe /T"; Flags: runhidden
+
 [UninstallDelete]
 ; This forcefully deletes the entire PocketDrop folder and everything inside it when the user uninstalls.
 Type: filesandordirs; Name: "{app}"
