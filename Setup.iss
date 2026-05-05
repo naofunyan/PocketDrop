@@ -12,10 +12,12 @@ AppName=PocketDrop
 AppVersion={#MyAppVersion}
 AppPublisher=Naofunyan
 AppCopyright=Copyright (C) 2026 Naofunyan
+
+; Detects the running app via its named mutex and closes it gracefully before install/uninstall
+AppMutex=PocketDropSingleInstanceMutex
 CloseApplications=yes
 
 DisableDirPage=no
-
 DisableWelcomePage=no
 
 ; 2. Changed to Relative Paths
@@ -84,47 +86,3 @@ Filename: "{app}\PocketDrop.exe"; Description: "{cm:LaunchProgram,PocketDrop}"; 
 [UninstallDelete]
 ; This forcefully deletes the entire PocketDrop folder and everything inside it when the user uninstalls.
 Type: filesandordirs; Name: "{app}"
-
-[Code]
-// 1. This runs the absolute millisecond the user clicks "Uninstall"
-function InitializeUninstall(): Boolean;
-var
-  ResultCode: Integer;
-begin
-  // Step 1: Ask the app to shut down gracefully via argument
-  Exec(ExpandConstant('{app}\PocketDrop.exe'), '-shutdown', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  
-  // Step 2: Give it 1.5 seconds to clean up the tray icon and exit
-  Sleep(1500);
-
-  // Step 3: Force-kill anything still left over (handles the UAC mismatch case)
-  Exec(ExpandConstant('{cmd}'), '/C taskkill /F /IM PocketDrop.exe /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-
-  // Step 4: Extra buffer for file handle release
-  Sleep(500);
-
-  Result := True;
-end;
-
-// 2. Your existing cleanup code that runs at the very end
-procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
-var
-  AppDataFolder: String;
-begin
-  // Trigger this only AFTER the main uninstallation is completely finished
-  if CurUninstallStep = usPostUninstall then
-  begin
-    // Ask the user if they want to nuke their data
-    if MsgBox('PocketDrop has been uninstalled.' + #13#10 + #13#10 + 'Would you also like to delete your personal settings, saved preferences, and PocketDrop AppData?', mbConfirmation, MB_YESNO) = idYes then
-    begin
-      // If they click Yes, find their specific AppData\Local\PocketDrop folder
-      AppDataFolder := ExpandConstant('{localappdata}\PocketDrop');
-      
-      // Delete the folder and everything inside it permanently
-      if DirExists(AppDataFolder) then
-      begin
-        DelTree(AppDataFolder, True, True, True);
-      end;
-    end;
-  end;
-end;

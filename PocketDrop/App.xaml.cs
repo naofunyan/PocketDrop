@@ -52,15 +52,17 @@ namespace PocketDrop
         }
 
         // The boot sequence
+        private static Mutex _appMutex;
         protected override async void OnStartup(StartupEventArgs e)
         {
-            // Graceful shutdown trigger from uninstaller
-            if (e.Args.Contains("-shutdown"))
+            // Single-instance guard via named mutex
+            _appMutex = new Mutex(true, "PocketDropSingleInstanceMutex", out bool isNewInstance);
+            if (!isNewInstance)
             {
+                // Another instance is already running — exit silently
                 System.Windows.Application.Current.Shutdown();
                 return;
             }
-
             base.OnStartup(e);
 
             // Load all settings early so we can apply Themes/Languages right away
@@ -211,6 +213,9 @@ namespace PocketDrop
                 catch { } // Skip locked files silently
             }
 
+            // Release the mutex cleanly on exit
+            _appMutex?.ReleaseMutex();
+            _appMutex?.Dispose();
             base.OnExit(e);
         }
 
