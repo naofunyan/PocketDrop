@@ -54,6 +54,13 @@ namespace PocketDrop
         // The boot sequence
         protected override async void OnStartup(StartupEventArgs e)
         {
+            // Graceful shutdown trigger from uninstaller
+            if (e.Args.Contains("-shutdown"))
+            {
+                System.Windows.Application.Current.Shutdown();
+                return;
+            }
+
             base.OnStartup(e);
 
             // Load all settings early so we can apply Themes/Languages right away

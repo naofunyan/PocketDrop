@@ -91,12 +91,18 @@ function InitializeUninstall(): Boolean;
 var
   ResultCode: Integer;
 begin
-  // Use {cmd} to guarantee Windows finds the taskkill command perfectly
+  // Step 1: Ask the app to shut down gracefully via argument
+  Exec(ExpandConstant('{app}\PocketDrop.exe'), '-shutdown', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  
+  // Step 2: Give it 1.5 seconds to clean up the tray icon and exit
+  Sleep(1500);
+
+  // Step 3: Force-kill anything still left over (handles the UAC mismatch case)
   Exec(ExpandConstant('{cmd}'), '/C taskkill /F /IM PocketDrop.exe /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  
-  // Give Windows 1 second to fully release the file handles from memory
-  Sleep(1000);
-  
+
+  // Step 4: Extra buffer for file handle release
+  Sleep(500);
+
   Result := True;
 end;
 
