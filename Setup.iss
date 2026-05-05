@@ -63,5 +63,18 @@ Name: "{autoprograms}\PocketDrop"; Filename: "{app}\PocketDrop.exe"
 ; Creates the Desktop shortcut (if the user checked the box)
 Name: "{autodesktop}\PocketDrop"; Filename: "{app}\PocketDrop.exe"; Tasks: desktopicon
 
+[Registry]
+; Register PocketDrop to run at Windows startup
+Root: HKCU; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Run"; \
+    ValueType: string; ValueName: "PocketDrop"; \
+    ValueData: """{app}\PocketDrop.exe"""; \
+    Flags: uninsdeletevalue
+
+; Reset the welcome screen flag on every install/reinstall
+; This ensures the welcome screen always shows after a fresh install
+Root: HKCU; Subkey: "Software\PocketDrop"; \
+    ValueType: string; ValueName: "HasSeenWelcome"; \
+    ValueData: "False";
+
 [Run]
 Filename: "{app}\PocketDrop.exe"; Description: "{cm:LaunchProgram,PocketDrop}"; Flags: nowait postinstall skipifsilent

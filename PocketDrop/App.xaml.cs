@@ -131,35 +131,52 @@ namespace PocketDrop
         }
 
         // Check for updates in the background
+        // Check for updates in the background using the GitHub API
         private async Task CheckForUpdatesOnStartup()
         {
             try
             {
-                string url = "https://raw.githubusercontent.com/naofunyan/PocketDrop/main/version.txt";
-                string latestVersionString = await AppHelpers.GlobalClient.GetStringAsync(url);
+                // 1. Ask the GitHub API for the absolute latest OFFICIAL release
+                string url = "https://api.github.com/repos/naofunyan/PocketDrop/releases/latest";
 
-                string currentVersionString = AppHelpers.GetAppVersion().Replace(" Beta ", "-beta");
-                bool hasUpdate = AppHelpers.IsUpdateAvailable(currentVersionString, latestVersionString);
+                // (Note: GitHub API strictly requires a User-Agent header, which your AppHelpers.GlobalClient already sets!)
+                string jsonResponse = await AppHelpers.GlobalClient.GetStringAsync(url);
 
-                if (hasUpdate)
+                // 2. Parse the JSON response to find the "tag_name" (e.g., "v1.1.0")
+                using (System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(jsonResponse))
                 {
-                    AppGlobals.UpdateAvailable = true;
+                    string latestVersionString = doc.RootElement.GetProperty("tag_name").GetString();
 
-                    string titleTemplate = (string)System.Windows.Application.Current.TryFindResource("Text_UpdateAvailableTitle") ?? "Update Available";
-                    string msgTemplate = (string)System.Windows.Application.Current.TryFindResource("Text_UpdateAvailableMsg") ?? "A new version of PocketDrop ({0}) is available!\n\nWould you like to download it now?";
-                    string finalMessage = string.Format(msgTemplate, latestVersionString.Trim());
-
-                    MessageBoxResult result = System.Windows.MessageBox.Show(finalMessage, titleTemplate, MessageBoxButton.YesNo, MessageBoxImage.Information);
-
-                    if (result == MessageBoxResult.Yes)
+                    // Remove the 'v' or 'V' if your GitHub tags look like "v1.1.0"
+                    if (!string.IsNullOrEmpty(latestVersionString))
                     {
-                        AppHelpers.OpenUrl(AppGlobals.UpdateUrl);
+                        latestVersionString = latestVersionString.TrimStart('v', 'V');
+                    }
+
+                    string currentVersionString = AppHelpers.GetAppVersion().Replace(" Beta ", "-beta");
+                    bool hasUpdate = AppHelpers.IsUpdateAvailable(currentVersionString, latestVersionString);
+
+                    if (hasUpdate)
+                    {
+                        AppGlobals.UpdateAvailable = true;
+
+                        string titleTemplate = (string)System.Windows.Application.Current.TryFindResource("Text_UpdateAvailableTitle") ?? "Update Available";
+                        string msgTemplate = (string)System.Windows.Application.Current.TryFindResource("Text_UpdateAvailableMsg") ?? "A new version of PocketDrop ({0}) is available!\n\nWould you like to download it now?";
+                        string finalMessage = string.Format(msgTemplate, latestVersionString.Trim());
+
+                        MessageBoxResult result = System.Windows.MessageBox.Show(finalMessage, titleTemplate, MessageBoxButton.YesNo, MessageBoxImage.Information);
+
+                        if (result == MessageBoxResult.Yes)
+                        {
+                            // Open your actual Releases page instead of a raw URL
+                            AppHelpers.OpenUrl("https://github.com/naofunyan/PocketDrop/releases/latest");
+                        }
                     }
                 }
             }
             catch
             {
-                // Silent fail if no internet or GitHub blocks the request
+                // Silent fail if no internet, rate limited, or API changes
             }
         }
 
