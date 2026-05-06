@@ -177,9 +177,16 @@ namespace PocketDrop
 
                         if (result == MessageBoxResult.Yes)
                         {
-                            // Open your actual Releases page instead of a raw URL
-                            AppHelpers.OpenUrl("https://github.com/naofunyan/PocketDrop/releases/latest");
+                            // Store version: redirect to the Microsoft Store page
+                            // GitHub version: redirect to the GitHub releases page
+                            bool isStoreVersion = Environment.ProcessPath?.Contains("WindowsApps") == true;
+                            string updateUrl = isStoreVersion
+                                ? "ms-windows-store://pdp/?productid=9NBXRBXV5XN9"
+                                : "https://github.com/naofunyan/PocketDrop/releases/latest";
+
+                            AppHelpers.OpenUrl(updateUrl);
                         }
+
                     }
                 }
             }

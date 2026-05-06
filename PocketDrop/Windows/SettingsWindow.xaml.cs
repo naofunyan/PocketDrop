@@ -79,6 +79,12 @@ namespace PocketDrop
             {
                 ShowUpdateAvailableButton();
             }
+            // 7. Hide the update button entirely for Store users — the Store handles updates automatically
+            if (Environment.ProcessPath?.Contains("WindowsApps") == true)
+            {
+                CheckUpdateBtn.Visibility = Visibility.Collapsed;
+            }
+        }
         }
 
 
@@ -455,6 +461,13 @@ namespace PocketDrop
         // Update checker
         private async void CheckUpdateBtn_Click(object sender, RoutedEventArgs e)
         {
+            // Store version: never download the GitHub installer — redirect to the Store page instead
+            if (Environment.ProcessPath?.Contains("WindowsApps") == true)
+            {
+                AppHelpers.OpenUrl("ms-windows-store://pdp/?productid=9NBXRBXV5XN9");
+                return;
+            }
+
             if (AppGlobals.UpdateAvailable)
             {
                 AppHelpers.OpenUrl(AppGlobals.UpdateUrl);
