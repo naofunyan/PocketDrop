@@ -293,14 +293,63 @@ namespace PocketDrop
         [System.Runtime.InteropServices.DllImport("shell32.dll")]
         private static extern int SHQueryUserNotificationState(out int pquns);
 
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+        public const int GWL_EXSTYLE = -20;
+        public const int WS_EX_TOOLWINDOW = 0x00000080;
+        public const int WS_EX_APPWINDOW = 0x00040000;
+
+        public static void HideFromAltTab(IntPtr hwnd)
+        {
+            int exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+            SetWindowLong(hwnd, GWL_EXSTYLE, (exStyle | WS_EX_TOOLWINDOW) & ~WS_EX_APPWINDOW);
+        }
+
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        public struct RECT { public int Left, Top, Right, Bottom; }
+
         public static bool IsGameModeActive()
         {
             try
             {
+                // Check 1: Traditional exclusive fullscreen DirectX game
+                // State 3 = QUNS_RUNNING_D3D_FULL_SCREEN, State 4 = QUNS_PRESENTATION_MODE
                 SHQueryUserNotificationState(out int state);
-                // 3 = QUNS_RUNNING_D3D_FULL_SCREEN (DirectX Fullscreen Games)
-                // 4 = QUNS_PRESENTATION_MODE (Fullscreen Video / PowerPoint)
-                return state == 3 || state == 4;
+                if (state == 3 || state == 4) return true;
+
+                // Check 2: Borderless windowed fullscreen — the default for almost all modern games.
+                // SHQueryUserNotificationState returns state 1 (normal) for these, so we detect them
+                // by checking if the foreground window covers an entire monitor exactly.
+                IntPtr hwnd = GetForegroundWindow();
+                if (hwnd == IntPtr.Zero) return false;
+
+                // Skip our own PocketDrop windows
+                GetWindowThreadProcessId(hwnd, out uint pid);
+                if (pid == (uint)System.Diagnostics.Process.GetCurrentProcess().Id) return false;
+
+                GetWindowRect(hwnd, out RECT rect);
+
+                // A maximized window does NOT cover the taskbar so its rect won't match Screen.Bounds.
+                // A borderless fullscreen window covers the entire screen including the taskbar area.
+                foreach (System.Windows.Forms.Screen screen in System.Windows.Forms.Screen.AllScreens)
+                {
+                    var b = screen.Bounds;
+                    if (rect.Left == b.Left && rect.Top == b.Top &&
+                        rect.Right == b.Right && rect.Bottom == b.Bottom)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
             }
             catch { return false; }
         }

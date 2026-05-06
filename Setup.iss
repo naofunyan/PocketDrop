@@ -12,6 +12,7 @@ AppName=PocketDrop
 AppVersion={#MyAppVersion}
 AppPublisher=Naofunyan
 AppCopyright=Copyright (C) 2026 Naofunyan
+UninstallDisplayIcon={app}\PocketDrop.exe
 
 ; Detects the running app via its named mutex and closes it gracefully before install/uninstall
 AppMutex=PocketDropSingleInstanceMutex

@@ -127,6 +127,14 @@ namespace PocketDrop
             }
         }
 
+        // Hide from Alt+Tab — this window is a floating tool, not an app window
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            var helper = new System.Windows.Interop.WindowInteropHelper(this);
+            AppHelpers.HideFromAltTab(helper.Handle);
+        }
+
         // Add safe external kill switch to clear and close window
         public void ForceClose()
         {
