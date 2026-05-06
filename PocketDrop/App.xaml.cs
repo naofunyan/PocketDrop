@@ -122,6 +122,20 @@ namespace PocketDrop
             // Hook into the global Windows message loop
             System.Windows.Interop.ComponentDispatcher.ThreadPreprocessMessage += ComponentDispatcher_ThreadPreprocessMessage;
 
+            // Warn Store users if the GitHub version is also installed — only one can run at a time
+            bool isStoreVersion = Environment.ProcessPath?.Contains("WindowsApps") == true;
+            bool githubVersionInstalled = System.IO.File.Exists(
+                System.IO.Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                    "PocketDrop", "PocketDrop.exe"));
+
+            if (isStoreVersion && githubVersionInstalled)
+            {
+                string title = (string)System.Windows.Application.Current.Resources["Text_DuplicateInstallTitle"] ?? "Duplicate installation detected";
+                string msg = (string)System.Windows.Application.Current.Resources["Text_DuplicateInstallMsg"] ?? "You have both the GitHub and Microsoft Store versions of PocketDrop installed.\n\nPlease uninstall one of them to avoid conflicts.";
+                System.Windows.MessageBox.Show(msg, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+
             // Show welcome screen on first run
             if (!AppGlobals.HasSeenWelcome)
             {
@@ -140,7 +154,6 @@ namespace PocketDrop
         }
 
         // Check for updates in the background
-        // Check for updates in the background using the GitHub API
         private async Task CheckForUpdatesOnStartup()
         {
             try

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -10,6 +10,7 @@
 	<AssemblyVersion>1.1.0</AssemblyVersion>
 	<Version>1.1.0</Version>
 	<ApplicationIcon>Assets\PocketDrop.ico</ApplicationIcon>
+	<ApplicationManifest>app.manifest</ApplicationManifest>
 	<PublishSingleFile>true</PublishSingleFile>
 	<SelfContained>true</SelfContained>
 	<UseAppHost>true</UseAppHost>

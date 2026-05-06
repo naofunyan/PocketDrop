@@ -85,7 +85,6 @@ namespace PocketDrop
                 CheckUpdateBtn.Visibility = Visibility.Collapsed;
             }
         }
-        }
 
 
         // ================================================ //
