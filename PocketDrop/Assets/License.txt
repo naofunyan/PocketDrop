@@ -1,5 +1,5 @@
 END USER LICENSE AGREEMENT
-Last updated April 18, 2026
+Last updated May 11, 2026
 
 PocketDrop is licensed to You (End-User) by Naofunyan, for use only under the terms of this License Agreement.
 By downloading or using the Licensed Application, You indicate that You agree to be bound by all of the terms and conditions of this License Agreement. The Licensor reserves all rights not expressly granted to You. PocketDrop is to be used on devices that operate with the Windows operating system.

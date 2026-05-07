@@ -436,10 +436,10 @@ namespace PocketDrop
         private void ThirdParty_Click(object sender, MouseButtonEventArgs e) => LicenseOverlay.Visibility = Visibility.Visible;
         private void CloseLicense_Click(object sender, RoutedEventArgs e) => LicenseOverlay.Visibility = Visibility.Collapsed;
 
-        //private void Rate_Click(object sender, MouseButtonEventArgs e)
-        //{
-        //    AppHelpers.OpenUrl("ms-windows-store://review/?ProductId=YOUR_APP_ID");
-        //}
+        private void Rate_Click(object sender, MouseButtonEventArgs e)
+        {
+            AppHelpers.OpenUrl("ms-windows-store://review/?ProductId=9NBXRBXV5XN9");
+        }
 
         private void GetHelp_Click(object sender, MouseButtonEventArgs e)
         {
