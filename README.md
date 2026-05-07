@@ -12,6 +12,13 @@
 
 ⭐️ If you find PocketDrop useful, consider leaving a star to support the project ⭐️
 
+<a href="https://github.com/Naofunyan/PocketDrop/releases/latest" target="_self">
+  <img src="PocketDrop/Assets/gh-light.png" height="54" alt="Download from GitHub" />
+</a>
+<a href="https://apps.microsoft.com/detail/9nbxrbxv5xn9?referrer=appbadge&mode=full" target="_blank"  rel="noopener noreferrer">
+	<img src="https://get.microsoft.com/images/en-us%20light.svg" width="200"/>
+</a>
+
 </div>
 
 ## ℹ️ About
@@ -19,9 +26,7 @@
 PocketDrop is a free, open-source utility that delivers a seamless drag-and-drop experience with powerful built-in tools. Drag files into your floating Pocket, then move, share, or process them whenever you're ready - so you can get things done without ever breaking your workflow.
 
 > [!IMPORTANT]
-> * PocketDrop is currently in active development. The app is functional but may contain bugs or incomplete features. If you encounter any issues, please report them in the [Issues](https://github.com/Naofunyan/PocketDrop/issues) tab.
-> #### Liability:
-> * This application is provided "AS IS" and used at your own risk. The developers and contributors are not liable for any claims, damages, or other liability — including any legal consequences — arising from or in connection with the software or its use. All responsibility for outcomes rests entirely with the user.
+> PocketDrop is currently in active development. The app is functional but may contain bugs or incomplete features. If you encounter any issues, please report them in the [Issues](https://github.com/Naofunyan/PocketDrop/issues) tab.
 
 
 ## 🛠️ Technologies
@@ -50,7 +55,7 @@ PocketDrop supports most file formats, such as these popular types:
 
 | Format | Support |
 | --- | --- |
-| 📄 Text formats | .doc / .docx / .txt / .rtf / .msg / .csv / .pdf / .epub / .azw / .mobi|
+| 📄 Document formats | .doc / .docx / .txt / .rtf / .msg / .csv / .pdf / .epub / .azw / .mobi|
 | 🖼️ Image formats | .jpg / .png / .dng / .heif / .webp / .svg / .avif / .gif / .tiff / .bmp / .eps |
 | 🎵 Audio formats | .mp3 / .m4a / .flac / .wav / .wma / .aac |
 | 🎬 Video formats | .mp4 / .avi / .mpg / .mov / .wmv |
@@ -74,27 +79,10 @@ Speed up your workflow with these shortcuts (customizable in Settings):
 
 ## 🎯 How can it be improved?
 
-### Architecture
-- [ ] Implement MVVM design pattern.
-
-### Functionality
-- [ ] Publish PocketDrop to Microsoft Store.
+- [x] Publish PocketDrop to Microsoft Store.
 - [ ] Direct upload to cloud services (Google Drive, OneDrive).
 
 ## 💾 Download
-
-> [!WARNING]
-> **Note for Windows users (Microsoft Defender SmartScreen)**
-> As PocketDrop is a new open-source application, Windows SmartScreen may flag the installer as an "unrecognized app" and block the download in Microsoft Edge.
->
-> **This is a false positive due to the app being new.** To install safely:
-> 1. In Edge, hover over the blocked download and click the **`...`** (More actions) button.
-> 2. Click **Keep**.
-> 3. Click **Show more** ➔ **Keep anyway**.
-> 4. When you run the installer, if Windows protects your PC, click **More info** ➔ **Run anyway**.
->
-> PocketDrop is safe and has been verified by [VirusTotal](https://www.virustotal.com/gui/file/e65a4fbd5380048e67df6f7ea7f6c76efa1cebf8368ef53a67e0bb956af49a87/detection).
-
 You can check out the [latest release](https://github.com/naofunyan/PocketDrop/releases) to download the latest version of PocketDrop.
 
 - `x64` is for 64-bit Windows.
@@ -139,3 +127,6 @@ Run the installer (`PocketDrop_Setup.exe`) and follow the on-screen steps to ins
 ## ⚖️ License
 
 The source code is licensed under the [GNU General Public License v3.0](LICENSE). The name "PocketDrop", its logo, and related brand assets are the exclusive property of Naofunyan and **are not** covered by the GPLv3 license.
+
+#### Liability:
+This application is provided "AS IS" and used at your own risk. The developers and contributors are not liable for any claims, damages, or other liability — including any legal consequences — arising from or in connection with the software or its use. All responsibility for outcomes rests entirely with the user.
