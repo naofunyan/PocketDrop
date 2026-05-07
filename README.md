@@ -12,21 +12,17 @@
 
 ⭐️ If you find PocketDrop useful, consider leaving a star to support the project ⭐️
 
-<a href="https://github.com/Naofunyan/PocketDrop/releases/latest" target="_self">
-  <img src="PocketDrop/Assets/gh-light.png" height="54" alt="Download from GitHub" />
-</a>
-<a href="https://apps.microsoft.com/detail/9nbxrbxv5xn9?referrer=appbadge&mode=full" target="_blank"  rel="noopener noreferrer">
-	<img src="https://get.microsoft.com/images/en-us%20light.svg" width="200"/>
-</a>
+<a href="https://github.com/Naofunyan/PocketDrop/releases/latest" target="_self"><img src="PocketDrop/Assets/gh-light.png" height="54" alt="Download from GitHub" /></a>&nbsp;&nbsp;<a href="https://apps.microsoft.com/detail/9nbxrbxv5xn9?referrer=appbadge&mode=full" target="_blank" rel="noopener noreferrer"><img src="https://get.microsoft.com/images/en-us%20light.svg" width="200"/></a>
 
 </div>
 
 ## ℹ️ About
 
-PocketDrop is a free, open-source utility that delivers a seamless drag-and-drop experience with powerful built-in tools. Drag files into your floating Pocket, then move, share, or process them whenever you're ready - so you can get things done without ever breaking your workflow.
+PocketDrop is a free, open-source utility that delivers a seamless drag-and-drop experience with powerful built-in tools. Drag and stash your files into a floating Pocket, then move, share, or process them whenever you're ready — so you can get things done without ever breaking your workflow.
 
 > [!IMPORTANT]
-> PocketDrop is currently in active development. The app is functional but may contain bugs or incomplete features. If you encounter any issues, please report them in the [Issues](https://github.com/Naofunyan/PocketDrop/issues) tab.
+> * PocketDrop is currently in active development. The app is functional but may contain bugs or incomplete features. If you encounter any issues, please report them in the [Issues](https://github.com/Naofunyan/PocketDrop/issues) tab.
+> * The Microsoft Store version of PocketDrop receives updates slower than the GitHub version, as each update must go through a certification process that can take up to 3 business days. To get the latest version sooner, consider installing the GitHub version instead.
 
 
 ## 🛠️ Technologies
@@ -68,7 +64,7 @@ PocketDrop supports most file formats, such as these popular types:
 > [!NOTE]
 > If you encounter an issue with a specific format, please let me know in the [Issues](https://github.com/Naofunyan/PocketDrop/issues) tab.
 
-### ⌨️ Keyboard Shortcuts:
+### ⌨️ Keyboard shortcuts:
 
 Speed up your workflow with these shortcuts (customizable in Settings):
 
@@ -76,11 +72,17 @@ Speed up your workflow with these shortcuts (customizable in Settings):
 | --- | --- |
 | 🪄 Create a new Pocket | <kbd>Win</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd> |
 | 📋 Create a new Pocket from the clipboard | <kbd>Win</kbd> + <kbd>Shift</kbd> + <kbd>X</kbd> |
+| ⛓️‍💥 Force move files | Hold <kbd>Shift</kbd> while dragging files |
+| 🔗 Force copy files | Hold <kbd>Ctrl</kbd> while dragging files |
+
+### 🌐 Language support:
+
+PocketDrop is currently available in 🇬🇧 English and 🇻🇳 Vietnamese. If you would like to contribute to the translation, please let me know!
 
 ## 🎯 How can it be improved?
 
 - [x] Publish PocketDrop to Microsoft Store.
-- [ ] Direct upload to cloud services (Google Drive, OneDrive).
+
 
 ## 💾 Download
 You can check out the [latest release](https://github.com/naofunyan/PocketDrop/releases) to download the latest version of PocketDrop.
