@@ -242,11 +242,6 @@ namespace PocketDrop
             base.OnExit(e);
         }
 
-
-        // ================================================ //
-        // 1b. STARTUP CLEANUP
-        // ================================================ //
-
         // Deletes temp files that OnExit couldn't reach due to a crash or force-kill
         private static void CleanupOrphanedTempFiles()
         {
