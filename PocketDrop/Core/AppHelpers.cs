@@ -77,7 +77,7 @@ namespace PocketDrop
                     {
                         if (enable)
                         {
-                            key.SetValue("PocketDrop", $"\"{exePath}\"");
+                            key.SetValue("PocketDrop", $"\"{exePath}\" -startup");
                         }
                         else
                         {
@@ -107,6 +107,13 @@ namespace PocketDrop
 
         public static void OpenUrl(string url)
         {
+            // Only allow known-safe URI schemes — reject anything else silently
+            if (string.IsNullOrWhiteSpace(url) ||
+                (!url.StartsWith("https://", StringComparison.OrdinalIgnoreCase) &&
+                 !url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+                 !url.StartsWith("ms-windows-store://", StringComparison.OrdinalIgnoreCase)))
+                return;
+
             try
             {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
@@ -208,8 +215,8 @@ namespace PocketDrop
         // Security Utilities
         public static bool VerifyFileHash(string filePath, string expectedHash)
         {
-            // Skip hash check if no hash file exists on GitHub
-            if (string.IsNullOrWhiteSpace(expectedHash)) return true;
+            // Do not skip hash check if no hash file exists on GitHub
+            if (string.IsNullOrWhiteSpace(expectedHash)) return false;
 
             using (var sha256 = System.Security.Cryptography.SHA256.Create())
             using (var stream = System.IO.File.OpenRead(filePath))

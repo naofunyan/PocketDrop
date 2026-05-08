@@ -1,4 +1,4 @@
-﻿// PocketDrop
+// PocketDrop
 // Copyright (C) 2026 Naofunyan
 //
 // This program is free software: you can redistribute it and/or modify
@@ -62,6 +62,17 @@ namespace PocketDrop
                             if (string.IsNullOrEmpty(exePath) && !string.IsNullOrEmpty(installLocation) && Directory.Exists(installLocation))
                             {
                                 exePath = Directory.GetFiles(installLocation, "*.exe").FirstOrDefault();
+                            }
+
+                            // Reject paths outside known safe installation directories
+                            // This blocks UNC paths (\\server\...), user-writable locations, and path traversal
+                            if (!string.IsNullOrEmpty(exePath))
+                            {
+                                bool isSafePath =
+                                    exePath.StartsWith(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), StringComparison.OrdinalIgnoreCase) ||
+                                    exePath.StartsWith(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), StringComparison.OrdinalIgnoreCase) ||
+                                    exePath.StartsWith(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), StringComparison.OrdinalIgnoreCase);
+                                if (!isSafePath) continue;
                             }
 
                             if (!string.IsNullOrEmpty(exePath) && File.Exists(exePath) && !seenPaths.Contains(exePath))

@@ -31,7 +31,7 @@ namespace PocketDrop
         {
             SentrySdk.Init(options =>
             {
-                options.Dsn = "https://4d1f664fbd5da3c2414771f1ca89870e@o4511181788741632.ingest.de.sentry.io/4511181794050128";
+                options.Dsn = "https://e648f9ee85a77e2b80b0a2fb7d21ed21@o4511181788741632.ingest.de.sentry.io/4511181794050128";
                 options.IsGlobalModeEnabled = true;
                 options.SendDefaultPii = false;
             });
@@ -150,6 +150,9 @@ namespace PocketDrop
             // Build and launch the System Tray
             InitializeSystemTray();
 
+            // Clean up any temp files orphaned by a previous crash or force-kill
+            CleanupOrphanedTempFiles();
+
             _ = CheckForUpdatesOnStartup();
         }
 
@@ -237,6 +240,41 @@ namespace PocketDrop
             _appMutex?.ReleaseMutex();
             _appMutex?.Dispose();
             base.OnExit(e);
+        }
+
+
+        // ================================================ //
+        // 1b. STARTUP CLEANUP
+        // ================================================ //
+
+        // Deletes temp files that OnExit couldn't reach due to a crash or force-kill
+        private static void CleanupOrphanedTempFiles()
+        {
+            // 1. Delete leftover session temp files (clipboard captures, compressed folders, etc.)
+            try
+            {
+                string tempFolder = Path.GetTempPath();
+                foreach (string file in Directory.GetFiles(tempFolder, "PocketDrop_*"))
+                {
+                    try { File.Delete(file); } catch { }
+                }
+            }
+            catch { }
+
+            // 2. Clear the updates folder — the installer is no longer needed after it runs
+            try
+            {
+                string updateFolder = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "PocketDrop", "Updates");
+
+                if (Directory.Exists(updateFolder))
+                    foreach (string file in Directory.GetFiles(updateFolder))
+                    {
+                        try { File.Delete(file); } catch { }
+                    }
+            }
+            catch { }
         }
 
 

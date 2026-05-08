@@ -1,4 +1,4 @@
-﻿// PocketDrop
+// PocketDrop
 // Copyright (C) 2026 Naofunyan
 //
 // This program is free software: you can redistribute it and/or modify
@@ -115,15 +115,15 @@ namespace PocketDrop
                     PocketModifiers = Convert.ToUInt32(key.GetValue("PocketModifiers", MOD_WIN | MOD_SHIFT));
                     ClipboardModifiers = Convert.ToUInt32(key.GetValue("ClipboardModifiers", MOD_WIN | MOD_SHIFT));
 
-                    AppTheme = Convert.ToInt32(key.GetValue("AppTheme", 0));
+                    AppTheme = Math.Clamp(Convert.ToInt32(key.GetValue("AppTheme", 0)), 0, 2);
                     AppLanguage = key.GetValue("AppLanguage", "English").ToString();
                     HasSeenWelcome = Convert.ToBoolean(key.GetValue("HasSeenWelcome", false));
                     EnableMouseShake = Convert.ToBoolean(key.GetValue("EnableMouseShake", true));
-                    ShakeMinimumDistance = Convert.ToInt32(key.GetValue("ShakeMinimumDistance", 100));
+                    ShakeMinimumDistance = Math.Clamp(Convert.ToInt32(key.GetValue("ShakeMinimumDistance", 100)), 10, 1000);
                     DisableInGameMode = Convert.ToBoolean(key.GetValue("DisableInGameMode", true));
                     ExcludedApps = key.GetValue("ExcludedApps", "").ToString();
-                    PocketPlacement = Convert.ToInt32(key.GetValue("PocketPlacement", 0));
-                    ItemsLayoutMode = Convert.ToInt32(key.GetValue("ItemsLayoutMode", 0));
+                    PocketPlacement = Math.Clamp(Convert.ToInt32(key.GetValue("PocketPlacement", 0)), 0, 8);
+                    ItemsLayoutMode = Math.Clamp(Convert.ToInt32(key.GetValue("ItemsLayoutMode", 0)), 0, 1);
                     CloseWhenEmptied = Convert.ToBoolean(key.GetValue("CloseWhenEmptied", true));
                     CloseWhenOpenWith = Convert.ToBoolean(key.GetValue("CloseWhenOpenWith", false));
                     CloseWhenShare = Convert.ToBoolean(key.GetValue("CloseWhenShare", true));

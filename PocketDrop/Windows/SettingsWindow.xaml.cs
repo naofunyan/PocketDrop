@@ -540,6 +540,13 @@ namespace PocketDrop
                                         throw new Exception(noInstallerMsg);
                                     }
 
+                                    if (hashUrl == null)
+                                    {
+                                        string noChecksumMsg = (string)Application.Current.TryFindResource("Text_NoChecksumFound")
+                                                 ?? "Security check failed: No checksum file was found for this release. Update aborted.";
+                                        throw new Exception(noChecksumMsg);
+                                    }
+
                                     string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
                                     string updateFolder = System.IO.Path.Combine(localAppData, "PocketDrop", "Updates");
                                     System.IO.Directory.CreateDirectory(updateFolder);
@@ -549,26 +556,23 @@ namespace PocketDrop
                                     byte[] fileBytes = await AppHelpers.GlobalClient.GetByteArrayAsync(downloadUrl);
                                     await System.IO.File.WriteAllBytesAsync(tempInstallerPath, fileBytes);
 
-                                    if (hashUrl != null)
+                                    string hashFileContent = await AppHelpers.GlobalClient.GetStringAsync(hashUrl);
+                                    string expectedHash = "";
+
+                                    foreach (var line in hashFileContent.Split('\n'))
                                     {
-                                        string hashFileContent = await AppHelpers.GlobalClient.GetStringAsync(hashUrl);
-                                        string expectedHash = "";
-
-                                        foreach (var line in hashFileContent.Split('\n'))
+                                        if (line.ToLower().Contains(exeName) || !line.Contains(" "))
                                         {
-                                            if (line.ToLower().Contains(exeName) || !line.Contains(" "))
-                                            {
-                                                expectedHash = line.Split(' ')[0];
-                                                break;
-                                            }
+                                            expectedHash = line.Split(' ')[0];
+                                            break;
                                         }
+                                     }
 
-                                        if (!AppHelpers.VerifyFileHash(tempInstallerPath, expectedHash))
-                                        {
-                                            System.IO.File.Delete(tempInstallerPath);
-                                            string securityMsg = (string)Application.Current.TryFindResource("Text_SecurityAlert") ?? "Security Alert: Verification failed.";
-                                            throw new Exception(securityMsg);
-                                        }
+                                    if (!AppHelpers.VerifyFileHash(tempInstallerPath, expectedHash))
+                                    {
+                                        System.IO.File.Delete(tempInstallerPath);
+                                        string securityMsg = (string)Application.Current.TryFindResource("Text_SecurityAlert") ?? "Security Alert: Verification failed.";
+                                        throw new Exception(securityMsg);
                                     }
 
                                     System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
