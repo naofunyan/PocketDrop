@@ -18,7 +18,7 @@
 
 ## ℹ️ About
 
-PocketDrop is a free, open-source utility that delivers a seamless drag-and-drop experience with powerful built-in tools. Drag and stash your files into a floating Pocket, then move, share, or process them whenever you're ready — so you can get things done without ever breaking your workflow.
+PocketDrop is a free, open-source utility that delivers a seamless drag-and-drop experience with powerful built-in tools. Drag and stash your files into a floating Pocket, then move, share, or process them whenever you're ready - so you can get things done without ever breaking your workflow.
 
 > [!IMPORTANT]
 > * PocketDrop is currently in active development. The app is functional but may contain bugs or incomplete features. If you encounter any issues, please report them in the [Issues](https://github.com/Naofunyan/PocketDrop/issues) tab.
