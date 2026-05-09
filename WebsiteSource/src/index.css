@@ -1,0 +1,56 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --animate-wiggle: wiggle 0.5s ease-in-out infinite;
+  --animate-pop-in: popIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-float-1: float1 3s ease-in-out infinite;
+  --animate-float-2: float2 4s ease-in-out infinite 1s;
+  --animate-float-3: float3 3.5s ease-in-out infinite 0.5s;
+  
+  --keyframes-wiggle: {
+    0%, 100% { transform: rotate(-10deg) translateX(-4px); }
+    50% { transform: rotate(10deg) translateX(4px); }
+  };
+  
+  --keyframes-pop-in: {
+    0% { transform: scale(0.8) translateY(20px); opacity: 0; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+  };
+
+  --keyframes-float1: {
+    0%, 100% { transform: translateY(0) rotate(-5deg); }
+    50% { transform: translateY(-10px) rotate(5deg); }
+  };
+
+  --keyframes-float2: {
+    0%, 100% { transform: translateY(0) rotate(5deg); }
+    50% { transform: translateY(-15px) rotate(-5deg); }
+  };
+
+  --keyframes-float3: {
+    0%, 100% { transform: translateY(0) rotate(-3deg); }
+    50% { transform: translateY(-8px) rotate(3deg); }
+  };
+  --color-primary-50: #fdf3f3;
+  --color-primary-100: #fce4e4;
+  --color-primary-200: #f8cbca;
+  --color-primary-300: #f2a7a5;
+  --color-primary-400: #e87270;
+  --color-primary-500: #dc4544;
+  --color-primary-600: #dd2c2f;
+  --color-primary-700: #b81e21;
+  --color-primary-800: #991d1f;
+  --color-primary-900: #7f1e20;
+  --color-primary-950: #450a0a;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
