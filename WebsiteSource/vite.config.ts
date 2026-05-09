@@ -1,18 +1,36 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+import { defineConfig, loadEnv } from 'vite';
 
-// https://vitejs.dev/config/
-export default defineConfig({
-  plugins: [react()],
+export default defineConfig(({ command, mode }) => {
+  const env = loadEnv(mode, '.', '');
 
-  // This ensures your CSS and images load correctly on GitHub Pages
-  base: './',
+  return {
+    // 1. THE SMART BASE PATH
+    base: command === 'build' ? '/PocketDrop/' : '/',
 
-  build: {
-    // Tells Vite to drop the compiled website exactly where GitHub expects it
-    outDir: '../docs',
+    // 2. KEEPS TAILWIND ALIVE
+    plugins: [react(), tailwindcss()],
 
-    // Wipes the old docs folder clean before every build so no junk is left behind
-    emptyOutDir: true
-  }
-})
+    define: {
+      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+    },
+
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, '.'),
+      },
+    },
+
+    // 3. THE GITHUB PAGES REDIRECT
+    build: {
+      outDir: '../docs',
+      emptyOutDir: true
+    },
+
+    server: {
+      hmr: process.env.DISABLE_HMR !== 'true',
+    },
+  };
+});
