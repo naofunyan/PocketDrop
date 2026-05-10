@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import { useTranslation } from '../context/TranslationContext';
+import logoSrc from '../assets/PocketDrop.png';
 
 const UKFlag = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 30" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 w-full h-full">
@@ -191,7 +192,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           <div className="flex flex-shrink min-w-0 items-center cursor-pointer mr-2">
-            <img src="src/assets/PocketDrop.png" alt="PocketDrop Logo" className="w-8 h-8 mr-2 rounded-lg shrink-0" />
+            <img src={logoSrc} alt="PocketDrop Logo" className="w-8 h-8 mr-2 rounded-lg shrink-0" />
             <span className="font-bold text-black dark:text-white text-xl tracking-tight truncate">PocketDrop</span>
           </div>
 
