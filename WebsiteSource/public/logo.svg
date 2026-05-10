@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="pocketDropGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#8b5cf6" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#pocketDropGradient)"/>
+  <path d="M256 120 C200 120 156 164 156 220 C156 260 178 290 256 380 C334 290 356 260 356 220 C356 164 312 120 256 120 Z" fill="#ffffff" opacity="0.9"/>
+  <circle cx="256" cy="210" r="40" fill="url(#pocketDropGradient)"/>
+</svg>

@@ -7,22 +7,25 @@ export const translations = {
     },
     hero: {
       title: "PocketDrop",
-      subtitle: "Drag. Drop. Effortlessly.",
+      subtitle: "Drag . Drop . Effortlessly",
       description: "Drag and stash your files into a floating Pocket, then move, share, or process them whenever you're ready - so you can get things done without ever breaking your workflow.",
-      availableOn: "Available on",
-      getFrom: "Get it from"
+      availableOn: "Download from",
+      getFrom: "Download from the"
     },
     highlights: {
       title: "Get the highlights.",
-      card1: "A powerful platform tailored for seamless workflow. Now that's smart.",
-      card2: "Unlimited potential with cloud synchronization. Superfast straight out of the box.",
-      card3: "Bank-level security protecting your most valuable assets."
+      card1: "Shake to summon",
+      card2: "Accept everything",
+      card3: "Seamless control",
+      card4: "Powerful built-in tools",
+      card5: "Always at your fingertips"
     },
     features: {
       feature1: {
         label: "Feature 1",
         title: "Shake to summon",
-        description: "Wiggle your mouse while dragging any item to instantly summon a Pocket right where you need it."
+        description: "Wiggle your mouse while dragging any item to instantly summon a Pocket right where you need it.",
+        description2: "Prefer shortcuts? Win + Shift + Z has you covered."
       },
       feature2: {
         label: "Feature 2",
@@ -75,7 +78,7 @@ export const translations = {
     },
     hero: {
       title: "PocketDrop",
-      subtitle: "Kéo. Thả. Nhẹ nhàng.",
+      subtitle: "Kéo . Thả . Nhẹ nhàng",
       description: "Kéo và cất tệp của bạn vào một Túi nổi, sau đó di chuyển, chia sẻ hoặc xử lý chúng bất cứ khi nào bạn sẵn sàng - nhờ đó bạn có thể hoàn thành công việc mà không bao giờ làm gián đoạn luồng công việc.",
       availableOn: "Khả dụng trên",
       getFrom: "Tải từ"
@@ -84,13 +87,18 @@ export const translations = {
       title: "Điểm nổi bật.",
       card1: "Nền tảng mạnh mẽ được tinh chỉnh cho luồng công việc mượt mà. Thật thông minh.",
       card2: "Tiềm năng không giới hạn với đồng bộ hóa đám mây. Siêu nhanh ngay khi mở hộp.",
-      card3: "Bảo mật cấp ngân hàng bảo vệ các tài sản giá trị nhất của bạn."
+      card3: "Bảo mật cấp ngân hàng bảo vệ các tài sản giá trị nhất của bạn.",
+      card4: "Cơ chế kéo thả trực quan như một phép màu.",
+      card5: "Cộng tác theo thời gian thực với các nhóm trên toàn cầu.",
+      card6: "Tích hợp sâu với các công cụ và dịch vụ yêu thích của bạn.",
+      card7: "Phân tích nâng cao để theo dõi năng suất của bạn."
     },
     features: {
       feature1: {
         label: "Tính năng 1",
         title: "Lắc để gọi",
-        description: "Lắc chuột của bạn trong khi kéo bất kỳ mục nào để gọi ngay một Túi ngay tại nơi bạn cần."
+        description: "Lắc chuột của bạn trong khi kéo bất kỳ mục nào để gọi ngay một Túi ngay tại nơi bạn cần.",
+        description2: "Thích phím tắt? Win + Shift + Z có thể giúp bạn."
       },
       feature2: {
         label: "Tính năng 2",

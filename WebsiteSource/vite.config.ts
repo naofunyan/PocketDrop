@@ -30,6 +30,11 @@ export default defineConfig(({ command, mode }) => {
     },
 
     server: {
+      // Force Vite to use a specific, empty port
+      port: 5173,
+      // Tell Vite to crash immediately if this port is taken, rather than getting hijacked
+      strictPort: true,
+
       hmr: process.env.DISABLE_HMR !== 'true',
     },
   };
