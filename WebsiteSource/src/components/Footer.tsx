@@ -2,9 +2,9 @@ import { Github, Tag, Bug, ShieldCheck, EyeOff, Heart } from 'lucide-react';
 import { useTranslation } from '../context/TranslationContext';
 import logoSrc from '../assets/PocketDrop.png';
 
-const GITHUB_URL = 'https://github.com/your-repo/pocketdrop';
-const RELEASES_URL = 'https://github.com/your-repo/pocketdrop/releases';
-const ISSUES_URL = 'https://github.com/your-repo/pocketdrop/issues';
+const GITHUB_URL = 'https://github.com/naofunyan/PocketDrop';
+const RELEASES_URL = 'https://github.com/naofunyan/PocketDrop/releases';
+const ISSUES_URL = 'https://github.com/naofunyan/PocketDrop/issues';
 
 export default function Footer() {
   const { t } = useTranslation();
@@ -20,11 +20,11 @@ export default function Footer() {
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <img src={logoSrc} alt="PocketDrop Logo" className="w-7 h-7 rounded-lg" />
-              <span className="font-bold text-black dark:text-white text-base tracking-tight uppercase">
+              <span className="font-bold text-black dark:text-white text-base tracking-tight">
                 PocketDrop
               </span>
             </div>
-            <p className="text-sm text-gray-400 dark:text-gray-500 pl-9">
+            <p className="font-oooh-baby text-2xl text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-[#ff5e62] pl-9">
               {t.footer.tagline}
             </p>
           </div>
@@ -78,18 +78,6 @@ export default function Footer() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-6">
           <p className="text-xs text-gray-400 dark:text-gray-500">
             {t.footer.rights.replace('{year}', new Date().getFullYear().toString())}
-          </p>
-          <p className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
-            {t.footer.madeWith}
-            <Heart className="w-3 h-3 text-[#dd2c2f] fill-[#dd2c2f]" aria-hidden="true" />
-            {t.footer.by}
-            <a
-              href="https://github.com/naofunyan"
-              target="_blank" rel="noreferrer"
-              className="text-gray-500 dark:text-gray-400 underline underline-offset-2 hover:no-underline"
-            >
-              Naofunyan
-            </a>
           </p>
         </div>
 

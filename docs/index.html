@@ -8,8 +8,17 @@
   <meta name="color-scheme" content="only light" />
   <meta name="darkreader-lock" />
   <title>PocketDrop</title>
-  <script type="module" crossorigin src="/PocketDrop/assets/index-DoPfk8fb.js"></script>
-  <link rel="stylesheet" crossorigin href="/PocketDrop/assets/index-DZEsISWq.css">
+  <script type="text/javascript">
+    document.onkeydown = function (event) {
+      event = (event || window.event);
+      if (event.keyCode == 123 || event.keyCode == 18) {
+        return false;
+      }
+    }
+    document.addEventListener('contextmenu', event => event.preventDefault());
+  </script>
+  <script type="module" crossorigin src="/PocketDrop/assets/index-BDCBwomE.js"></script>
+  <link rel="stylesheet" crossorigin href="/PocketDrop/assets/index-DErjBtmg.css">
 </head>
 
 <body>

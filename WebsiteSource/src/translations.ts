@@ -1,10 +1,5 @@
 export const translations = {
   en: {
-    nav: {
-      features: "Features",
-      howItWorks: "How it Works",
-      downloadNow: "Download Now"
-    },
     hero: {
       title: "PocketDrop",
       subtitle: "Drag . Drop . Effortlessly",
@@ -14,11 +9,11 @@ export const translations = {
     },
     highlights: {
       title: "Get the highlights.",
-      card1: "Shake to summon",
-      card2: "Accept everything",
-      card3: "Seamless control",
-      card4: "Powerful built-in tools",
-      card5: "Always at your fingertips"
+      card1: "Shake to summon.",
+      card2: "Accept everything.",
+      card3: "Seamless control.",
+      card4: "Powerful built-in tools.",
+      card5: "Always at your fingertips."
     },
     features: {
       feature1: {
@@ -45,26 +40,19 @@ export const translations = {
       feature5: {
         label: "Feature 5",
         title: "Always at your fingertips",
-        description: "Use keyboard shortcuts, access My Pockets, and explore more features via the system tray so the app is always ready when you need it."
+        description: "Don't worry about losing your files - every file dragged into a Pocket is automatically saved when closed, and you can reopen them anytime from the system tray."
       }
     },
     cta: {
       eyebrow: "Download PocketDrop",
       title: "Good tools shouldn't cost you a thing.",
-      description: "Made with care and kept free — no trial, no premium tier, no tracking. Just a handy little app that gets out of your way.",
+      description: "Made with care and kept free - no trial, no premium tier, no tracking. Just a handy little app that I hope makes your work a little easier (. ❛ ᴗ ❛.)",
       osNote: "Windows 10 or later",
       github: "Download from GitHub",
-      githubSub: "Latest release · .exe installer",
-      store: "Get it from Microsoft Store",
-      storeSub: "Auto-updates · sandboxed install",
-      hint: "Not sure which to pick?",
-      hintGithub: "GitHub",
-      hintMiddle: "is direct,",
-      hintStore: "the Store",
-      hintEnd: "auto-updates for you.",
+      store: "Download from the Microsoft Store",
       props: {
         free: "Free, forever",
-        freeDesc: "No trial. No premium tier. No price hike later.",
+        freeDesc: "No trial. No premium tier.",
         noAds: "No ads, ever",
         noAdsDesc: "You're not the product. There's nothing to sell.",
         openSource: "Open source",
@@ -72,123 +60,87 @@ export const translations = {
       }
     },
     footer: {
-      tagline: "Drag. Drop. Effortlessly.",
-      product: "Product",
-      pricing: "Pricing",
-      security: "Security",
-      updates: "Updates",
-      company: "Company",
-      about: "About",
-      careers: "Careers",
-      blog: "Blog",
-      contact: "Contact",
-      support: "Support",
-      privacy: "Privacy Policy",
+      tagline: "Drag. Drop. Effortlessly",
       viewGithub: "View on GitHub",
       releases: "Releases & changelog",
       reportBug: "Report a bug",
-      noData: "No data collected. Ever.",
+      noData: "No data collected.",
       noTracking: "No tracking. No accounts. No ads.",
       madeWith: "Made with",
       by: "by",
-      rights: "© {year} PocketDrop Inc. All rights reserved. Developed by Naofunyan."
+      rights: "© {year} PocketDrop. All rights reserved. Developed by Naofunyan."
     }
   },
   vi: {
-    nav: {
-      features: "Tính năng",
-      howItWorks: "Cách hoạt động",
-      downloadNow: "Tải ngay"
-    },
     hero: {
       title: "PocketDrop",
-      subtitle: "Kéo . Thả . Nhẹ nhàng",
-      description: "Kéo và cất tệp của bạn vào một Túi nổi, sau đó di chuyển, chia sẻ hoặc xử lý chúng bất cứ khi nào bạn sẵn sàng - nhờ đó bạn có thể hoàn thành công việc mà không bao giờ làm gián đoạn luồng công việc.",
-      availableOn: "Khả dụng trên",
-      getFrom: "Tải từ"
+      subtitle: "Kéo . Thả . Thật nhẹ nhàng",
+      description: "Kéo thả và cất gọn các tập tin vào một Pocket nổi trên màn hình, sau đó di chuyển, chia sẻ, hoặc xử lý chúng bất cứ khi nào bạn sẵn sàng - giúp bạn hoàn thành công việc mà không bị gián đoạn mạch làm việc.",
+      availableOn: "Tải xuống từ",
+      getFrom: "Tải xuống từ"
     },
     highlights: {
-      title: "Điểm nổi bật.",
-      card1: "Nền tảng mạnh mẽ được tinh chỉnh cho luồng công việc mượt mà. Thật thông minh.",
-      card2: "Tiềm năng không giới hạn với đồng bộ hóa đám mây. Siêu nhanh ngay khi mở hộp.",
-      card3: "Bảo mật cấp ngân hàng bảo vệ các tài sản giá trị nhất của bạn.",
-      card4: "Cơ chế kéo thả trực quan như một phép màu.",
-      card5: "Cộng tác theo thời gian thực với các nhóm trên toàn cầu.",
-      card6: "Tích hợp sâu với các công cụ và dịch vụ yêu thích của bạn.",
-      card7: "Phân tích nâng cao để theo dõi năng suất của bạn."
+      title: "Các điểm nổi bật.",
+      card1: "Lắc để gọi Pocket.",
+      card2: "Thả mọi thứ bạn muốn.",
+      card3: "Thao tác liền mạch.",
+      card4: "Tích hợp sẵn công cụ xử lý.",
+      card5: "Luôn sẵn sàng khi bạn cần."
     },
     features: {
       feature1: {
         label: "Tính năng 1",
-        title: "Lắc để gọi",
-        description: "Lắc chuột của bạn trong khi kéo bất kỳ mục nào để gọi ngay một Túi ngay tại nơi bạn cần.",
-        description2: "Thích phím tắt? Win + Shift + Z có thể giúp bạn."
+        title: "Lắc để gọi Pocket",
+        description: "Lắc chuột trong khi kéo bất kỳ mục nào để gọi Pocket.",
+        description2: "Bạn thích dùng phím tắt hơn? Win + Shift + Z luôn sẵn sàng."
       },
       feature2: {
         label: "Tính năng 2",
-        title: "Chấp nhận mọi thứ",
-        description: "Hoạt động mượt mà với thư mục, hình ảnh, video, tập tin âm thanh, URL và thậm chí cả các đoạn văn bản."
+        title: "Thả mọi thứ bạn muốn",
+        description: "Hoạt động mượt mà với thư mục, hình ảnh, video, tập tin âm thanh, đường link và cả các đoạn văn bản."
       },
       feature3: {
         label: "Tính năng 3",
-        title: "Kiểm soát liền mạch",
-        description: "Xem trước, sắp xếp lại hoặc xóa các mục trực tiếp bên trong Túi để bạn không bao giờ mất tập trung."
+        title: "Thao tác liền mạch",
+        description: "Xem trước, sắp xếp lại, hoặc xóa các mục ngay trong Pocket giúp bạn không bao giờ bị gián đoạn mạch làm việc."
       },
       feature4: {
         label: "Tính năng 4",
-        title: "Các công cụ tích hợp mạnh mẽ",
-        description: "Nén thành ZIP, thay đổi kích thước, chuyển đổi định dạng và mở hoặc chia sẻ các mục trực tiếp từ Túi một cách tức thì."
+        title: "Tích hợp sẵn công cụ xử lý",
+        description: "Nén thành tệp ZIP, đổi kích thước, chuyển đổi định dạng, và mở hoặc chia sẻ các tập tin tức thì ngay trong Pocket."
       },
       feature5: {
         label: "Tính năng 5",
-        title: "Luôn sẵn sàng trong tầm tay",
-        description: "Sử dụng phím tắt, truy cập Túi Của Tôi và khám phá thêm nhiều tính năng qua khay hệ thống để ứng dụng luôn sẵn sàng khi bạn cần."
+        title: "Luôn sẵn sàng khi bạn cần",
+        description: "Đừng lo mất dữ liệu - mọi tập tin kéo vào Pocket đều được tự động lưu lại khi đóng, và bạn có thể mở lại bất cứ lúc nào từ khay hệ thống."
       }
     },
     cta: {
-      eyebrow: "Tải PocketDrop",
-      title: "Công cụ tốt không cần tốn tiền.",
-      description: "Được tạo ra với tâm huyết và luôn miễn phí — không dùng thử, không gói cao cấp, không theo dõi. Chỉ là một ứng dụng nhỏ tiện lợi không làm phiền bạn.",
+      eyebrow: "Tải xuống PocketDrop",
+      title: "Trải nghiệm hoàn toàn miễn phí.",
+      description: "Hoàn toàn miễn phí - không bản dùng thử, không gói trả phí, không theo dõi người dùng. Chỉ là một ứng dụng đơn giản mà mình hy vọng có thể giúp công việc của bạn nhẹ nhàng hơn đôi chút (. ❛ ᴗ ❛.)",
       osNote: "Windows 10 trở lên",
       github: "Tải từ GitHub",
-      githubSub: "Phiên bản mới nhất · tệp cài đặt .exe",
       store: "Tải từ Microsoft Store",
-      storeSub: "Tự động cập nhật · cài đặt an toàn",
-      hint: "Chưa biết chọn cái nào?",
-      hintGithub: "GitHub",
-      hintMiddle: "là trực tiếp,",
-      hintStore: "Microsoft Store",
-      hintEnd: "sẽ tự động cập nhật cho bạn.",
       props: {
-        free: "Miễn phí mãi mãi",
-        freeDesc: "Không dùng thử. Không gói cao cấp. Không tăng giá sau này.",
+        free: "Hoàn toàn miễn phí",
+        freeDesc: "Không bản dùng thử. Không gói trả phí.",
         noAds: "Không có quảng cáo",
-        noAdsDesc: "Bạn không phải là sản phẩm. Không có gì để bán.",
+        noAdsDesc: "Bạn không phải là sản phẩm. Chẳng có gì để bán cả.",
         openSource: "Mã nguồn mở",
-        openSourceDesc: "Mã nguồn công khai. Xem chính xác những gì chạy trên máy của bạn."
+        openSourceDesc: "Toàn bộ mã nguồn đều được công khai. Bạn có thể xem chính xác những gì đang chạy trên máy tính của mình."
       }
     },
     footer: {
-      tagline: "Kéo. Thả. Nhẹ nhàng.",
-      product: "Sản phẩm",
-      pricing: "Bảng giá",
-      security: "Bảo mật",
-      updates: "Cập nhật",
-      company: "Công ty",
-      about: "Giới thiệu",
-      careers: "Tuyển dụng",
-      blog: "Blog",
-      contact: "Liên hệ",
-      support: "Hỗ trợ",
-      privacy: "Chính sách bảo mật",
+      tagline: "Kéo. Thả. Thật nhẹ nhàng",
       viewGithub: "Xem trên GitHub",
       releases: "Phiên bản & nhật ký thay đổi",
       reportBug: "Báo lỗi",
-      noData: "Không thu thập dữ liệu. Mãi mãi.",
+      noData: "Không thu thập dữ liệu.",
       noTracking: "Không theo dõi. Không tài khoản. Không quảng cáo.",
       madeWith: "Tạo với",
       by: "bởi",
-      rights: "© {year} PocketDrop Inc. Phân phối bảo lưu mọi quyền. Phát triển bởi Naofunyan."
+      rights: "© {year} PocketDrop. Bảo lưu mọi quyền. Phát triển bởi Naofunyan."
     }
   }
 };

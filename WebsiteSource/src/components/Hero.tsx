@@ -1,10 +1,22 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { useTranslation } from '../context/TranslationContext';
 import githubLogo from '../assets/github.svg';
 import microsoftLogo from '../assets/microsoft.svg';
+import heroVideoLight from '../assets/herol.webm';
+import heroVideoDark from '../assets/herod.webm';
 
 export default function Hero() {
   const { t } = useTranslation();
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <section className="pt-32 pb-20 lg:pt-40 lg:pb-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
@@ -54,13 +66,16 @@ export default function Hero() {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 lg:w-96 lg:h-96 bg-primary-600/10 rounded-full blur-[100px] animate-pulse"></div>
           <div className="absolute top-1/2 left-1/4 -translate-x-1/2 -translate-y-1/4 w-72 h-72 lg:w-96 lg:h-96 bg-[#ff5e62]/5 rounded-full blur-[100px]"></div>
 
-          {/* App Screen Image */}
-          <div className="relative w-full aspect-[4/3] rounded-2xl border border-black/10 dark:border-white/10 shadow-2xl overflow-hidden z-10">
-            <img
-              src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80"
-              alt="App Preview"
+          {/* App Screen Video */}
+          <div className="relative w-full aspect-[4/3] rounded-2xl border border-black/10 dark:border-white/10 shadow-2xl overflow-hidden z-10 bg-transparent flex items-center justify-center">
+            <video
+              src={isDark ? heroVideoDark : heroVideoLight}
+              autoPlay
+              loop
+              muted
+              playsInline
               className="w-full h-full object-cover rounded-2xl"
-            />
+            ></video>
           </div>
         </motion.div>
       </div>

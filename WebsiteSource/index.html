@@ -8,6 +8,15 @@
   <meta name="color-scheme" content="only light" />
   <meta name="darkreader-lock" />
   <title>PocketDrop</title>
+  <script type="text/javascript">
+    document.onkeydown = function (event) {
+      event = (event || window.event);
+      if (event.keyCode == 123 || event.keyCode == 18) {
+        return false;
+      }
+    }
+    document.addEventListener('contextmenu', event => event.preventDefault());
+  </script>
 </head>
 
 <body>
