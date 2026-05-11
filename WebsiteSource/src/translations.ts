@@ -49,10 +49,27 @@ export const translations = {
       }
     },
     cta: {
-      title: "Are you ready to try PocketDrop?",
-      description: "Download now and start organizing your files with the simplest and most powerful drop zone.",
-      github: "GitHub",
-      store: "Microsoft Store"
+      eyebrow: "Download PocketDrop",
+      title: "Good tools shouldn't cost you a thing.",
+      description: "Made with care and kept free — no trial, no premium tier, no tracking. Just a handy little app that gets out of your way.",
+      osNote: "Windows 10 or later",
+      github: "Download from GitHub",
+      githubSub: "Latest release · .exe installer",
+      store: "Get it from Microsoft Store",
+      storeSub: "Auto-updates · sandboxed install",
+      hint: "Not sure which to pick?",
+      hintGithub: "GitHub",
+      hintMiddle: "is direct,",
+      hintStore: "the Store",
+      hintEnd: "auto-updates for you.",
+      props: {
+        free: "Free, forever",
+        freeDesc: "No trial. No premium tier. No price hike later.",
+        noAds: "No ads, ever",
+        noAdsDesc: "You're not the product. There's nothing to sell.",
+        openSource: "Open source",
+        openSourceDesc: "The code is public. See exactly what runs on your machine."
+      }
     },
     footer: {
       tagline: "Drag. Drop. Effortlessly.",
@@ -67,6 +84,13 @@ export const translations = {
       contact: "Contact",
       support: "Support",
       privacy: "Privacy Policy",
+      viewGithub: "View on GitHub",
+      releases: "Releases & changelog",
+      reportBug: "Report a bug",
+      noData: "No data collected. Ever.",
+      noTracking: "No tracking. No accounts. No ads.",
+      madeWith: "Made with",
+      by: "by",
       rights: "© {year} PocketDrop Inc. All rights reserved. Developed by Naofunyan."
     }
   },
@@ -122,10 +146,27 @@ export const translations = {
       }
     },
     cta: {
-      title: "Bạn đã sẵn sàng dùng thử PocketDrop?",
-      description: "Tải xuống ngay và bắt đầu sắp xếp các tệp của bạn với vùng thả đơn giản và mạnh mẽ nhất.",
-      github: "GitHub",
-      store: "Microsoft Store"
+      eyebrow: "Tải PocketDrop",
+      title: "Công cụ tốt không cần tốn tiền.",
+      description: "Được tạo ra với tâm huyết và luôn miễn phí — không dùng thử, không gói cao cấp, không theo dõi. Chỉ là một ứng dụng nhỏ tiện lợi không làm phiền bạn.",
+      osNote: "Windows 10 trở lên",
+      github: "Tải từ GitHub",
+      githubSub: "Phiên bản mới nhất · tệp cài đặt .exe",
+      store: "Tải từ Microsoft Store",
+      storeSub: "Tự động cập nhật · cài đặt an toàn",
+      hint: "Chưa biết chọn cái nào?",
+      hintGithub: "GitHub",
+      hintMiddle: "là trực tiếp,",
+      hintStore: "Microsoft Store",
+      hintEnd: "sẽ tự động cập nhật cho bạn.",
+      props: {
+        free: "Miễn phí mãi mãi",
+        freeDesc: "Không dùng thử. Không gói cao cấp. Không tăng giá sau này.",
+        noAds: "Không có quảng cáo",
+        noAdsDesc: "Bạn không phải là sản phẩm. Không có gì để bán.",
+        openSource: "Mã nguồn mở",
+        openSourceDesc: "Mã nguồn công khai. Xem chính xác những gì chạy trên máy của bạn."
+      }
     },
     footer: {
       tagline: "Kéo. Thả. Nhẹ nhàng.",
@@ -140,6 +181,13 @@ export const translations = {
       contact: "Liên hệ",
       support: "Hỗ trợ",
       privacy: "Chính sách bảo mật",
+      viewGithub: "Xem trên GitHub",
+      releases: "Phiên bản & nhật ký thay đổi",
+      reportBug: "Báo lỗi",
+      noData: "Không thu thập dữ liệu. Mãi mãi.",
+      noTracking: "Không theo dõi. Không tài khoản. Không quảng cáo.",
+      madeWith: "Tạo với",
+      by: "bởi",
       rights: "© {year} PocketDrop Inc. Phân phối bảo lưu mọi quyền. Phát triển bởi Naofunyan."
     }
   }

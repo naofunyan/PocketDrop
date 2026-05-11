@@ -63,7 +63,7 @@ const LanguageToggle = ({ lang, toggleLanguage }: { lang: 'en' | 'vi', toggleLan
 
         <motion.div
           className="absolute top-[2px] left-[2px] w-7 h-7 bg-gradient-to-b from-white to-[#eaeaea] dark:from-[#f4f4f4] dark:to-[#bcbcbc] rounded-full shadow-[0_3px_6px_rgba(0,0,0,0.4),_inset_0_-3px_4px_rgba(0,0,0,0.15),_inset_0_3px_4px_rgba(255,255,255,0.9)] border border-black/5 dark:border-white/10 z-30"
-          animate={{ x: lang === 'en' ? 0 : 37 }}
+          animate={{ x: lang === 'en' ? -1 : 37 }}
           transition={{ type: "spring", stiffness: 500, damping: 30 }}
         />
       </button>
@@ -152,7 +152,7 @@ const ThemeToggle = ({ isDark, toggleDarkMode }: { isDark: boolean, toggleDarkMo
 
       <motion.div
         className="absolute top-[2px] left-[2px] w-[28px] h-[28px] rounded-full z-30"
-        animate={{ x: isDark ? 40 : 0 }}
+        animate={{ x: isDark ? 36 : 0 }}
         transition={{ type: "spring", stiffness: 500, damping: 30 }}
       >
         {/* Sun Circle */}
