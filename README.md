@@ -72,8 +72,8 @@ Speed up your workflow with these shortcuts (customizable in Settings):
 | --- | --- |
 | 🪄 Create a new Pocket | <kbd>Win</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd> |
 | 📋 Create a new Pocket from the clipboard | <kbd>Win</kbd> + <kbd>Shift</kbd> + <kbd>X</kbd> |
-| ⛓️‍💥 Force move files | Hold <kbd>Shift</kbd> while dragging files |
-| 🔗 Force copy files | Hold <kbd>Ctrl</kbd> while dragging files |
+| ⛓️‍💥 Force move files | Hold <kbd>Shift</kbd> while dragging items out of the Pocket |
+| 🔗 Force copy files | Hold <kbd>Ctrl</kbd> while dragging items out of the Pocket |
 
 ### 🌐 Language support:
 
@@ -131,4 +131,4 @@ Run the installer (`PocketDrop_Setup.exe`) and follow the on-screen steps to ins
 The source code is licensed under the [GNU General Public License v3.0](LICENSE). The name "PocketDrop", its logo, and related brand assets are the exclusive property of Naofunyan and **are not** covered by the GPLv3 license.
 
 #### Liability:
-This application is provided "AS IS" and used at your own risk. The developers and contributors are not liable for any claims, damages, or other liability — including any legal consequences — arising from or in connection with the software or its use. All responsibility for outcomes rests entirely with the user.
+This application is provided "AS IS" and used at your own risk. The developers and contributors are not liable for any claims, damages, or other liability - including any legal consequences - arising from or in connection with the software or its use. All responsibility for outcomes rests entirely with the user.
