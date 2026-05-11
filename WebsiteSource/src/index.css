@@ -107,11 +107,17 @@
 }
 
 :root {
-  color-scheme: light;
+  color-scheme: only light;
 }
 
 :root.dark {
   color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.dark) {
+    color-scheme: light;
+  }
 }
 
 @keyframes chip-drift {
