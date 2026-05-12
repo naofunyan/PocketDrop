@@ -1,4 +1,4 @@
-// PocketDrop
+ï»¿// PocketDrop
 // Copyright (C) 2026 Naofunyan
 //
 // This program is free software: you can redistribute it and/or modify
@@ -97,7 +97,7 @@ namespace PocketDrop
             InitializeComponent();
             this.DataContext = this;
 
-            // Start hidden — shake to reveal
+            // Start hidden ï¿½ shake to reveal
             this.Opacity = 0;
             this.IsHitTestVisible = false;
 
@@ -278,19 +278,32 @@ namespace PocketDrop
                         // Write the file to disk before requesting its icon from Windows
                         File.WriteAllText(filePath, $"[InternetShortcut]\nURL={uriResult.AbsoluteUri}");
 
-                        // Get the native WPF BitmapSource to preserve transparency
-                        using (ShellObject shellObj = ShellObject.FromParsingName(filePath))
+                        // Get the native WPF BitmapSource on a dedicated STA thread (Shell COM requirement)
+                        BitmapSource transparentIcon = null;
+                        try
                         {
-                            var transparentIcon = shellObj.Thumbnail.LargeBitmapSource;
-                            transparentIcon.Freeze();
-
-                            var safeUrlItem = new PocketItem { FileName = finalDomainName, FilePath = filePath, Icon = transparentIcon };
-                            PocketedItems.Add(safeUrlItem);
-
-                            if (!AppGlobals.SessionHistoryPaths.Contains(safeUrlItem.FilePath))
+                            transparentIcon = await RunOnStaThread(() =>
                             {
-                                AppGlobals.SessionHistory.Add(safeUrlItem);
-                            }
+                                using (ShellObject shellObj = ShellObject.FromParsingName(filePath))
+                                {
+                                    var src = shellObj.Thumbnail.LargeBitmapSource;
+                                    src?.Freeze();
+                                    return src;
+                                }
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            ex.Data["PocketDrop Context"] = "URL icon error";
+                            SentrySdk.CaptureException(ex);
+                        }
+
+                        var safeUrlItem = new PocketItem { FileName = finalDomainName, FilePath = filePath, Icon = transparentIcon };
+                        PocketedItems.Add(safeUrlItem);
+
+                        if (!AppGlobals.SessionHistoryPaths.Contains(safeUrlItem.FilePath))
+                        {
+                            AppGlobals.SessionHistory.Add(safeUrlItem);
                         }
 
                         if (StatusContainer != null) StatusContainer.Visibility = Visibility.Collapsed;
@@ -475,17 +488,31 @@ namespace PocketDrop
 
                         File.WriteAllText(filePath, $"[InternetShortcut]\nURL={uriResult.AbsoluteUri}");
 
-                        using (ShellObject shellObj = ShellObject.FromParsingName(filePath))
+                        // Get the native WPF BitmapSource on a dedicated STA thread (Shell COM requirement)
+                        BitmapSource transparentIcon = null;
+                        try
                         {
-                            var transparentIcon = shellObj.Thumbnail.LargeBitmapSource;
-                            transparentIcon.Freeze();
-
-                            var safeUrlItem = new PocketItem { FileName = finalDomainName, FilePath = filePath, Icon = transparentIcon };
-                            PocketedItems.Add(safeUrlItem);
-
-                            if (!AppGlobals.SessionHistoryPaths.Contains(safeUrlItem.FilePath))
-                                AppGlobals.SessionHistory.Add(safeUrlItem);
+                            transparentIcon = await RunOnStaThread(() =>
+                            {
+                                using (ShellObject shellObj = ShellObject.FromParsingName(filePath))
+                                {
+                                    var src = shellObj.Thumbnail.LargeBitmapSource;
+                                    src?.Freeze();
+                                    return src;
+                                }
+                            });
                         }
+                        catch (Exception ex)
+                        {
+                            ex.Data["PocketDrop Context"] = "URL icon error";
+                            SentrySdk.CaptureException(ex);
+                        }
+
+                        var safeUrlItem = new PocketItem { FileName = finalDomainName, FilePath = filePath, Icon = transparentIcon };
+                        PocketedItems.Add(safeUrlItem);
+
+                        if (!AppGlobals.SessionHistoryPaths.Contains(safeUrlItem.FilePath))
+                            AppGlobals.SessionHistory.Add(safeUrlItem);
                     }
                     // 2. Standard text snippet
                     else
@@ -617,7 +644,7 @@ namespace PocketDrop
                     : LogicalTreeHelper.GetParent(hit);
             }
 
-            // If all checks pass, the click is on empty space or a file — safe to drag
+            // If all checks pass, the click is on empty space or a file ï¿½ safe to drag
             startPoint = pos;
         }
 
@@ -2081,7 +2108,7 @@ namespace PocketDrop
             ExpandButton.IsChecked = false;
         }
 
-        // Closing the window — clears items and hides
+        // Closing the window ï¿½ clears items and hides
         private void CloseButton_Click(object sender, MouseButtonEventArgs e)
         {
             // 1. Log all current items to the Global History
@@ -2446,6 +2473,25 @@ namespace PocketDrop
             return false;
         }
 
+        // Runs a delegate on a dedicated STA thread, required by the Windows Shell COM API.
+        // Task.Run uses MTA ThreadPool threads which cause ShellException on LargeBitmapSource.
+        private static System.Threading.Tasks.Task<T> RunOnStaThread<T>(Func<T> func)
+        {
+            var tcs = new System.Threading.Tasks.TaskCompletionSource<T>(
+                System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var thread = new System.Threading.Thread(() =>
+            {
+                try   { tcs.SetResult(func()); }
+                catch (Exception ex) { tcs.SetException(ex); }
+            });
+            thread.SetApartmentState(System.Threading.ApartmentState.STA);
+            thread.IsBackground = true;
+            thread.Start();
+
+            return tcs.Task;
+        }
+
         // Load file icon
         private async System.Threading.Tasks.Task<System.Windows.Media.ImageSource> LoadFileIconAsync(string filePath)
         {
@@ -2475,8 +2521,8 @@ namespace PocketDrop
 
             try
             {
-                // 3. Request the icon from Windows when ready
-                return await System.Threading.Tasks.Task.Run(() =>
+                // 3. Request the icon from Windows when ready (must run on STA thread)
+                return await RunOnStaThread(() =>
                 {
                     try
                     {
@@ -2571,7 +2617,7 @@ namespace PocketDrop
             return null;
         }
 
-        // Drag & drop adorner — draws the insertion line above the UI
+        // Drag & drop adorner ï¿½ draws the insertion line above the UI
         public class DropLineAdorner : System.Windows.Documents.Adorner
         {
             private bool _isTopOrLeft;

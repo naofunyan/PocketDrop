@@ -42,25 +42,41 @@ namespace PocketDrop
         // Initialize Sentry for crash reporting
         private void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
         {
-            SentrySdk.CaptureException(e.Exception); // Send to Sentry
+            try
+            {
+                // Safely send to Sentry
+                if (e?.Exception != null)
+                {
+                    SentrySdk.CaptureException(e.Exception);
+                    SentrySdk.FlushAsync(TimeSpan.FromSeconds(2)).GetAwaiter().GetResult();
+                }
 
-            SentrySdk.FlushAsync(TimeSpan.FromSeconds(2)).GetAwaiter().GetResult(); // Flush Sentry with a 2s timeout before app exit
+                if (e != null) e.Handled = true;
 
-            e.Handled = true; // Suppress the default Windows error dialog
-
-            System.Windows.Application.Current.Shutdown();
+                // Use Environment.Exit instead of Application.Current.Shutdown() 
+                // This prevents null references if the app crashes before the UI initializes
+                Environment.Exit(1);
+            }
+            catch
+            {
+                // Ultimate fallback if Sentry itself crashes
+                Environment.Exit(1);
+            }
         }
 
         // The boot sequence
         private static Mutex _appMutex;
+        private static bool _ownsMutex;
+
         protected override async void OnStartup(StartupEventArgs e)
         {
             // Single-instance guard via named mutex
-            _appMutex = new Mutex(true, "PocketDropSingleInstanceMutex", out bool isNewInstance);
-            if (!isNewInstance)
+            _appMutex = new Mutex(true, "PocketDropSingleInstanceMutex", out _ownsMutex);
+
+            if (!_ownsMutex)
             {
-                // Another instance is already running — exit silently
-                System.Windows.Application.Current.Shutdown();
+                // Another instance is already running — exit silently and instantly
+                Environment.Exit(0);
                 return;
             }
             base.OnStartup(e);
@@ -236,9 +252,18 @@ namespace PocketDrop
                 catch { } // Skip locked files silently
             }
 
-            // Release the mutex cleanly on exit
-            _appMutex?.ReleaseMutex();
-            _appMutex?.Dispose();
+            // Only release if this specific instance owns the lock
+            if (_ownsMutex && _appMutex != null)
+            {
+                try
+                {
+                    _appMutex.ReleaseMutex();
+                }
+                catch { }
+
+                _appMutex.Dispose();
+            }
+
             base.OnExit(e);
         }
 
