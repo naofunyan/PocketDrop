@@ -39,20 +39,30 @@ export default function Hero() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center gap-4">
-            <button className="w-full sm:w-[190px] flex items-center justify-center gap-4 bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-black px-6 py-3.5 rounded-xl transition-colors">
+            <a
+              href="https://github.com/naofunyan/PocketDrop"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-[190px] flex items-center justify-center gap-4 bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-black px-6 py-3.5 rounded-xl transition-colors"
+            >
               <img src={githubLogo} alt="GitHub" className="w-8 h-8 invert dark:invert-0" />
               <div className="text-left flex flex-col justify-center space-y-0.5">
                 <div className="text-[10px] leading-tight uppercase font-medium text-white dark:text-black">{t.hero.availableOn}</div>
                 <div className="text-base font-semibold leading-tight">GitHub</div>
               </div>
-            </button>
-            <button className="w-full sm:w-[230px] flex items-center justify-center gap-4 bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-black px-6 py-3.5 rounded-xl transition-colors">
+            </a>
+            <a
+              href="https://apps.microsoft.com/detail/9nbxrbxv5xn9?hl=en-US&gl=VN"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-[230px] flex items-center justify-center gap-4 bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-black px-6 py-3.5 rounded-xl transition-colors"
+            >
               <img src={microsoftLogo} alt="Microsoft" className="w-8 h-8 ml-1" />
               <div className="text-left ml-1 flex flex-col justify-center space-y-0.5">
                 <div className="text-[10px] leading-tight uppercase font-medium text-white dark:text-black">{t.hero.getFrom}</div>
                 <div className="text-base font-semibold leading-tight">Microsoft Store</div>
               </div>
-            </button>
+            </a>
           </div>
         </motion.div>
 
