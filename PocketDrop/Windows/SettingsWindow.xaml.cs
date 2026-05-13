@@ -551,11 +551,25 @@ namespace PocketDrop
                                     string updateFolder = System.IO.Path.Combine(localAppData, "PocketDrop", "Updates");
                                     System.IO.Directory.CreateDirectory(updateFolder);
 
-                                    string tempInstallerPath = System.IO.Path.Combine(updateFolder, "PocketDrop_Update.exe");
+                                    // 1. Use the .tmp file pattern for safety
+                                    string finalInstallerPath = System.IO.Path.Combine(updateFolder, "PocketDrop_Update.exe");
+                                    string tempDownloadPath = System.IO.Path.Combine(updateFolder, "PocketDrop_Update.tmp");
 
-                                    byte[] fileBytes = await AppHelpers.GlobalClient.GetByteArrayAsync(downloadUrl);
-                                    await System.IO.File.WriteAllBytesAsync(tempInstallerPath, fileBytes);
+                                    // 2. Create a dedicated client just for the heavy download
+                                    using (var downloadClient = new System.Net.Http.HttpClient())
+                                    {
+                                        // Give it plenty of time to download the file (e.g., 10 minutes)
+                                        downloadClient.Timeout = TimeSpan.FromMinutes(10);
 
+                                        // GitHub requires a User-Agent header, so we add a generic one
+                                        downloadClient.DefaultRequestHeaders.UserAgent.ParseAdd("PocketDrop-Updater");
+
+                                        // Download directly into the .tmp file
+                                        byte[] fileBytes = await downloadClient.GetByteArrayAsync(downloadUrl);
+                                        await System.IO.File.WriteAllBytesAsync(tempDownloadPath, fileBytes);
+                                    }
+
+                                    // 3. We can still use the 5-second GlobalClient for the tiny hash string!
                                     string hashFileContent = await AppHelpers.GlobalClient.GetStringAsync(hashUrl);
                                     string expectedHash = "";
 
@@ -566,18 +580,24 @@ namespace PocketDrop
                                             expectedHash = line.Split(' ')[0];
                                             break;
                                         }
-                                     }
+                                    }
 
-                                    if (!AppHelpers.VerifyFileHash(tempInstallerPath, expectedHash))
+                                    // 4. Verify the hash on the .tmp file
+                                    if (!AppHelpers.VerifyFileHash(tempDownloadPath, expectedHash))
                                     {
-                                        System.IO.File.Delete(tempInstallerPath);
+                                        System.IO.File.Delete(tempDownloadPath);
                                         string securityMsg = (string)Application.Current.TryFindResource("Text_SecurityAlert") ?? "Security Alert: Verification failed.";
                                         throw new Exception(securityMsg);
                                     }
 
+                                    // 5. Hash passed! Convert it to an executable
+                                    if (System.IO.File.Exists(finalInstallerPath)) System.IO.File.Delete(finalInstallerPath);
+                                    System.IO.File.Move(tempDownloadPath, finalInstallerPath);
+
+                                    // 6. Run the installer
                                     System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                                     {
-                                        FileName = tempInstallerPath,
+                                        FileName = finalInstallerPath,
                                         Arguments = "/SILENT /SUPPRESSMSGBOXES /NORESTART",
                                         UseShellExecute = true
                                     });
