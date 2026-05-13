@@ -514,7 +514,6 @@ namespace PocketDrop
                                     string downloadUrl = null;
                                     string hashUrl = null;
                                     string exeName = null;
-
                                     foreach (System.Text.Json.JsonElement asset in root[0].GetProperty("assets").EnumerateArray())
                                     {
                                         string name = asset.GetProperty("name").GetString().ToLower();
@@ -530,7 +529,11 @@ namespace PocketDrop
                                         }
                                         else if (name.EndsWith(".sha256") || name.Contains("checksum"))
                                         {
-                                            hashUrl = assetUrl;
+                                            // Make sure the checksum file matches the system architecture too!
+                                            if (name.Contains(currentArch) || hashUrl == null)
+                                            {
+                                                hashUrl = assetUrl;
+                                            }
                                         }
                                     }
 
